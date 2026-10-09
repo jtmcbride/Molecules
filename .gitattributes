@@ -1,0 +1,3 @@
+# Preserve scientific source bytes, including their deposited whitespace.
+public/structures/*.cif -whitespace -text
+tests/fixtures/*.bcif binary

@@ -1,0 +1,110 @@
+import { expect, test } from '@playwright/test';
+import path from 'node:path';
+
+test('bundled structures, linked selection, representation controls, and saved session work', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await expect(page.getByText('1,701', { exact: true })).toBeVisible();
+  const canvas = page.locator('canvas');
+  await canvas.screenshot();
+  const bounds = await canvas.boundingBox();
+  await canvas.click({ position: { x: bounds!.width / 2, y: bounds!.height / 2 } });
+  await expect(page.locator('.residue-identity')).toBeVisible();
+  await expect(page.locator('.sequence-residue[data-selected="true"]')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Inspect BEN chain A 1', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Inspect BEN chain A 1', exact: true }).click();
+  await expect(page.locator('.residue-identity h2')).toHaveText('BEN');
+  await expect(page.locator('.atom-table tbody tr')).toHaveCount(9);
+  await page.getByRole('button', { name: /^Residue .* label 1 author / }).first().click();
+  await expect(page.locator('.sequence-residue[data-selected="true"]')).toHaveCount(1);
+  await expect(page.locator('.residue-identity h2')).not.toHaveText('BEN');
+  await page.getByRole('button', { name: 'Focus in 3D' }).click();
+  await page.getByRole('button', { name: 'Atoms', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Atoms', exact: true })).toHaveClass('active');
+  await page.getByRole('checkbox', { name: 'Water' }).check();
+  await page.getByRole('button', { name: 'Save session' }).click();
+  await expect(page.getByText(/Session saved in this browser/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await expect(page.locator('.sequence-residue[data-selected="true"]')).toHaveCount(1);
+  await expect(page.getByRole('checkbox', { name: 'Water' })).toBeChecked();
+  await expect(page.getByRole('button', { name: 'Atoms', exact: true })).toHaveClass('active');
+  await page.locator('.example-button').nth(1).click();
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await expect(page.locator('.chain-button')).toHaveCount(4);
+  await expect(page.locator('.ligand-button').filter({ hasText: 'HEM' })).toHaveCount(4);
+  await page.selectOption('[aria-label="Biological assembly"]', '1');
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await expect(page.locator('.viewer-pills')).toContainText('Assembly 1');
+  expect(errors).toEqual([]);
+});
+
+test('local structures preserve unresolved positions, conformers, models, and assembly copies', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await page.locator('input[type="file"]').setInputFiles(path.resolve('tests/fixtures/identity-edge-cases.cif'));
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Residue SER label 2 no coordinates' }).click();
+  await expect(page.getByText('Position 2 is unresolved')).toBeVisible();
+  await page.getByRole('button', { name: 'Residue ALA label 1 author 10A' }).click();
+  await expect(page.locator('.residue-identity')).toContainText('10A');
+  await expect(page.getByText(/Preferred conformer: B/)).toBeVisible();
+  await page.selectOption('[aria-label="Structural model"]', '1');
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await expect(page.locator('.viewer-pills')).toContainText('Model 2');
+  await page.selectOption('[aria-label="Biological assembly"]', '1');
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await expect(page.locator('.chain-button')).toHaveCount(2);
+  await expect(page.locator('.ligand-button')).toHaveCount(2);
+  await page.locator('.ligand-button').nth(1).click();
+  await expect(page.locator('.residue-identity h2')).toHaveText('BEN');
+  await page.getByRole('button', { name: 'Source & provenance' }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export structure manifest' }).click();
+  expect((await download).suggestedFilename()).toContain('structure.json');
+});
+
+test('invalid files and accessions recover; rapid requests cannot install an older structure', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await page.getByLabel('LOAD A STRUCTURE').fill('BAD');
+  await page.getByRole('button', { name: 'Load PDB structure' }).click();
+  await expect(page.getByRole('alert')).toContainText('Enter a PDB accession');
+  await page.getByRole('button', { name: 'Open bundled example' }).click();
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await page.locator('input[type="file"]').setInputFiles({ name: 'broken.cif', mimeType: 'text/plain', buffer: Buffer.from('not a valid structure') });
+  await expect(page.getByRole('alert')).toBeVisible();
+  await page.getByRole('button', { name: 'Open bundled example' }).click();
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await page.locator('.example-button').nth(1).click();
+  await page.locator('.example-button').nth(0).click();
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await expect(page.locator('.pdb-badge')).toHaveText('3PTB');
+});
+
+test('bundled examples work when remote APIs fail and the layout fits a phone', async ({ page }) => {
+  await page.route('https://files.rcsb.org/**', route => route.abort());
+  await page.route('https://data.rcsb.org/**', route => route.abort());
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  const widths = await page.evaluate(() => ({ document: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+  expect(widths.document).toBeLessThanOrEqual(widths.viewport);
+  await page.getByRole('button', { name: 'About this explorer' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Explore the structure' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('opens a local BinaryCIF file using the same structural identities', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await page.locator('input[type="file"]').setInputFiles(path.resolve('tests/fixtures/3PTB.bcif'));
+  await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
+  await expect(page.getByText('1,701', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Inspect BEN chain A 1', exact: true }).click();
+  await expect(page.locator('.residue-identity h2')).toHaveText('BEN');
+  await expect(page.locator('.atom-table tbody tr')).toHaveCount(9);
+});
