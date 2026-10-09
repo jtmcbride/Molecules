@@ -41,7 +41,8 @@ describe('ligand interaction engine',()=>{
     expect(asp.ligand.role).toBe('positive_group');expect(asp.receptor.role).toBe('negative_group');
     expect(run.interactions.some(i=>i.type==='hydrophobic_contact')).toBe(true);
     expect(run.interactions.some(i=>i.type==='hydrogen_bond')).toBe(true);
-    expect(run.evaluation.hydrogen_bond.status).toBe('evaluated');
+    expect(run.evaluation.hydrogen_bond.status).toBe('partially_evaluated');
+    expect(run.qualityFlags.some(f=>f.startsWith('Missing/excluded heavy atoms'))).toBe(true);
     expect(run.interactions.filter(i=>i.type==='hydrogen_bond').every(i=>i.hydrogenMode==='implicit'&&i.classification==='candidate')).toBe(true);
     expect(new Set(run.interactions.map(i=>i.id)).size).toBe(run.interactions.length);
     expect(run.stats.ligandAtomCount).toBe(9);
@@ -54,20 +55,21 @@ describe('ligand interaction engine',()=>{
     const atoms=eligibleAtoms(p.snapshot,q);expect(atoms.excludedDisorderedResidues).toBe(1);
     const run=await analyze(p.structure,p.snapshot,p.selectionIndex,q,[]);
     expect(run.evaluation.hydrogen_bond.status).toBe('not_evaluated');
-    expect(run.interactions.every(i=>i.type==='proximity_contact')).toBe(true);
+    expect(run.interactions.every(i=>i.type==='proximity_contact'||i.type==='steric_clash')).toBe(true);
     q.parameters.conformerPolicy='preferred_residue';
     expect(eligibleAtoms(p.snapshot,q).receptor.length).toBeGreaterThan(atoms.receptor.length);
     for(const ligandAtom of atoms.ligand) p.snapshot.atomBuffer.occupancies[ligandAtom]=0;
     expect(()=>eligibleAtoms(p.snapshot,q)).toThrow('no eligible heavy atoms');
   });
-  it('analyzes an ion as proximity only without requesting unsupported bond chemistry',async()=>{
+  it('analyzes an ion for proximity and metal partners without requesting unsupported bond chemistry',async()=>{
     const p=await fixture('public/structures/3PTB.cif'),q=requestFor(p.snapshot);
     q.ligandResidueId=p.snapshot.ligands.find(l=>l.kind==='ion')!.residueId;
     const definitions=await loadChemicalDefinitions(p.snapshot,q,new AbortController().signal);
     expect(definitions).toEqual([]);
     const run=await analyze(p.structure,p.snapshot,p.selectionIndex,q,definitions);
     expect(run.stats.ligandAtomCount).toBe(1);expect(run.interactions.length).toBeGreaterThan(0);
-    expect(run.interactions.every(i=>i.type==='proximity_contact')).toBe(true);
+    expect(run.interactions.every(i=>i.type==='proximity_contact'||i.type==='metal_coordination')).toBe(true);
+    expect(run.evaluation.metal_coordination.status).toBe('evaluated');
     expect(run.evaluation.salt_bridge.status).toBe('not_evaluated');
   });
   it('loads a pinned CCD definition when embedded ligand bonds are missing',async()=>{
@@ -84,7 +86,11 @@ describe('ligand interaction engine',()=>{
     expect(run.chemistrySources.find(c=>c.componentId==='BEN')).toMatchObject({source:'ccd',contentHash:definition.contentHash,url:definition.url});
     expect(run.interactions.some(i=>i.type==='salt_bridge')).toBe(true);
     expect(analysisKey(without.snapshot,q,[])).not.toBe(run.cacheKey);
-    await expect(prepareStructure(source,0,'',[{...definition,componentId:'BAD'}])).rejects.toThrow('does not match');
+    const rejected=await prepareStructure(source,0,'',[{...definition,componentId:'BAD'}]);
+    expect(rejected.snapshot.provenance.qualityFlags.some(f=>f.includes('Rejected optional chemistry BAD'))).toBe(true);
+    const fallback=await analyze(rejected.structure,rejected.snapshot,rejected.selectionIndex,requestFor(rejected.snapshot),[{...definition,componentId:'BAD'}]);
+    expect(fallback.evaluation.hydrogen_bond.status).toBe('not_evaluated');
+    expect(fallback.interactions.some(i=>i.type==='proximity_contact')).toBe(true);
   });
   it('excludes deposited covalent and two-bond neighbors from noncovalent proximity',async()=>{
     const text=await readFile('tests/fixtures/hydrogen-geometry.cif','utf8');

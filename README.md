@@ -1,6 +1,6 @@
 # Molecular Interaction Explorer
 
-A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Phase 1 exploration and the first ligand-centered Phase 2 interaction engine are implemented.
+A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Phase 1 exploration and Phase 2 ligand-centered interaction analysis are implemented. [Phase 3 implementation plan](docs/PHASE_3_PLAN.md) covers residue mapping, functional annotations and evidence.
 
 ## Run locally
 
@@ -12,7 +12,7 @@ npm run dev
 ```
 
 ```sh
-npm test           # Scientific identity and coordinate regression tests
+npm test           # Scientific identity, geometry and reference regression tests
 npm run typecheck
 npm run build
 npx playwright install chromium
@@ -39,7 +39,7 @@ B factors are shown as deposited atomic properties, not as a general confidence 
 
 ## Phase 2 capabilities and scientific policy
 
-Select a ligand instance, choose polymer receptor chains, and **Run analysis**. The default ligand is BEN in 3PTB. Results identify its well-known ASP189 charged-group contact, alongside nearby atoms, hydrogen-bond candidates, and hydrophobic contacts. Contact rows select exact participating atoms, draw the selected interaction in 3D, and synchronize the receptor residue in the sequence. The binding neighborhood is the union of computed contact residues; it is shown as sticks in 3D and marked in the sequence.
+Select a ligand instance, choose polymer receptor chains, and **Run analysis**. The default ligand is BEN in 3PTB. Results identify its well-known ASP189 charged-group contact, alongside nearby atoms, hydrogen-bond candidates, and hydrophobic contacts. Contact rows select exact participating atoms, draw the selected interaction in 3D (centroid lines for rings; two legs through a water mediator), and synchronize the receptor residue in the sequence. The binding neighborhood is the union of computed contact residues; it is shown as sticks in 3D and marked in the sequence.
 
 | Result | Definition | Interpretation |
 | --- | --- | --- |
@@ -47,20 +47,32 @@ Select a ligand instance, choose polymer receptor chains, and **Run analysis**. 
 | Hydrogen bond | Mol* donor/acceptor typing, distance and orientation rules (default 3.5 Å, including sulfur) | Candidate with implicit hydrogens; geometry-supported when explicit hydrogens pass the rules |
 | Hydrophobic | Mol* nonpolar atom typing and refined contacts (default 4 Å) | Geometrically supported contact, without an energy estimate |
 | Salt bridge | Mol* opposing charged groups, minimum atom-pair distance (default 4 Å) | Candidate dependent on inferred protonation; solution pH is not modeled |
+| π-stacking | Aromatic ring centroids, planes and offsets (5.5 Å, 2 Å offset, 30° deviation) | Geometrically supported planar-ring contact |
+| Cation–π | Charged-group/ring centroid proximity and offset (6 Å, 2 Å offset) | Candidate dependent on inferred charge |
+| Metal coordination | Mol* element/partner typing and distance (3 Å), retaining coordinate bonds | Candidate; selected polymer partners and angles do not define a full coordination sphere |
+| Water bridge | Deposited-water mediator, two leg distances (2.5–4.1 Å) and bridge angle (71–140°) | Candidate; water hydrogen orientation is uncertain |
+| Steric clash | Published nonmetal VdW radii minus atom distance; overlap ≥0.6 Å | Heavy-atom overlap candidate, without an energetic score |
 
 A dedicated Web Worker parses an owned copy of source bytes and computes the result. Source arrays used by rendering are never detached. A uniform spatial grid searches proximity pairs; Mol* 5.13.1 supplies valence, features, geometry tests and refinement. The adapter translates those results into normalized atom and residue graphs. The engine is versioned separately from Mol*. The UI shows **not evaluated** when component chemistry is absent, preserving measured proximity rather than reporting misleading chemical zeroes.
 
-Chemistry comes from embedded `chem_comp_bond`, optional RCSB Chemical Component Dictionary downloads, or Mol* standard residue templates. External definitions are requested by component ID; local coordinate files are never sent to a server. Definitions and successful analyses are cached in IndexedDB. Fetch failure preserves proximity-only results for unknown chemistry. Downloads are bounded to 32 missing components per analysis; additional components stay explicitly untyped. Unknown receptor components are skipped for chemical classification. Ion targets support proximity only in this version.
+Chemistry comes from embedded `chem_comp_bond`, optional RCSB Chemical Component Dictionary downloads, or Mol* standard residue templates. External definitions are requested by component ID; local coordinate files are never sent to a server. Definitions and successful analyses are cached in IndexedDB. Fetch failure preserves measured proximity and supported overlap results for unknown chemistry. Downloads are bounded to 32 missing components per analysis; additional components stay explicitly untyped. Unknown receptor components are skipped for chemical classification. Ion targets support proximity and metal-coordination candidates without requesting unsupported ion bond definitions. Invalid optional dictionaries are reported and never cached as applied chemistry.
 
-Default policy excludes whole residues with alternate locations. Exploratory preferred-per-residue mode picks the recorded coherent residue conformer and labels its limitations. Hydrogen/deuterium/tritium atoms can supply geometry but are excluded from proximity contacts. Atoms with zero, negative, unknown, or below-threshold occupancy are omitted. Pairs separated by one or two covalent bonds in the selected context are excluded. Bond provenance distinguishes dictionary/explicit connectivity from geometry-inferred connectivity. Chemistry completeness is not established: missing heavy atoms can affect inferred valence.
+Default policy excludes whole residues with alternate locations. Exploratory preferred-per-residue mode picks the recorded coherent residue conformer and labels its limitations. Hydrogen/deuterium/tritium atoms can supply geometry but are excluded from proximity contacts. Atoms with zero, negative, unknown, or below-threshold occupancy are omitted. Pairs separated by one or two covalent bonds in the selected context are excluded from noncovalent results; metal-coordinate bond pairs are retained for coordination analysis. Bond provenance distinguishes dictionary/explicit connectivity from geometry-inferred connectivity. Standard amino-acid and component atom dictionaries identify missing/excluded heavy atoms. Nonmetal chemical classification skips incomplete endpoints and reports partial evaluation. Completeness of components without supported atom dictionaries is not established.
 
 Mol* assumes ARG/LYS/HIS positive and ASP/GLU negative in its ionic rules. The wrapper requires an explicit negative formal charge for nitrogen-only negative features. Mol* refinement retains selected closest hydrophobic contacts and suppresses hydrogen bonds overlapping salt bridges. Counts therefore are algorithm-dependent. No binding affinity, energy, or stability score is claimed.
 
 Results are keyed by source SHA-256, model, assembly, exact ligand/operator identity, receptor selection, all parameters, engine/parser/ruleset versions, and chemical-definition hashes. Changing the context or settings clears the displayed result. Cancellation aborts definition requests, terminates computation, and rejects stale results. Results above one million interactions are rejected with a smaller-selection request; no truncated scientific result is returned. Table pagination affects display only.
 
-**JSON** exports the complete analysis, settings, assumptions, evaluation status, chemistry provenance, normalized graph, bond data, atom identities and assembly coordinates. Unknown occupancies serialize as `null`. **CSV** exports all unfiltered interactions, atom names, residue identities, geometry and run/source references; use the accompanying JSON for full calculation parameters and evidence. Neither export includes the original coordinate-file bytes.
+**JSON** exports the complete analysis, settings, assumptions, evaluation status, chemistry provenance, normalized graph, bond data, atom identities and assembly coordinates. Ring centroids/offsets/plane angles, water mediator/legs/angles, metal selected-partner information and overlap/radii are preserved. Export schema is version 2. Unknown occupancies serialize as `null`. **CSV** exports all unfiltered interactions, atom names, residue identities, geometry and run/source references; use the accompanying JSON for full calculation parameters and evidence. Neither export includes the original coordinate-file bytes.
 
-Current validation includes independent spatial-versus-brute-force checks, the 3PTB/ASP189 regression, and a synthetic explicit-hydrogen case whose classification changes when hydrogen orientation reverses while heavy-atom distances remain fixed. This is not a claim of PLIP equivalence. Broader curated PLIP comparisons, protonation-aware preparation, large-assembly benchmarks, π interactions, metal coordination, water bridges, steric clashes and protein–protein analysis remain future work.
+Validation includes 31 deterministic scientific tests, controlled positive/negative geometry fixtures, a 100,000-atom spatial regression, and recorded comparisons against separately executed PLIP 3.0.0 on 3PTB, 1EVE and 1RMD. [Validation evidence and discrepancies](validation/README.md) document source hashes, preparation, reproducibility and remaining scientific limits. These checks do not claim PLIP equivalence or general detection accuracy. Protein–protein analysis, protonation preparation, energetic modeling and full large-assembly benchmarking remain later work.
+
+## Phase status
+
+- **Phase 1 — complete:** reliable structure exploration, identity and linked selection.
+- **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain.
+- **Phase 3 — planned:** [detailed implementation plan](docs/PHASE_3_PLAN.md) with data contracts, five milestones, source verification and acceptance tests. Implementation has not started.
+- **Phases 4–5 — pending:** structural comparison, mutations, protein interfaces and advanced analyses.
 
 ## GitHub and GitHub Pages
 

@@ -242,7 +242,7 @@ select { width: 100%; margin-top: 6px; color: #bac7d9; background: #172235; bord
 .analysis-status { margin-top: 20px; display: flex; gap: 10px; font-size: 12px; color: #9cc8d2; }
 .analysis-summary { border-top: 1px solid #293547; margin-top: 20px; padding-top: 20px; font-size: 11px; color: #a7b4c7; }
 .analysis-summary strong { color: #dde5f0; }.analysis-summary span { color: #546378; padding: 0 6px; }
-.interaction-counts { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin: 15px 0; }
+.interaction-counts { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin: 15px 0; }
 .interaction-counts button { border: 1px solid #2b394c; background: #121c2c; border-radius: 7px; text-align: left; padding: 12px 9px; color: #93a7c2; cursor: pointer; }
 .interaction-counts button.active { border-color: #5c939d; background: #142936; }
 .interaction-counts span { display: block; font-size: 9px; margin-bottom: 8px; }
@@ -264,3 +264,5 @@ select { width: 100%; margin-top: 6px; color: #bac7d9; background: #172235; bord
 @media (max-width: 700px) { .analysis-content { padding: 16px; }.interaction-counts { grid-template-columns: repeat(2,1fr); }.analysis-intro h2 { font-size: 17px; }.analysis-engine { display: none; }.analysis-panel .panel-heading small { display: none; } }
 
 .interaction-detail .contact-focus { margin-top: 12px; }
+
+.geometry-value { display: block; margin: 4px 0; }

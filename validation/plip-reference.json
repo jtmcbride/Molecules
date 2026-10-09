@@ -1,0 +1,795 @@
+{
+  "schemaVersion": 1,
+  "reference": {
+    "tool": "PLIP",
+    "version": "3.0.0",
+    "commit": "017a4e35115f26af70f9e822a63766c800835d9d",
+    "openbabelWheel": "3.1.1.23",
+    "numpy": "2.5.3",
+    "lxml": "6.1.3",
+    "preparation": "--nofix --nofixfile; default local hydrogen addition; no coordinate relaxation",
+    "citation": "doi:10.1093/nar/gkaf361"
+  },
+  "cases": [
+    {
+      "accession": "3PTB",
+      "ligand": {
+        "component": "BEN",
+        "authChain": "A",
+        "authNumber": "1"
+      },
+      "pdbSha256": "288f7954d4d013fa8eab3808e1037e2958e2dcd12c9eca65a3f1014404a9f9a2",
+      "cifSha256": "d2744dbacfb97ec9b4ff7f5cf4b204418bccf92e46b63130bfebb3916260232f",
+      "ligandPerception": {
+        "smiles": "N[CH](=[NH2])[CH]1=[CH2][CH2]=[CH2][CH2]=[CH2]1",
+        "aromaticRingCount": 1
+      },
+      "observations": [
+        {
+          "type": "hydrophobic_contact",
+          "receptor": {
+            "component": "VAL",
+            "authChain": "A",
+            "authNumber": "213"
+          },
+          "fields": {
+            "resnr": "213",
+            "restype": "VAL",
+            "reschain": "A",
+            "resnr_lig": "1",
+            "restype_lig": "BEN",
+            "reschain_lig": "A",
+            "dist": "3.70",
+            "ligcarbonidx": "1636",
+            "protcarbonidx": "1381",
+            "ligcoo": [
+              -0.914,
+              14.295,
+              18.885
+            ],
+            "protcoo": [
+              0.075,
+              10.897,
+              19.95
+            ]
+          }
+        },
+        {
+          "type": "hydrogen_bond",
+          "receptor": {
+            "component": "ASP",
+            "authChain": "A",
+            "authNumber": "189"
+          },
+          "fields": {
+            "resnr": "189",
+            "restype": "ASP",
+            "reschain": "A",
+            "resnr_lig": "1",
+            "restype_lig": "BEN",
+            "reschain_lig": "A",
+            "sidechain": "True",
+            "dist_h-a": "2.07",
+            "dist_d-a": "2.87",
+            "don_angle": "137.77",
+            "protisdon": "False",
+            "donoridx": "1640",
+            "donortype": "Ng+",
+            "acceptoridx": "1253",
+            "acceptortype": "O3",
+            "ligcoo": [
+              -1.762,
+              12.391,
+              15.309
+            ],
+            "protcoo": [
+              -3.203,
+              10.589,
+              13.598
+            ]
+          }
+        },
+        {
+          "type": "hydrogen_bond",
+          "receptor": {
+            "component": "GLY",
+            "authChain": "A",
+            "authNumber": "219"
+          },
+          "fields": {
+            "resnr": "219",
+            "restype": "GLY",
+            "reschain": "A",
+            "resnr_lig": "1",
+            "restype_lig": "BEN",
+            "reschain_lig": "A",
+            "sidechain": "False",
+            "dist_h-a": "1.93",
+            "dist_d-a": "2.82",
+            "don_angle": "147.90",
+            "protisdon": "False",
+            "donoridx": "1639",
+            "donortype": "Ng+",
+            "acceptoridx": "1416",
+            "acceptortype": "O2",
+            "ligcoo": [
+              -2.797,
+              14.235,
+              14.491
+            ],
+            "protcoo": [
+              -4.133,
+              16.632,
+              13.862
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "accession": "1EVE",
+      "ligand": {
+        "component": "E20",
+        "authChain": "A",
+        "authNumber": "2001"
+      },
+      "pdbSha256": "fb24b236ff283a684eb752bc10cb7ed276d03e83ddcf6e6dbe6b9b6a7e4fd806",
+      "cifSha256": "69d709df8ec6bb947e800791c4f67aed7097ce876d15c4cd91c28227139ec085",
+      "ligandPerception": {
+        "smiles": "CO[CH]1=[CH](OC)[CH2]=[CH]2[CH](=[CH2]1)[CH](=[OH])[C@@H](C2)CC1CCN(CC1)C[CH]1=[CH2][CH2]=[CH2][CH2]=[CH2]1",
+        "aromaticRingCount": 1
+      },
+      "observations": [
+        {
+          "type": "hydrophobic_contact",
+          "receptor": {
+            "component": "TRP",
+            "authChain": "A",
+            "authNumber": "84"
+          },
+          "fields": {
+            "resnr": "84",
+            "restype": "TRP",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist": "3.58",
+            "ligcarbonidx": "4344",
+            "protcarbonidx": "646",
+            "ligcoo": [
+              2.864,
+              68.675,
+              63.126
+            ],
+            "protcoo": [
+              2.91,
+              72.091,
+              62.057
+            ]
+          }
+        },
+        {
+          "type": "hydrophobic_contact",
+          "receptor": {
+            "component": "TRP",
+            "authChain": "A",
+            "authNumber": "84"
+          },
+          "fields": {
+            "resnr": "84",
+            "restype": "TRP",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist": "3.57",
+            "ligcarbonidx": "4343",
+            "protcarbonidx": "643",
+            "ligcoo": [
+              3.992,
+              68.847,
+              63.988
+            ],
+            "protcoo": [
+              3.131,
+              72.271,
+              63.431
+            ]
+          }
+        },
+        {
+          "type": "hydrophobic_contact",
+          "receptor": {
+            "component": "TRP",
+            "authChain": "A",
+            "authNumber": "84"
+          },
+          "fields": {
+            "resnr": "84",
+            "restype": "TRP",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist": "3.97",
+            "ligcarbonidx": "4346",
+            "protcarbonidx": "648",
+            "ligcoo": [
+              4.345,
+              68.39,
+              61.195
+            ],
+            "protcoo": [
+              3.958,
+              72.339,
+              61.173
+            ]
+          }
+        },
+        {
+          "type": "hydrophobic_contact",
+          "receptor": {
+            "component": "PHE",
+            "authChain": "A",
+            "authNumber": "330"
+          },
+          "fields": {
+            "resnr": "330",
+            "restype": "PHE",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist": "3.91",
+            "ligcarbonidx": "4336",
+            "protcarbonidx": "2568",
+            "ligcoo": [
+              4.307,
+              65.848,
+              68.533
+            ],
+            "protcoo": [
+              6.999,
+              68.6,
+              69.227
+            ]
+          }
+        },
+        {
+          "type": "hydrophobic_contact",
+          "receptor": {
+            "component": "PHE",
+            "authChain": "A",
+            "authNumber": "331"
+          },
+          "fields": {
+            "resnr": "331",
+            "restype": "PHE",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist": "3.52",
+            "ligcarbonidx": "4337",
+            "protcarbonidx": "2582",
+            "ligcoo": [
+              5.006,
+              65.637,
+              67.195
+            ],
+            "protcoo": [
+              6.75,
+              62.699,
+              66.341
+            ]
+          }
+        },
+        {
+          "type": "hydrophobic_contact",
+          "receptor": {
+            "component": "TYR",
+            "authChain": "A",
+            "authNumber": "334"
+          },
+          "fields": {
+            "resnr": "334",
+            "restype": "TYR",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist": "3.99",
+            "ligcarbonidx": "4334",
+            "protcarbonidx": "2607",
+            "ligcoo": [
+              1.839,
+              63.992,
+              69.558
+            ],
+            "protcoo": [
+              2.858,
+              66.023,
+              72.837
+            ]
+          }
+        },
+        {
+          "type": "hydrophobic_contact",
+          "receptor": {
+            "component": "TYR",
+            "authChain": "A",
+            "authNumber": "334"
+          },
+          "fields": {
+            "resnr": "334",
+            "restype": "TYR",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist": "3.79",
+            "ligcarbonidx": "4335",
+            "protcarbonidx": "2605",
+            "ligcoo": [
+              4.105,
+              64.576,
+              69.245
+            ],
+            "protcoo": [
+              4.228,
+              65.774,
+              72.835
+            ]
+          }
+        },
+        {
+          "type": "hydrogen_bond",
+          "receptor": {
+            "component": "PHE",
+            "authChain": "A",
+            "authNumber": "288"
+          },
+          "fields": {
+            "resnr": "288",
+            "restype": "PHE",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "sidechain": "False",
+            "dist_h-a": "3.20",
+            "dist_d-a": "4.00",
+            "don_angle": "138.57",
+            "protisdon": "True",
+            "donoridx": "2231",
+            "donortype": "Nam",
+            "acceptoridx": "4349",
+            "acceptortype": "O2",
+            "ligcoo": [
+              4.325,
+              61.375,
+              68.615
+            ],
+            "protcoo": [
+              6.813,
+              58.252,
+              68.754
+            ]
+          }
+        },
+        {
+          "type": "water_bridge",
+          "receptor": {
+            "component": "TYR",
+            "authChain": "A",
+            "authNumber": "121"
+          },
+          "fields": {
+            "resnr": "121",
+            "restype": "TYR",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist_a-w": "2.90",
+            "dist_d-w": "3.04",
+            "don_angle": "101.14",
+            "water_angle": "105.53",
+            "protisdon": "True",
+            "donor_idx": "952",
+            "donortype": "O2",
+            "acceptor_idx": "4339",
+            "acceptortype": "N3",
+            "water_idx": "4512",
+            "ligcoo": [
+              3.854,
+              67.635,
+              66.237
+            ],
+            "protcoo": [
+              0.451,
+              63.985,
+              66.564
+            ],
+            "watercoo": [
+              1.917,
+              66.004,
+              64.819
+            ]
+          }
+        },
+        {
+          "type": "water_bridge",
+          "receptor": {
+            "component": "PHE",
+            "authChain": "A",
+            "authNumber": "331"
+          },
+          "fields": {
+            "resnr": "331",
+            "restype": "PHE",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist_a-w": "2.68",
+            "dist_d-w": "3.64",
+            "don_angle": "154.57",
+            "water_angle": "122.29",
+            "protisdon": "True",
+            "donor_idx": "2576",
+            "donortype": "O2",
+            "acceptor_idx": "4349",
+            "acceptortype": "O2",
+            "water_idx": "4607",
+            "ligcoo": [
+              4.325,
+              61.375,
+              68.615
+            ],
+            "protcoo": [
+              8.24,
+              62.136,
+              72.568
+            ],
+            "watercoo": [
+              5.745,
+              60.322,
+              70.632
+            ]
+          }
+        },
+        {
+          "type": "water_bridge",
+          "receptor": {
+            "component": "TYR",
+            "authChain": "A",
+            "authNumber": "334"
+          },
+          "fields": {
+            "resnr": "334",
+            "restype": "TYR",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist_a-w": "3.78",
+            "dist_d-w": "3.89",
+            "don_angle": "142.64",
+            "water_angle": "116.41",
+            "protisdon": "True",
+            "donor_idx": "2603",
+            "donortype": "O2",
+            "acceptor_idx": "4352",
+            "acceptortype": "O2",
+            "water_idx": "4590",
+            "ligcoo": [
+              -0.925,
+              61.025,
+              72.321
+            ],
+            "protcoo": [
+              4.178,
+              62.654,
+              75.569
+            ],
+            "watercoo": [
+              0.421,
+              63.429,
+              74.908
+            ]
+          }
+        },
+        {
+          "type": "water_bridge",
+          "receptor": {
+            "component": "HIS",
+            "authChain": "A",
+            "authNumber": "440"
+          },
+          "fields": {
+            "resnr": "440",
+            "restype": "HIS",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist_a-w": "3.95",
+            "dist_d-w": "3.71",
+            "don_angle": "128.85",
+            "water_angle": "125.72",
+            "protisdon": "True",
+            "donor_idx": "3456",
+            "donortype": "Npl",
+            "acceptor_idx": "4339",
+            "acceptortype": "N3",
+            "water_idx": "4513",
+            "ligcoo": [
+              3.854,
+              67.635,
+              66.237
+            ],
+            "protcoo": [
+              8.102,
+              65.368,
+              61.983
+            ],
+            "watercoo": [
+              4.586,
+              65.274,
+              63.157
+            ]
+          }
+        },
+        {
+          "type": "pi_stacking",
+          "receptor": {
+            "component": "TRP",
+            "authChain": "A",
+            "authNumber": "279"
+          },
+          "fields": {
+            "resnr": "279",
+            "restype": "TRP",
+            "reschain": "A",
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "prot_idx_list": [
+              "2161",
+              "2163",
+              "2164",
+              "2165",
+              "2166",
+              "2167"
+            ],
+            "centdist": "4.12",
+            "angle": "13.40",
+            "offset": "1.82",
+            "type": "P",
+            "lig_idx_list": [
+              "4326",
+              "4327",
+              "4328",
+              "4329",
+              "4330",
+              "4331"
+            ],
+            "ligcoo": [
+              1.247,
+              61.384,
+              70.759
+            ],
+            "protcoo": [
+              -1.919,
+              59.37,
+              69.07
+            ]
+          }
+        },
+        {
+          "type": "cation_pi",
+          "receptor": {
+            "component": "PHE",
+            "authChain": "A",
+            "authNumber": "330"
+          },
+          "fields": {
+            "resnr": "330",
+            "restype": "PHE",
+            "reschain": "A",
+            "prot_idx_list": [
+              "2567",
+              "2568",
+              "2569",
+              "2570",
+              "2571",
+              "2572"
+            ],
+            "resnr_lig": "2001",
+            "restype_lig": "E20",
+            "reschain_lig": "A",
+            "dist": "4.06",
+            "offset": "0.71",
+            "protcharged": "False",
+            "lig_group": "tertamine",
+            "lig_idx_list": [
+              "4339"
+            ],
+            "ligcoo": [
+              3.854,
+              67.635,
+              66.237
+            ],
+            "protcoo": [
+              7.019,
+              69.385,
+              68.083
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "accession": "1RMD",
+      "ligand": {
+        "component": "ZN",
+        "authChain": "A",
+        "authNumber": "119"
+      },
+      "pdbSha256": "e8fd0d6d4065f6751e2af7a4d951040f6ff19086afef6b2b1e9862ce86db81a3",
+      "cifSha256": "f33191f865f601ab99ee992b11c233eac54f79e83c598fd5553ec03fa24c1db6",
+      "ligandPerception": {
+        "smiles": "[Zn]",
+        "aromaticRingCount": 0
+      },
+      "observations": [
+        {
+          "type": "metal_coordination",
+          "receptor": {
+            "component": "CYS",
+            "authChain": "A",
+            "authNumber": "41"
+          },
+          "fields": {
+            "resnr": "41",
+            "restype": "CYS",
+            "reschain": "A",
+            "resnr_lig": "119",
+            "restype_lig": "ZN",
+            "reschain_lig": "A",
+            "metal_idx": "915",
+            "metal_type": "Zn",
+            "target_idx": "312",
+            "target_type": "S",
+            "coordination": "4",
+            "dist": "2.37",
+            "location": "protein.sidechain",
+            "rms": "12.11",
+            "geometry": "tetrahedral",
+            "complexnum": "1",
+            "metalcoo": [
+              -0.311,
+              23.24,
+              29.837
+            ],
+            "targetcoo": [
+              0.489,
+              25.01,
+              28.485
+            ]
+          }
+        },
+        {
+          "type": "metal_coordination",
+          "receptor": {
+            "component": "HIS",
+            "authChain": "A",
+            "authNumber": "43"
+          },
+          "fields": {
+            "resnr": "43",
+            "restype": "HIS",
+            "reschain": "A",
+            "resnr_lig": "119",
+            "restype_lig": "ZN",
+            "reschain_lig": "A",
+            "metal_idx": "915",
+            "metal_type": "Zn",
+            "target_idx": "328",
+            "target_type": "N",
+            "coordination": "4",
+            "dist": "2.07",
+            "location": "protein.sidechain",
+            "rms": "12.11",
+            "geometry": "tetrahedral",
+            "complexnum": "1",
+            "metalcoo": [
+              -0.311,
+              23.24,
+              29.837
+            ],
+            "targetcoo": [
+              -2.338,
+              23.677,
+              29.815
+            ]
+          }
+        },
+        {
+          "type": "metal_coordination",
+          "receptor": {
+            "component": "CYS",
+            "authChain": "A",
+            "authNumber": "61"
+          },
+          "fields": {
+            "resnr": "61",
+            "restype": "CYS",
+            "reschain": "A",
+            "resnr_lig": "119",
+            "restype_lig": "ZN",
+            "reschain_lig": "A",
+            "metal_idx": "915",
+            "metal_type": "Zn",
+            "target_idx": "474",
+            "target_type": "S",
+            "coordination": "4",
+            "dist": "2.27",
+            "location": "protein.sidechain",
+            "rms": "12.11",
+            "geometry": "tetrahedral",
+            "complexnum": "1",
+            "metalcoo": [
+              -0.311,
+              23.24,
+              29.837
+            ],
+            "targetcoo": [
+              0.687,
+              23.464,
+              31.869
+            ]
+          }
+        },
+        {
+          "type": "metal_coordination",
+          "receptor": {
+            "component": "CYS",
+            "authChain": "A",
+            "authNumber": "64"
+          },
+          "fields": {
+            "resnr": "64",
+            "restype": "CYS",
+            "reschain": "A",
+            "resnr_lig": "119",
+            "restype_lig": "ZN",
+            "reschain_lig": "A",
+            "metal_idx": "915",
+            "metal_type": "Zn",
+            "target_idx": "493",
+            "target_type": "S",
+            "coordination": "4",
+            "dist": "2.25",
+            "location": "protein.sidechain",
+            "rms": "12.11",
+            "geometry": "tetrahedral",
+            "complexnum": "1",
+            "metalcoo": [
+              -0.311,
+              23.24,
+              29.837
+            ],
+            "targetcoo": [
+              0.238,
+              21.456,
+              28.576
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

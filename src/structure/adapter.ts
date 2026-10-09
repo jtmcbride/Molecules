@@ -179,7 +179,7 @@ export class MolecularViewer {
     this.clearInteractionLine();
     const epoch = this.interactionEpoch;
     if (!interaction || !this.snapshot) return;
-    const loci = this.lociForAtoms([...interaction.ligand.atomIndices, ...interaction.receptor.atomIndices]);
+    const loci = this.lociForAtoms([...interaction.ligand.atomIndices, ...interaction.receptor.atomIndices, ...(interaction.mediator?.atomIndices ?? [])]);
     if (loci) {
       this.plugin.managers.interactivity.lociSelects.selectOnly({ loci }, false);
       this.plugin.managers.camera.focusLoci(loci, { minRadius: 7, extraRadius: 4, durationMs: 250 });
@@ -187,7 +187,14 @@ export class MolecularViewer {
     const positions = this.snapshot.atomBuffer.positions;
     const [a,b] = interaction.closestAtomPair;
     const builder = LinesBuilder.create();
-    builder.addFixedLengthDashes(Vec3.create(positions[a*3],positions[a*3+1],positions[a*3+2]), Vec3.create(positions[b*3],positions[b*3+1],positions[b*3+2]), 0.2, 0);
+    const point = (i: number) => Vec3.create(positions[i*3],positions[i*3+1],positions[i*3+2]);
+    if (interaction.mediator) {
+      const water = point(interaction.mediator.atomIndices[0]);
+      builder.addFixedLengthDashes(point(a), water, 0.2, 0);
+      builder.addFixedLengthDashes(water, point(b), 0.2, 1);
+    } else if (interaction.geometry?.ligandCentroid && interaction.geometry.receptorCentroid) {
+      builder.addFixedLengthDashes(Vec3.create(...interaction.geometry.ligandCentroid), Vec3.create(...interaction.geometry.receptorCentroid), 0.2, 0);
+    } else builder.addFixedLengthDashes(point(a), point(b), 0.2, 0);
     const shape = Shape.create('Selected interaction', interaction, builder.getLines(), () => Color.fromHexStyle(INTERACTION_COLORS[interaction.type]), () => 1, () => `${interaction.type} ${interaction.distanceAngstrom.toFixed(2)} Å`);
     const representation = ShapeRepresentation<MolecularInteraction, Lines, typeof Lines.Params>(() => shape, Lines.Utils);
     await this.plugin.runTask(representation.createOrUpdate({ sizeFactor: 2.5 }, interaction));

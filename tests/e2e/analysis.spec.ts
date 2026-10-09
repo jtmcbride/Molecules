@@ -76,10 +76,47 @@ test('loads missing CCD chemistry and reuses cached definitions without sending 
   const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'JSON + provenance'}).click();
   const json=JSON.parse(await readFile((await (await downloaded).path())!,'utf8'));
   expect(json.analysis.chemistrySources.find((c:{componentId:string})=>c.componentId==='BEN').source).toBe('ccd');
-  expect(json.analysis.evaluation.salt_bridge.status).toBe('evaluated');
+  expect(json.analysis.evaluation.salt_bridge.status).toBe('partially_evaluated');
   expect(requests).toBe(1);
   await page.getByRole('spinbutton',{name:'Proximity cutoff',exact:true}).fill('4');
   await page.getByRole('button',{name:'Run analysis',exact:true}).click();
   await expect(page.locator('.analysis-summary')).toBeVisible();
   expect(requests).toBe(1);
+});
+
+for(const scenario of [
+  {file:'pi-stacking',type:'pi_stacking',detail:'Centroid distance (Å)'},
+  {file:'cation-pi',type:'cation_pi',detail:'Offset (Å)'},
+  {file:'metal-coordination',type:'metal_coordination',detail:'Metal: ZN'},
+  {file:'water-bridge',type:'water_bridge',detail:'Water legs (Å)'},
+  {file:'hydrogen-geometry',type:'steric_clash',detail:'Overlap (Å)'},
+])test(`inspects ${scenario.type} geometry and exports its participants`,async({page})=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
+  await page.locator('input[type=file]').setInputFiles(path.resolve(`tests/fixtures/${scenario.file}.cif`));
+  await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
+  if(scenario.type==='steric_clash') {
+    await page.getByRole('button',{name:/Show calculation settings/}).click();
+    await page.getByRole('spinbutton',{name:'Clash overlap minimum'}).fill('0.1');
+  }
+  await page.getByRole('button',{name:'Run analysis',exact:true}).click();
+  await expect(page.locator('.analysis-summary')).toBeVisible();
+  await page.selectOption('[aria-label="Interaction type filter"]',scenario.type);
+  await page.locator('.interaction-table tbody tr').first().getByRole('button',{name:/Inspect/}).click();
+  await expect(page.getByTestId('interaction-detail')).toContainText(scenario.detail);
+  await page.locator('canvas').screenshot();
+  const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'JSON + provenance'}).click();
+  const json=JSON.parse(await readFile((await (await downloaded).path())!,'utf8'));
+  expect(json.schemaVersion).toBe(2);expect(json.analysis.interactions.some((i:{type:string})=>i.type===scenario.type)).toBe(true);
+  if(scenario.type==='water_bridge'){
+    expect(json.analysis.interactions.find((i:{type:string})=>i.type==='water_bridge').mediator.atomIndices).toHaveLength(1);
+    await page.getByRole('button',{name:/Show calculation settings/}).click();
+    await page.getByRole('checkbox',{name:'Include deposited-water bridges'}).uncheck();
+    await expect(page.locator('.analysis-summary')).toHaveCount(0);
+    await page.getByRole('button',{name:'Run analysis',exact:true}).click();
+    await expect(page.locator('.analysis-summary')).toBeVisible();
+    await expect(page.locator('.analysis-content')).toContainText('Deposited-water analysis was disabled');
+    await expect(page.locator('.interaction-table tbody tr')).toHaveCount(0);
+  }
+  expect(errors).toEqual([]);
 });

@@ -1,0 +1,83 @@
+data_pi_stacking
+_entry.id GEOM
+_struct.title 'Synthetic pi-stacking analytic geometry fixture'
+loop_
+_entity.id
+_entity.type
+_entity.pdbx_description
+1 polymer 'Synthetic residue'
+2 non-polymer 'Synthetic ligand'
+loop_
+_entity_poly.entity_id
+_entity_poly.type
+_entity_poly.pdbx_seq_one_letter_code
+_entity_poly.pdbx_seq_one_letter_code_can
+1 'polypeptide(L)' X X
+loop_
+_entity_poly_seq.entity_id
+_entity_poly_seq.num
+_entity_poly_seq.mon_id
+_entity_poly_seq.hetero
+1 1 PHE n
+loop_
+_struct_asym.id
+_struct_asym.entity_id
+A 1
+B 2
+loop_
+_chem_comp.id
+_chem_comp.type
+_chem_comp.name
+PHE 'L-peptide linking' RESIDUE
+RNG non-polymer LIGAND
+loop_
+_chem_comp_bond.comp_id
+_chem_comp_bond.atom_id_1
+_chem_comp_bond.atom_id_2
+_chem_comp_bond.value_order
+_chem_comp_bond.pdbx_aromatic_flag
+RNG C1 C2 DOUB Y
+RNG C2 C3 SING Y
+RNG C3 C4 DOUB Y
+RNG C4 C5 SING Y
+RNG C5 C6 DOUB Y
+RNG C6 C1 SING Y
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.pdbx_PDB_ins_code
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.occupancy
+_atom_site.B_iso_or_equiv
+_atom_site.auth_seq_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+_atom_site.auth_atom_id
+_atom_site.pdbx_PDB_model_num
+ATOM 1 N N . PHE A 1 1 ? 4.4000 -2.0000 0.0000 1 10 1 PHE A N 1
+ATOM 2 C CA . PHE A 1 1 ? 4.1000 -0.6000 0.0000 1 10 1 PHE A CA 1
+ATOM 3 C C . PHE A 1 1 ? 5.4000 0.1000 0.0000 1 10 1 PHE A C 1
+ATOM 4 O O . PHE A 1 1 ? 6.4000 -0.5000 0.0000 1 10 1 PHE A O 1
+ATOM 5 C CB . PHE A 1 1 ? 2.8000 0.0000 0.0000 1 10 1 PHE A CB 1
+ATOM 6 C CG . PHE A 1 1 ? 1.4000 0.0000 0.0000 1 10 1 PHE A CG 1
+ATOM 7 C CD1 . PHE A 1 1 ? 0.7000 1.2124 0.0000 1 10 1 PHE A CD1 1
+ATOM 8 C CE1 . PHE A 1 1 ? -0.7000 1.2124 0.0000 1 10 1 PHE A CE1 1
+ATOM 9 C CZ . PHE A 1 1 ? -1.4000 0.0000 0.0000 1 10 1 PHE A CZ 1
+ATOM 10 C CE2 . PHE A 1 1 ? -0.7000 -1.2124 0.0000 1 10 1 PHE A CE2 1
+ATOM 11 C CD2 . PHE A 1 1 ? 0.7000 -1.2124 0.0000 1 10 1 PHE A CD2 1
+HETATM 12 C C1 . RNG B 2 . ? 1.4000 0.0000 3.6000 1 10 1 RNG B C1 1
+HETATM 13 C C2 . RNG B 2 . ? 0.7000 1.2124 3.6000 1 10 1 RNG B C2 1
+HETATM 14 C C3 . RNG B 2 . ? -0.7000 1.2124 3.6000 1 10 1 RNG B C3 1
+HETATM 15 C C4 . RNG B 2 . ? -1.4000 0.0000 3.6000 1 10 1 RNG B C4 1
+HETATM 16 C C5 . RNG B 2 . ? -0.7000 -1.2124 3.6000 1 10 1 RNG B C5 1
+HETATM 17 C C6 . RNG B 2 . ? 0.7000 -1.2124 3.6000 1 10 1 RNG B C6 1
+#

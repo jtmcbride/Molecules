@@ -7,7 +7,7 @@ export async function loadChemicalDefinitions(snapshot:StructureSnapshot,request
   if (!request.parameters.classifyChemistry || snapshot.ligands.find(l => l.residueId === request.ligandResidueId)?.kind === 'ion') return [];
   const {context}=eligibleAtoms(snapshot,request);
   const embedded=new Set(snapshot.chemistry.embeddedBondComponentIds);
-  const needed=[...new Set(context.map(i=>snapshot.residues[snapshot.atomBuffer.residueIndices[i]].componentId))]
+  const needed=[...new Set(context.filter(i=>snapshot.residues[snapshot.atomBuffer.residueIndices[i]].kind!=='water').map(i=>snapshot.residues[snapshot.atomBuffer.residueIndices[i]].componentId))]
     .filter(id=>!embedded.has(id)&&!STANDARD_COMPONENTS.has(id)&&/^[A-Z0-9]{1,8}$/.test(id));
   const definitions:ChemicalDefinition[]=[];
   // Bound network work; unsupported components remain explicitly untyped.

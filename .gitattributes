@@ -2,3 +2,6 @@
 public/structures/*.cif -whitespace -text
 tests/fixtures/*.bcif binary
 tests/fixtures/BEN-ccd.cif -whitespace -text
+
+tests/fixtures/reference/*.cif -whitespace -text
+tests/fixtures/reference/*.pdb -whitespace -text

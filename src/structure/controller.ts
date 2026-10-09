@@ -115,13 +115,15 @@ export class ExplorerController {
       const run = cached ?? await this.analysisClient.run(source, state.modelIndex, state.assemblyId, request, definitions, progress);
       if (current !== this.analysisGeneration) return;
       if (run.snapshotId !== snapshot.id) throw new Error('Analysis coordinates do not match the displayed structure.');
-      useExplorer.setState({ analysis: run, analysisPhase: 'ready', analysisStatus: 'Analysis ready', analysisCached: !!cached });
-      await this.enqueue(async () => { if (current === this.analysisGeneration) await this.viewer.showBindingSite(run.residues.map(r => r.residueId)); });
       if (!cached) {
-        await database.transaction('rw', database.analyses, database.chemicalDefinitions, async () => { await database.analyses.put(run); await database.chemicalDefinitions.bulkPut(definitions); }).catch(() => {
+        await database.transaction('rw', database.analyses, database.chemicalDefinitions, async () => { await database.analyses.put(run); await database.chemicalDefinitions.bulkPut(definitions.filter(d=>run.chemistrySources.some(c=>c.source==='ccd'&&c.componentId===d.componentId&&c.contentHash===d.contentHash))); }).catch(() => {
           if (current === this.analysisGeneration) useExplorer.setState({ notice: 'Analysis completed. Results could not be cached in browser storage.' });
         });
       }
+      if (current !== this.analysisGeneration) return;
+      useExplorer.setState({ analysis: run, analysisPhase: 'ready', analysisStatus: 'Analysis ready', analysisCached: !!cached });
+      const sites = [...run.residues.map(r => r.residueId), ...run.interactions.flatMap(i => i.mediator ? [i.mediator.residueId] : [])];
+      await this.enqueue(async () => { if (current === this.analysisGeneration) await this.viewer.showBindingSite(sites); });
     } catch(error) {
       if (current !== this.analysisGeneration) return;
       useExplorer.setState({ analysisPhase: 'error', analysisError: error instanceof Error ? error.message : 'Analysis could not be completed.', analysisStatus: 'Analysis failed' });
