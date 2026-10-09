@@ -82,6 +82,7 @@ export interface StructureSnapshot {
   ligands: LigandInstance[];
   atoms: AtomRecord[];
   atomBuffer: AtomBuffer;
+  chemistry: { embeddedBondComponentIds: string[] };
   provenance: {
     schemaVersion: 1;
     contentHash: string;

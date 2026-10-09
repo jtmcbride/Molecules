@@ -1,12 +1,16 @@
 import Dexie, { type EntityTable } from 'dexie';
+import type { AnalysisRun, ChemicalDefinition } from '../domain/analysis';
 import type { SessionDescriptor, StructureSource } from '../domain/types';
 
 class ExplorerDatabase extends Dexie {
   sources!: EntityTable<StructureSource, 'contentHash'>;
   sessions!: EntityTable<{ id: string; descriptor: SessionDescriptor }, 'id'>;
+  analyses!: EntityTable<AnalysisRun, 'cacheKey'>;
+  chemicalDefinitions!: EntityTable<ChemicalDefinition, 'componentId'>;
   constructor() {
     super('molecular-explorer');
     this.version(1).stores({ sources: 'contentHash, id, fetchedAt', sessions: 'id' });
+    this.version(2).stores({ sources: 'contentHash, id, fetchedAt', sessions: 'id', analyses: 'cacheKey, sourceHash, generatedAt', chemicalDefinitions: 'componentId' });
   }
 }
 export const database = new ExplorerDatabase();

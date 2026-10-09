@@ -13,12 +13,12 @@
 
 ## Remaining hardening after the first usable version
 
-- Verify deployed-origin requests and complete GitHub Pages publication after a repository is supplied.
-- Add atom/bond connectivity extraction with explicit source versus inferred bond provenance for Phase 2.
+- GitHub Pages publication is complete at https://jtmcbride.github.io/Molecules/.
+- Phase 2 now extracts bond connectivity with explicit versus geometry-inferred provenance. See PHASE_2_STATUS.md.
 - Move expensive extraction/parsing off the main thread where Mol* integration permits it; benchmark larger assemblies.
 - Add cache refresh/eviction and a larger fixture corpus for modified residues, microheterogeneity, and unusual polymer chains.
 - Improve keyboard-only 3D interaction and add optional camera-state persistence.
-- Decide and implement a validated cross-residue conformer policy before interaction classification.
+- Phase 2 defaults to excluding disordered residues and explicitly flags exploratory per-residue conformer selection.
 
 ## Verification
 

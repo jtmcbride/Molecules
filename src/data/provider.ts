@@ -31,7 +31,7 @@ async function fetchCoordinates(url: string, signal: AbortSignal) {
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(response.status === 404 ? 'No coordinates found for this accession.' : `Coordinate download failed (${response.status}). Try again or open a local file.`);
   const length = Number(response.headers.get('content-length'));
-  if (length > 40 * 1024 * 1024) throw new Error('This coordinate file exceeds the 40 MB Phase 1 limit.');
+  if (length > 40 * 1024 * 1024) throw new Error('This coordinate file exceeds the 40 MB limit.');
   return new Uint8Array(await response.arrayBuffer());
 }
 export async function loadPdb(input: string, signal: AbortSignal): Promise<StructureSource> {

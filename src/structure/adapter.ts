@@ -1,3 +1,9 @@
+import { Shape } from 'molstar/lib/mol-model/shape';
+import { ShapeRepresentation } from 'molstar/lib/mol-repr/shape/representation';
+import { Lines } from 'molstar/lib/mol-geo/geometry/lines/lines';
+import { LinesBuilder } from 'molstar/lib/mol-geo/geometry/lines/lines-builder';
+import { Vec3 } from 'molstar/lib/mol-math/linear-algebra';
+import { INTERACTION_COLORS, type MolecularInteraction } from '../domain/analysis';
 import { PluginContext } from 'molstar/lib/mol-plugin/context';
 import { PluginSpec } from 'molstar/lib/mol-plugin/spec';
 import { PluginBehaviors } from 'molstar/lib/mol-plugin/behavior';
@@ -12,12 +18,16 @@ import { ParamDefinition as PD } from 'molstar/lib/mol-util/param-definition';
 import type { Subscription } from 'rxjs';
 import type { StateObjectSelector } from 'molstar/lib/mol-state';
 import type { PluginStateObject as SO } from 'molstar/lib/mol-plugin-state/objects';
-import type { Representation, StructureOptions, StructureSource } from '../domain/types';
+import type { Representation, StructureOptions, StructureSource, StructureSnapshot } from '../domain/types';
 import { extractSnapshot, type SelectionIndex } from './extract';
 
 /** All Mol* objects and its identity translation stay inside this adapter. */
 export class MolecularViewer {
   readonly plugin: PluginContext;
+  private snapshot: StructureSnapshot | null = null;
+  private bindingSite: string | null = null;
+  private interactionEpoch = 0;
+  private interactionLine: ReturnType<typeof ShapeRepresentation<MolecularInteraction, Lines, typeof Lines.Params>> | null = null;
   private structure: Structure | null = null;
   private selections: SelectionIndex | null = null;
   private root: StateObjectSelector<SO.Molecule.Structure> | null = null;
@@ -68,6 +78,7 @@ export class MolecularViewer {
     return loc ? this.selections?.residueByLocation.get(`${loc.unit.id}:${loc.element}`) ?? null : null;
   }
   async load(source: StructureSource, modelIndex: number, assemblyId: string, representation: Representation, showWater: boolean) {
+    this.clearInteractionLine(); this.bindingSite = null; this.snapshot = null;
     this.structure = null; this.selections = null; this.root = null; this.polymer = null; this.water = null; this.polymerRepresentation = null; this.waterRepresentation = null;
     await this.plugin.clear();
     const data = await this.plugin.builders.data.rawData({ data: source.binary ? new Uint8Array(source.bytes) : new TextDecoder().decode(source.bytes), label: source.name });
@@ -88,6 +99,7 @@ export class MolecularViewer {
     const root = await this.plugin.builders.structure.createStructure(model, assemblyId ? { name: 'assembly', params: { id: assemblyId } } : { name: 'model', params: {} });
     if (!root.obj) throw new Error('The selected assembly contains no structure.');
     const extracted = extractSnapshot(root.obj.data, source, modelIndex, assemblyId);
+    this.snapshot = extracted.snapshot;
     this.root = root; this.structure = root.obj.data; this.selections = extracted.selectionIndex;
     this.polymer = await this.plugin.builders.structure.tryCreateComponentStatic(root, 'polymer') ?? null;
     if (this.polymer) {
@@ -135,6 +147,54 @@ export class MolecularViewer {
     this.plugin.managers.interactivity.lociSelects.selectOnly({ loci });
     if (focus) this.plugin.managers.camera.focusLoci(loci, { minRadius: 8, extraRadius: 5, durationMs: 250 });
   }
+  private lociForAtoms(atomIndices: number[]) {
+    if (!this.structure || !this.selections) return null;
+    const grouped = new Map<number, Set<number>>();
+    for (const i of atomIndices) {
+      const l = this.selections.locationsByAtom[i]; if (!l) continue;
+      if (!grouped.has(l.unitId)) grouped.set(l.unitId, new Set());
+      grouped.get(l.unitId)!.add(l.unitIndex);
+    }
+    return StructureElement.Loci(this.structure, [...grouped].map(([id, values]) => ({ unit: this.structure!.unitMap.get(id)!, indices: OrderedSet.ofSortedArray([...values].sort((a,b) => a-b) as StructureElement.UnitIndex[]) })));
+  }
+  async showBindingSite(residueIds: string[]) {
+    if (this.bindingSite) await PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.data, ref: this.bindingSite });
+    this.bindingSite = null;
+    if (!this.root || !this.snapshot || !residueIds.length) return;
+    const ids = new Set(residueIds), preferred = new Set(this.snapshot.atomBuffer.preferredAtomIndices);
+    const loci = this.lociForAtoms(this.snapshot.residues.filter(r => ids.has(r.id)).flatMap(r => r.atomIndices.filter(i => preferred.has(i))));
+    if (!loci) return;
+    const component = await this.plugin.builders.structure.tryCreateComponentFromExpression(this.root, StructureElement.Loci.toExpression(loci), 'analysis-binding-site');
+    if (component) {
+      this.bindingSite = component.ref;
+      await this.plugin.builders.structure.representation.addRepresentation(component, { type: 'ball-and-stick', color: 'element-symbol', typeParams: { sizeFactor: 0.2 } });
+    }
+  }
+  clearInteractionLine() {
+    ++this.interactionEpoch;
+    if (!this.interactionLine) return;
+    this.plugin.canvas3d?.remove(this.interactionLine); this.interactionLine.destroy(); this.interactionLine = null;
+  }
+  async selectInteraction(interaction: MolecularInteraction | null) {
+    this.clearInteractionLine();
+    const epoch = this.interactionEpoch;
+    if (!interaction || !this.snapshot) return;
+    const loci = this.lociForAtoms([...interaction.ligand.atomIndices, ...interaction.receptor.atomIndices]);
+    if (loci) {
+      this.plugin.managers.interactivity.lociSelects.selectOnly({ loci }, false);
+      this.plugin.managers.camera.focusLoci(loci, { minRadius: 7, extraRadius: 4, durationMs: 250 });
+    }
+    const positions = this.snapshot.atomBuffer.positions;
+    const [a,b] = interaction.closestAtomPair;
+    const builder = LinesBuilder.create();
+    builder.addFixedLengthDashes(Vec3.create(positions[a*3],positions[a*3+1],positions[a*3+2]), Vec3.create(positions[b*3],positions[b*3+1],positions[b*3+2]), 0.2, 0);
+    const shape = Shape.create('Selected interaction', interaction, builder.getLines(), () => Color.fromHexStyle(INTERACTION_COLORS[interaction.type]), () => 1, () => `${interaction.type} ${interaction.distanceAngstrom.toFixed(2)} Å`);
+    const representation = ShapeRepresentation<MolecularInteraction, Lines, typeof Lines.Params>(() => shape, Lines.Utils);
+    await this.plugin.runTask(representation.createOrUpdate({ sizeFactor: 2.5 }, interaction));
+    if (epoch !== this.interactionEpoch || !this.alive) { representation.destroy(); return; }
+    representation.setState({ pickable: false });
+    this.plugin.canvas3d?.add(representation); this.interactionLine = representation;
+  }
   async setRepresentation(representation: Representation) {
     if (!this.polymer) return;
     if (this.polymerRepresentation) await PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.data, ref: this.polymerRepresentation });
@@ -152,6 +212,7 @@ export class MolecularViewer {
   }
   resetCamera() { this.plugin.managers.camera.reset(undefined, 250); }
   dispose() {
+    this.clearInteractionLine();
     this.alive = false;
     this.resizeObserver?.disconnect();
     this.subscriptions.forEach(s => s.unsubscribe());

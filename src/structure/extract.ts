@@ -3,13 +3,15 @@ import { MmcifFormat } from 'molstar/lib/mol-model-formats/structure/mmcif';
 import { identity, optionalCifString, choosePreferredConformer } from '../domain/identity';
 import type { AtomRecord, ChainRecord, LigandInstance, ResidueRecord, StructureSnapshot, StructureSource } from '../domain/types';
 import molstarPackage from 'molstar/package.json';
+import { ComponentBond } from 'molstar/lib/mol-model-formats/structure/property/bonds/chem_comp';
 
 export interface SelectionIndex {
   residueByLocation: Map<string, string>;
   locationsByResidue: Map<string, { unitId: number; element: number; unitIndex: number }[]>;
+  locationsByAtom: { unitId: number; element: number; unitIndex: number }[];
 }
 export function extractSnapshot(structure: Structure, source: StructureSource, modelIndex: number, assemblyId: string): { snapshot: StructureSnapshot; selectionIndex: SelectionIndex } {
-  if (structure.elementCount > 250_000) throw new Error('This Phase 1 explorer supports up to 250,000 atoms. Choose the asymmetric unit or a smaller structure.');
+  if (structure.elementCount > 250_000) throw new Error('This explorer supports up to 250,000 atoms. Choose the asymmetric unit or a smaller structure.');
   const model = structure.models[0];
   const snapshotId = identity(source.contentHash, model.modelNum, assemblyId);
   const chains: ChainRecord[] = [];
@@ -19,7 +21,7 @@ export function extractSnapshot(structure: Structure, source: StructureSource, m
   const chainMap = new Map<string, number>();
   const residueMap = new Map<string, number>();
   const positions: number[] = [], residueIndices: number[] = [], occupancies: number[] = [], bFactors: number[] = [];
-  const selectionIndex: SelectionIndex = { residueByLocation: new Map(), locationsByResidue: new Map() };
+  const selectionIndex: SelectionIndex = { residueByLocation: new Map(), locationsByResidue: new Map(), locationsByAtom: [] };
   const loc = StructureElement.Location.create(structure);
   const qualityFlags = new Set<string>();
   for (const unit of structure.units) {
@@ -84,15 +86,16 @@ export function extractSnapshot(structure: Structure, source: StructureSource, m
       residues[residueIndex].atomIndices.push(atomIndex);
       selectionIndex.residueByLocation.set(`${unit.id}:${element}`, residueId);
       selectionIndex.locationsByResidue.get(residueId)!.push({ unitId: unit.id, element, unitIndex });
+      selectionIndex.locationsByAtom.push({ unitId: unit.id, element, unitIndex });
     }
   }
-  if (!atoms.length) throw new Error('No atomic coordinates were found. Coarse-grained models are not supported in Phase 1.');
+  if (!atoms.length) throw new Error('No atomic coordinates were found. Coarse-grained models are not supported by this explorer.');
   const preferredIndices: number[] = [];
   for (const residue of residues) {
     const preferred = choosePreferredConformer(residue.atomIndices.map(index => ({ index, name: atoms[index].name, altId: atoms[index].altId, occupancy: occupancies[index] })));
     residue.preferredAltId = preferred.preferredAltId;
     preferredIndices.push(...preferred.indices);
-    if (preferred.preferredAltId) qualityFlags.add('Alternate conformers are displayed as deposited. A residue-level preferred conformer is recorded for future analysis; cross-residue compatibility is unverified.');
+    if (preferred.preferredAltId) qualityFlags.add('Alternate conformers are displayed as deposited. A residue-level preferred conformer is recorded for analysis; cross-residue compatibility is unverified.');
   }
   for (const chain of chains) {
     if (chain.type !== 'polymer') continue;
@@ -109,6 +112,7 @@ export function extractSnapshot(structure: Structure, source: StructureSource, m
     snapshot: {
       id: snapshotId, sourceId: source.id, modelIndex, modelNumber: model.modelNum, assemblyId,
       chains, residues, atoms, ligands,
+      chemistry: { embeddedBondComponentIds: [...(ComponentBond.Provider.get(model)?.entries.keys() ?? [])].filter(Boolean).sort() },
       atomBuffer: { positions: new Float32Array(positions), residueIndices: new Uint32Array(residueIndices), occupancies: new Float32Array(occupancies), bFactors: new Float32Array(bFactors), preferredAtomIndices: new Uint32Array(preferredIndices), atomCount: atoms.length },
       provenance: { schemaVersion: 1, contentHash: source.contentHash, parser: `Mol* ${molstarPackage.version}`, createdAt: new Date().toISOString(), coordinateFrame: 'assembly', conformerPolicy: 'residue-mean-occupancy-v1', qualityFlags: [...qualityFlags] },
     },

@@ -1,3 +1,8 @@
+import { AnalysisClient } from '../analysis/client';
+import { analysisKey } from '../analysis/engine';
+import { loadChemicalDefinitions } from '../data/chemistry';
+import { database } from '../data/repository';
+import type { AnalysisParameters } from '../domain/analysis';
 import { useExplorer } from '../state/explorer';
 import type { Representation, SessionDescriptor, StructureSource } from '../domain/types';
 import { cacheSource, getMetadata, loadLocalFile, loadPdb } from '../data/provider';
@@ -5,6 +10,9 @@ import { getLastSession, saveSession } from '../data/repository';
 import type { MolecularViewer } from './adapter';
 
 export class ExplorerController {
+  private analysisGeneration = 0;
+  private analysisAbort: AbortController | null = null;
+  private analysisClient = new AnalysisClient();
   private generation = 0;
   private abort: AbortController | null = null;
   private queue: Promise<unknown> = Promise.resolve();
@@ -28,6 +36,7 @@ export class ExplorerController {
     if (source) await this.load(() => Promise.resolve(source), { modelIndex, assemblyId });
   }
   private async load(fetchSource: (signal: AbortSignal) => Promise<StructureSource>, restore?: Partial<SessionDescriptor>) {
+    this.invalidateAnalysis();
     const current = ++this.generation;
     this.abort?.abort(); this.abort = new AbortController();
     const signal = this.abort.signal;
@@ -46,7 +55,7 @@ export class ExplorerController {
       source = { ...source, metadata: source.metadata ?? result.metadata };
       const activeChainId = result.snapshot.chains.some(c => c.id === restore?.activeChainId) ? restore!.activeChainId! : result.snapshot.chains.find(c => c.type === 'polymer')?.id ?? null;
       const selectedResidueId = result.snapshot.residues.some(r => r.id === restore?.selectedResidueId) ? restore!.selectedResidueId! : null;
-      useExplorer.setState({ source, snapshot: result.snapshot, options: result.options, chainColors: result.chainColors, modelIndex, assemblyId, activeChainId, selectedResidueId, phase: 'ready', status: 'Structure ready' });
+      useExplorer.setState({ source, snapshot: result.snapshot, options: result.options, chainColors: result.chainColors, modelIndex, assemblyId, activeChainId, selectedResidueId, targetLigandId: result.snapshot.ligands.find(l => l.kind === 'ligand')?.residueId ?? result.snapshot.ligands[0]?.residueId ?? null, receptorChainIds: result.snapshot.chains.filter(c => c.type === 'polymer').map(c => c.id), phase: 'ready', status: 'Structure ready' });
       this.viewer.selectResidue(selectedResidueId);
       await cacheSource(source).catch(() => useExplorer.setState({ notice: 'Browser storage is unavailable. Exploration still works; this session will not be cached.' }));
       if (current !== this.generation) return;
@@ -66,13 +75,65 @@ export class ExplorerController {
     }
   }
   cancel() {
+    this.invalidateAnalysis();
     ++this.generation; this.abort?.abort();
     void this.enqueue(async () => { await this.viewer.plugin.clear(); });
     useExplorer.setState({ phase: 'idle', status: 'Loading cancelled', snapshot: null, selectedResidueId: null });
   }
   select(id: string | null, focus = false) {
+    useExplorer.setState({ selectedInteractionId: null }); this.viewer.clearInteractionLine();
     useExplorer.getState().selectResidue(id);
     this.viewer.selectResidue(id, focus);
+  }
+  private invalidateAnalysis() {
+    ++this.analysisGeneration; this.analysisAbort?.abort(); this.analysisClient.cancel();
+    useExplorer.setState({ analysis: null, analysisPhase: 'idle', analysisStatus: '', analysisError: null, analysisCached: false, selectedInteractionId: null });
+    this.viewer.clearInteractionLine();
+    void this.enqueue(async () => { this.viewer.clearInteractionLine(); await this.viewer.showBindingSite([]); });
+  }
+  cancelAnalysis() { this.invalidateAnalysis(); useExplorer.setState({ analysisStatus: 'Analysis cancelled.' }); }
+  setAnalysisTarget(id: string) { this.invalidateAnalysis(); useExplorer.setState({ targetLigandId: id }); }
+  setAnalysisParameters(parameters: Partial<AnalysisParameters>) { this.invalidateAnalysis(); useExplorer.setState(s => ({ analysisParameters: { ...s.analysisParameters, ...parameters } })); }
+  setReceptorChains(ids: string[]) { this.invalidateAnalysis(); useExplorer.setState({ receptorChainIds: ids }); }
+  async runAnalysis() {
+    const state = useExplorer.getState();
+    if (state.phase !== 'ready' || !state.source || !state.snapshot || !state.targetLigandId) return;
+    this.invalidateAnalysis();
+    const current = this.analysisGeneration;
+    const snapshot = state.snapshot, source = state.source;
+    const request = { ligandResidueId: state.targetLigandId, receptorChainIds: [...state.receptorChainIds], parameters: { ...state.analysisParameters } };
+    this.analysisAbort = new AbortController();
+    const signal = this.analysisAbort.signal;
+    const progress = (message: string) => { if (current === this.analysisGeneration) useExplorer.setState({ analysisStatus: message }); };
+    useExplorer.setState({ analysisPhase: 'running', analysisStatus: 'Preparing chemical definitions', analysisError: null });
+    try {
+      const definitions = await loadChemicalDefinitions(snapshot, request, signal);
+      if (current !== this.analysisGeneration) return;
+      const key = analysisKey(snapshot, request, definitions);
+      const cached = await database.analyses.get(key).catch(() => undefined);
+      if (current !== this.analysisGeneration) return;
+      const run = cached ?? await this.analysisClient.run(source, state.modelIndex, state.assemblyId, request, definitions, progress);
+      if (current !== this.analysisGeneration) return;
+      if (run.snapshotId !== snapshot.id) throw new Error('Analysis coordinates do not match the displayed structure.');
+      useExplorer.setState({ analysis: run, analysisPhase: 'ready', analysisStatus: 'Analysis ready', analysisCached: !!cached });
+      await this.enqueue(async () => { if (current === this.analysisGeneration) await this.viewer.showBindingSite(run.residues.map(r => r.residueId)); });
+      if (!cached) {
+        await database.transaction('rw', database.analyses, database.chemicalDefinitions, async () => { await database.analyses.put(run); await database.chemicalDefinitions.bulkPut(definitions); }).catch(() => {
+          if (current === this.analysisGeneration) useExplorer.setState({ notice: 'Analysis completed. Results could not be cached in browser storage.' });
+        });
+      }
+    } catch(error) {
+      if (current !== this.analysisGeneration) return;
+      useExplorer.setState({ analysisPhase: 'error', analysisError: error instanceof Error ? error.message : 'Analysis could not be completed.', analysisStatus: 'Analysis failed' });
+    }
+  }
+  selectInteraction(id: string) {
+    const interaction = useExplorer.getState().analysis?.interactions.find(i => i.id === id);
+    if (!interaction) return;
+    useExplorer.getState().selectResidue(interaction.receptor.residueId);
+    useExplorer.setState({ selectedInteractionId: id });
+    const generation = this.analysisGeneration;
+    void this.enqueue(async () => { if (generation === this.analysisGeneration && useExplorer.getState().selectedInteractionId === id) await this.viewer.selectInteraction(interaction); });
   }
   focusSelection() { this.viewer.selectResidue(useExplorer.getState().selectedResidueId, true); }
   async setRepresentation(representation: Representation) {
@@ -93,5 +154,5 @@ export class ExplorerController {
       useExplorer.setState({ notice: 'Session saved in this browser. It will reopen the next time you visit.' });
     } catch { useExplorer.setState({ notice: 'The session could not be saved. Browser storage may be full or disabled.' }); }
   }
-  dispose() { ++this.generation; this.abort?.abort(); this.viewer.dispose(); }
+  dispose() { ++this.analysisGeneration; this.analysisAbort?.abort(); this.analysisClient.cancel(); ++this.generation; this.abort?.abort(); this.viewer.dispose(); }
 }

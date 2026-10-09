@@ -1,3 +1,4 @@
+import { DEFAULT_PARAMETERS, type AnalysisParameters, type AnalysisRun } from '../domain/analysis';
 import { create } from 'zustand';
 import type { Representation, StructureOptions, StructureSnapshot, StructureSource } from '../domain/types';
 
@@ -16,9 +17,19 @@ interface ExplorerState {
   status: string;
   error: string | null;
   notice: string | null;
+  analysis: AnalysisRun | null;
+  analysisPhase: 'idle' | 'running' | 'ready' | 'error';
+  analysisStatus: string;
+  analysisError: string | null;
+  analysisCached: boolean;
+  targetLigandId: string | null;
+  receptorChainIds: string[];
+  analysisParameters: AnalysisParameters;
+  selectedInteractionId: string | null;
   selectResidue: (id: string | null) => void;
 }
 export const useExplorer = create<ExplorerState>((set, get) => ({
+  analysis: null, analysisPhase: 'idle', analysisStatus: '', analysisError: null, analysisCached: false, targetLigandId: null, receptorChainIds: [], analysisParameters: { ...DEFAULT_PARAMETERS }, selectedInteractionId: null,
   source: null, snapshot: null, options: { models: [], assemblies: [] }, chainColors: {},
   selectedResidueId: null, activeChainId: null, modelIndex: 0, assemblyId: '',
   representation: 'cartoon', showWater: false,

@@ -1,7 +1,7 @@
 {
   "name": "molecular-interaction-explorer",
-  "version": "0.1.0",
-  "description": "Browser-based molecular structure exploration with reliable residue identity.",
+  "version": "0.2.0",
+  "description": "Browser molecular exploration and reproducible ligand interaction analysis.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
