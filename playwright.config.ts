@@ -2,7 +2,9 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 60000,
+  // Software WebGL is CPU-bound; parallel browsers compete for the CI renderer.
+  workers: 1,
+  timeout: 90000,
   expect: { timeout: 20000 },
   fullyParallel: false,
   use: {

@@ -25,3 +25,9 @@
 - Functional residue mappings and evidence integration remain Phase 3.
 
 See README.md for exact definitions, defaults, uncertainty policy and export semantics.
+
+## Verification
+
+- Eighteen scientific tests pass, including geometry, CCD injection, unknown chemistry, covalent exclusions, assembly identity and occupancy/conformer policies.
+- Eight production-browser workflows cover exploration and analysis. Software-WebGL tests run serially to avoid competing CI renderers.
+- Live Pages checks pass for 3PTB, its biological assembly, and the 4HHB biological assembly, including contact selection and JSON export.
