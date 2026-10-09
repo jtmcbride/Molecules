@@ -180,6 +180,12 @@ test("restores pinned interpretation and analysis without scientific requests an
   ).toBeVisible();
   await page.getByRole("button", { name: "Run analysis", exact: true }).click();
   await expect(page.locator(".analysis-summary")).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Inspect Active site UniProt 200",
+      exact: true,
+    })
+    .click();
   const original = await exportJson(page);
   await page.getByRole("button", { name: "Save session", exact: true }).click();
   await expect(page.getByText(/Session saved in this browser/)).toBeVisible();
@@ -191,6 +197,12 @@ test("restores pinned interpretation and analysis without scientific requests an
     page.getByText("Restored pinned interpretation", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".analysis-summary")).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "Mapped position label 177 UniProt 200",
+      exact: true,
+    }),
+  ).toHaveClass(/selected/);
   const restored = await exportJson(page);
   expect(restored.interpretation).toEqual(original.interpretation);
   expect(restored.analysis).toEqual(original.analysis);

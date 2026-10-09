@@ -57,7 +57,7 @@ export class ExplorerController {
       source = { ...source, metadata: source.metadata ?? result.metadata };
       const activeChainId = result.snapshot.chains.some(c => c.id === restore?.activeChainId) ? restore!.activeChainId! : result.snapshot.chains.find(c => c.type === 'polymer')?.id ?? null;
       const selectedResidueId = result.snapshot.residues.some(r => r.id === restore?.selectedResidueId) ? restore!.selectedResidueId! : null;
-      useExplorer.setState({ source, snapshot: result.snapshot, options: result.options, chainColors: result.chainColors, modelIndex, assemblyId, activeChainId, selectedResidueId, targetLigandId: result.snapshot.ligands.find(l => l.kind === 'ligand')?.residueId ?? result.snapshot.ligands[0]?.residueId ?? null, receptorChainIds: result.snapshot.chains.filter(c => c.type === 'polymer').map(c => c.id), phase: 'ready', status: 'Structure ready' });
+      useExplorer.setState({ source, snapshot: result.snapshot, options: result.options, chainColors: result.chainColors, modelIndex, assemblyId, activeChainId, selectedResidueId, biologySelectedLabel: result.snapshot.residues.find(r => r.id === selectedResidueId)?.labelSeqId ?? null, targetLigandId: result.snapshot.ligands.find(l => l.kind === 'ligand')?.residueId ?? result.snapshot.ligands[0]?.residueId ?? null, receptorChainIds: result.snapshot.chains.filter(c => c.type === 'polymer').map(c => c.id), phase: 'ready', status: 'Structure ready' });
       this.viewer.selectResidue(selectedResidueId);
       void this.biology.initialize(source,result.snapshot,restore);
       const restoredAnalysisGeneration = this.analysisGeneration;

@@ -33,7 +33,7 @@ Six Phase 3 Playwright cases use intercepted frozen API payloads rather than liv
 
 1. ASP189 contact selection → UniProt194/binding feature, catalytic UniProt200 → SER195/label177, linked tracks/3D/inspector, evidence drawer and both exports. Annotation filtering leaves the analysis available.
 2. Hemoglobin alpha/beta identities and biological-assembly correspondence.
-3. Saved interpretation and interaction analysis restore while all biological requests are blocked; failed refresh retains the old interpretation; successful refresh creates a new revision without changing geometry; reloading an unsaved refresh restores the original pinned revision.
+3. Saved interpretation, interaction analysis and the selected residue’s annotation-track page restore while all biological requests are blocked; failed refresh retains the old interpretation; successful refresh creates a new revision without changing geometry; reloading an unsaved refresh restores the original pinned revision.
 4. API failure leaves structure and geometry usable. Local input has no automatic annotation association, a matching explicit association succeeds, and unrelated input is rejected.
 5. Late responses cannot overwrite a newly selected structure, and annotation tracks fit a 390-pixel viewport.
 6. An ambiguous track position with an exact neighboring residue in the same feature clears selection rather than selecting that neighbor.
