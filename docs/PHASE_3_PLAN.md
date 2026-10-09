@@ -30,7 +30,7 @@ Requests with Origin `https://jtmcbride.github.io` returned HTTP 200 and `Access
 | SIFTS residue file | `https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/3ptb.xml.gz` | Exact deposited residue → UniProt position correspondence |
 | UniProt | `https://rest.uniprot.org/uniprotkb/P00760.json` | Bovine trypsin protein sequence and functional features |
 
-These are direct GET requests from a static site; no application backend or API keys are required. Recheck CORS in production before release. Use HTTPS and bounded, abortable fetches. Parse compressed SIFTS with `DecompressionStream('gzip')`, then a namespace-aware XML parser. Provide a clear unsupported-browser message or a small, tested decompression fallback if target browsers require one. Treat PDBe JSON and SIFTS XML as different resources with separate source hashes; do not assume their refreshes are synchronized.
+All three primary 3PTB/UniProt endpoints were also successfully fetched from inside a Chromium page at the deployed GitHub Pages origin, confirming browser CORS behavior. These are direct GET requests from a static site; no application backend or API keys are required. Recheck CORS in production before release. Use HTTPS and bounded, abortable fetches. Parse compressed SIFTS with `DecompressionStream('gzip')`, then a namespace-aware XML parser. Provide a clear unsupported-browser message or a small, tested decompression fallback if target browsers require one. Treat PDBe JSON and SIFTS XML as different resources with separate source hashes; do not assume their refreshes are synchronized.
 
 Verified 3PTB examples from the residue-level SIFTS file and current P00760 record:
 

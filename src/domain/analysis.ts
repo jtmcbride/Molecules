@@ -29,8 +29,8 @@ export const DEFAULT_PARAMETERS: AnalysisParameters = {
   minimumOccupancy: 0, conformerPolicy: 'exclude_disordered', classifyChemistry: true,
 };
 export const INTERACTION_LABELS: Record<InteractionType, string> = {
-  pi_stacking: 'π-stacking', cation_pi: 'Cation–π candidate', metal_coordination: 'Metal candidate', water_bridge: 'Water-bridge candidate', steric_clash: 'Clash candidate',
   proximity_contact: 'Proximity', hydrogen_bond: 'H-bond candidate', hydrophobic_contact: 'Hydrophobic', salt_bridge: 'Salt-bridge candidate',
+  pi_stacking: 'π-stacking', cation_pi: 'Cation–π candidate', metal_coordination: 'Metal candidate', water_bridge: 'Water-bridge candidate', steric_clash: 'Clash candidate',
 };
 export const INTERACTION_COLORS: Record<InteractionType, string> = {
   pi_stacking: '#e29bb2', cation_pi: '#bcb0e8', metal_coordination: '#86d8ad', water_bridge: '#7baee3', steric_clash: '#ef977b',
