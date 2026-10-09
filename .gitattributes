@@ -5,3 +5,7 @@ tests/fixtures/BEN-ccd.cif -whitespace -text
 
 tests/fixtures/reference/*.cif -whitespace -text
 tests/fixtures/reference/*.pdb -whitespace -text
+
+# Preserve frozen biological response hashes across checkouts.
+tests/fixtures/biology/*.json -text
+tests/fixtures/biology/*.gz binary

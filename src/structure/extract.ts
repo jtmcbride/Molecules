@@ -107,11 +107,18 @@ export function extractSnapshot(structure: Structure, source: StructureSource, m
     if (chain.sequence.some(p => !p.residueIds.length)) qualityFlags.add('Some deposited sequence positions have no observed atomic coordinates.');
   }
   if (occupancies.some(o => !Number.isFinite(o))) qualityFlags.add('Some occupancies are unspecified.');
+  const componentParentIds: Record<string,string> = {};
+  if (MmcifFormat.is(model.sourceData)) {
+    const category=model.sourceData.data.frame.categories.chem_comp,ids=category?.getField('id'),parents=category?.getField('mon_nstd_parent_comp_id');
+    if(ids&&parents)for(let i=0;i<ids.rowCount;i++)if(parents.valueKind(i)===0) {
+      const parent=parents.str(i);if(!parent.includes(','))componentParentIds[ids.str(i)]=parent;
+    }
+  }
   return {
     selectionIndex,
     snapshot: {
       id: snapshotId, sourceId: source.id, modelIndex, modelNumber: model.modelNum, assemblyId,
-      chains, residues, atoms, ligands,
+      chains, residues, atoms, ligands, componentParentIds,
       chemistry: { embeddedBondComponentIds: [...(ComponentBond.Provider.get(model)?.entries.keys() ?? [])].filter(Boolean).sort() },
       atomBuffer: { positions: new Float32Array(positions), residueIndices: new Uint32Array(residueIndices), occupancies: new Float32Array(occupancies), bFactors: new Float32Array(bFactors), preferredAtomIndices: new Uint32Array(preferredIndices), atomCount: atoms.length },
       provenance: { schemaVersion: 1, contentHash: source.contentHash, parser: `Mol* ${molstarPackage.version}`, createdAt: new Date().toISOString(), coordinateFrame: 'assembly', conformerPolicy: 'residue-mean-occupancy-v1', qualityFlags: [...qualityFlags] },

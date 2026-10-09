@@ -1,6 +1,6 @@
 # Phase 3 implementation plan: functional interpretation
 
-Status: planned; implementation has not started. Baseline: completed ligand-centered Phase 2 engine, React/TypeScript/Mol* application deployed on GitHub Pages. Endpoint and example-data checks: 2026-10-09.
+Status: implemented, 2026-10-09. Milestones 3A–3E are complete. This document retains the design and acceptance criteria; [validation/BIOLOGY.md](../validation/BIOLOGY.md) records the final implementation, test evidence and limitations. Baseline: completed ligand-centered Phase 2 engine, React/TypeScript/Mol* application on GitHub Pages.
 
 ## Outcome and boundaries
 
@@ -230,4 +230,4 @@ Avoid a global blocking loading screen: each track or inspector section displays
 
 Phase 3 is complete when the 3PTB vertical slice and the mapping edge cases above pass, annotation tracks/inspector/binding-site summary agree, provenance survives export/restore, and the deployed application remains usable through scientific API failures. Optional PDBe cross-checks can then add independent binding-site annotations using the same contracts; they must not be confused with computed Phase 2 results.
 
-Phase 1: complete. Phase 2: complete for the planned ligand-centered interaction workbench, with documented scientific preparation limits. Phase 3: this plan, not yet implemented. Phase 4: structural comparison, pending. Phase 5: mutations, protein–protein interfaces and advanced analysis, pending.
+Phase 1: complete. Phase 2: complete for the planned ligand-centered interaction workbench, with documented scientific preparation limits. Phase 3: complete, including exact mapping, functional interpretation, evidence, pinned restoration and enriched exports. Phase 4: structural comparison, pending. Phase 5: mutations, protein–protein interfaces and advanced analysis, pending.

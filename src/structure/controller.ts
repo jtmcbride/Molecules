@@ -1,3 +1,4 @@
+import {BiologyController} from '../biology/controller';
 import { AnalysisClient } from '../analysis/client';
 import { analysisKey } from '../analysis/engine';
 import { loadChemicalDefinitions } from '../data/chemistry';
@@ -10,6 +11,7 @@ import { getLastSession, saveSession } from '../data/repository';
 import type { MolecularViewer } from './adapter';
 
 export class ExplorerController {
+  readonly biology=new BiologyController();
   private analysisGeneration = 0;
   private analysisAbort: AbortController | null = null;
   private analysisClient = new AnalysisClient();
@@ -36,7 +38,7 @@ export class ExplorerController {
     if (source) await this.load(() => Promise.resolve(source), { modelIndex, assemblyId });
   }
   private async load(fetchSource: (signal: AbortSignal) => Promise<StructureSource>, restore?: Partial<SessionDescriptor>) {
-    this.invalidateAnalysis();
+    this.invalidateAnalysis();this.biology.cancel();
     const current = ++this.generation;
     this.abort?.abort(); this.abort = new AbortController();
     const signal = this.abort.signal;
@@ -57,6 +59,18 @@ export class ExplorerController {
       const selectedResidueId = result.snapshot.residues.some(r => r.id === restore?.selectedResidueId) ? restore!.selectedResidueId! : null;
       useExplorer.setState({ source, snapshot: result.snapshot, options: result.options, chainColors: result.chainColors, modelIndex, assemblyId, activeChainId, selectedResidueId, targetLigandId: result.snapshot.ligands.find(l => l.kind === 'ligand')?.residueId ?? result.snapshot.ligands[0]?.residueId ?? null, receptorChainIds: result.snapshot.chains.filter(c => c.type === 'polymer').map(c => c.id), phase: 'ready', status: 'Structure ready' });
       this.viewer.selectResidue(selectedResidueId);
+      void this.biology.initialize(source,result.snapshot,restore);
+      const restoredAnalysisGeneration = this.analysisGeneration;
+      if (restore?.analysisCacheKey) {
+        void database.analyses.get(restore.analysisCacheKey).then(run => {
+          if (current !== this.generation || restoredAnalysisGeneration !== this.analysisGeneration || run?.snapshotId !== result.snapshot.id) return;
+          useExplorer.setState({ analysis: run, analysisPhase: 'ready', analysisCached: true, analysisParameters: run.request.parameters, targetLigandId: run.request.ligandResidueId, receptorChainIds: run.request.receptorChainIds });
+          void this.enqueue(async () => {
+            if (current !== this.generation || restoredAnalysisGeneration !== this.analysisGeneration) return;
+            await this.viewer.showBindingSite([...run.residues.map(r => r.residueId), ...run.interactions.flatMap(i => i.mediator ? [i.mediator.residueId] : [])]);
+          });
+        }).catch(() => {});
+      }
       await cacheSource(source).catch(() => useExplorer.setState({ notice: 'Browser storage is unavailable. Exploration still works; this session will not be cached.' }));
       if (current !== this.generation) return;
       if (source.kind === 'pdb') {
@@ -75,13 +89,13 @@ export class ExplorerController {
     }
   }
   cancel() {
-    this.invalidateAnalysis();
+    this.biology.cancel();this.invalidateAnalysis();
     ++this.generation; this.abort?.abort();
     void this.enqueue(async () => { await this.viewer.plugin.clear(); });
     useExplorer.setState({ phase: 'idle', status: 'Loading cancelled', snapshot: null, selectedResidueId: null });
   }
   select(id: string | null, focus = false) {
-    useExplorer.setState({ selectedInteractionId: null }); this.viewer.clearInteractionLine();
+    useExplorer.setState({ selectedInteractionId: null, selectedAnnotationId:null }); this.viewer.clearInteractionLine();
     useExplorer.getState().selectResidue(id);
     this.viewer.selectResidue(id, focus);
   }
@@ -133,9 +147,21 @@ export class ExplorerController {
     const interaction = useExplorer.getState().analysis?.interactions.find(i => i.id === id);
     if (!interaction) return;
     useExplorer.getState().selectResidue(interaction.receptor.residueId);
-    useExplorer.setState({ selectedInteractionId: id });
+    useExplorer.setState({ selectedInteractionId: id, selectedAnnotationId:null });
     const generation = this.analysisGeneration;
     void this.enqueue(async () => { if (generation === this.analysisGeneration && useExplorer.getState().selectedInteractionId === id) await this.viewer.selectInteraction(interaction); });
+  }
+  selectAnnotation(id:string) {
+    const s=useExplorer.getState(),projection=s.interpretation?.projections.find(p=>p.annotationId===id&&p.chainInstanceId===s.activeChainId);
+    if(!projection)return;
+    this.select(projection.residueIds[0]??null,true);
+    const mapping=s.interpretation?.mappings.find(m=>m.chainInstanceId===s.activeChainId&&m.uniprotPosition===projection.unobservedPositions[0]);
+    useExplorer.setState({selectedAnnotationId:id,biologySelectedLabel:projection.residueIds.length?useExplorer.getState().biologySelectedLabel:mapping?.labelSeqId??null});
+    this.viewer.selectResidues(projection.residueIds,true);
+  }
+  selectBiologyPosition(label:number) {
+    const s=useExplorer.getState(),chain=s.snapshot?.chains.find(c=>c.id===s.activeChainId),position=chain?.sequence.find(p=>p.labelSeqId===label);
+    this.select(position?.residueIds[0]??null,true);useExplorer.setState({biologySelectedLabel:label});
   }
   focusSelection() { this.viewer.selectResidue(useExplorer.getState().selectedResidueId, true); }
   async setRepresentation(representation: Representation) {
@@ -152,9 +178,9 @@ export class ExplorerController {
     if (!s.snapshot || !s.source) return;
     try {
       await cacheSource(s.source);
-      await saveSession({ schemaVersion: 1, sourceHash: s.source.contentHash, modelIndex: s.modelIndex, assemblyId: s.assemblyId, selectedResidueId: s.selectedResidueId, activeChainId: s.activeChainId, representation: s.representation, showWater: s.showWater, savedAt: new Date().toISOString() });
+      await saveSession({ schemaVersion: 2, interpretationId:s.interpretation?.id,annotationCategories:s.annotationCategories,selectedProteinAccession:s.selectedProteinAccession,associationAccession:s.biologyAssociation??undefined,analysisCacheKey:s.analysis?.cacheKey, sourceHash: s.source.contentHash, modelIndex: s.modelIndex, assemblyId: s.assemblyId, selectedResidueId: s.selectedResidueId, activeChainId: s.activeChainId, representation: s.representation, showWater: s.showWater, savedAt: new Date().toISOString() });
       useExplorer.setState({ notice: 'Session saved in this browser. It will reopen the next time you visit.' });
     } catch { useExplorer.setState({ notice: 'The session could not be saved. Browser storage may be full or disabled.' }); }
   }
-  dispose() { ++this.analysisGeneration; this.analysisAbort?.abort(); this.analysisClient.cancel(); ++this.generation; this.abort?.abort(); this.viewer.dispose(); }
+  dispose() { this.biology.cancel();++this.analysisGeneration; this.analysisAbort?.abort(); this.analysisClient.cancel(); ++this.generation; this.abort?.abort(); this.viewer.dispose(); }
 }

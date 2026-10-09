@@ -1,0 +1,44 @@
+[
+  {
+    "file": "3ptb-discovery.json",
+    "url": "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/3ptb",
+    "sha256": "cfc0bf7ea029794a67f73ef3968c107509f16f1f90b57ca4596661ca3c531617",
+    "retrievedOn": "2026-10-09"
+  },
+  {
+    "file": "4hhb-discovery.json",
+    "url": "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/4hhb",
+    "sha256": "4c0597969eb2760998ba866fc00f4a987f27ae4cc2bc4bb7440609951d7b0108",
+    "retrievedOn": "2026-10-09"
+  },
+  {
+    "file": "3ptb-sifts.xml.gz",
+    "url": "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/3ptb.xml.gz",
+    "sha256": "570eb0d55be0dd99f6a45ec266422142e91555d1de728d3fc3da4ab1cae37889",
+    "retrievedOn": "2026-10-09"
+  },
+  {
+    "file": "4hhb-sifts.xml.gz",
+    "url": "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/4hhb.xml.gz",
+    "sha256": "69fb77b939bffa4da5c22ac2d230bf97bcee91c2752f4184a9f5cd48312a1f6f",
+    "retrievedOn": "2026-10-09"
+  },
+  {
+    "file": "P00760.json",
+    "url": "https://rest.uniprot.org/uniprotkb/P00760.json",
+    "sha256": "2daae107e8c8e06022040be8b9f5c2d50c4b0249c452e612de8dbcabc333b12a",
+    "retrievedOn": "2026-10-09"
+  },
+  {
+    "file": "P69905.json",
+    "url": "https://rest.uniprot.org/uniprotkb/P69905.json",
+    "sha256": "7bd75c3a8e28a4a7c61c20a9efda889ca37c113ed2829b34c732d3ac1f98bcc8",
+    "retrievedOn": "2026-10-09"
+  },
+  {
+    "file": "P68871.json",
+    "url": "https://rest.uniprot.org/uniprotkb/P68871.json",
+    "sha256": "937a46d0da699853316d18ae8becb21e949eed48ec8e1c8d2fdbd9bc2798fd12",
+    "retrievedOn": "2026-10-09"
+  }
+]

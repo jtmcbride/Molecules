@@ -1,6 +1,6 @@
 # Molecular Interaction Explorer
 
-A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Phase 1 exploration and Phase 2 ligand-centered interaction analysis are implemented. [Phase 3 implementation plan](docs/PHASE_3_PLAN.md) covers residue mapping, functional annotations and evidence.
+A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Phases 1–3 are implemented: structure exploration, ligand-centered interaction computation, and functional interpretation through exact SIFTS/UniProt correspondence and traceable evidence. [Phase 3 implementation record](docs/PHASE_3_PLAN.md) describes its contracts and acceptance gates.
 
 ## Run locally
 
@@ -65,13 +65,33 @@ Results are keyed by source SHA-256, model, assembly, exact ligand/operator iden
 
 **JSON** exports the complete analysis, settings, assumptions, evaluation status, chemistry provenance, normalized graph, bond data, atom identities and assembly coordinates. Ring centroids/offsets/plane angles, water mediator/legs/angles, metal selected-partner information and overlap/radii are preserved. Export schema is version 2. Unknown occupancies serialize as `null`. **CSV** exports all unfiltered interactions, atom names, residue identities, geometry and run/source references; use the accompanying JSON for full calculation parameters and evidence. Neither export includes the original coordinate-file bytes.
 
-Validation includes 31 deterministic scientific tests, controlled positive/negative geometry fixtures, a 100,000-atom spatial regression, and recorded comparisons against separately executed PLIP 3.0.0 on 3PTB, 1EVE and 1RMD. [Validation evidence and discrepancies](validation/README.md) document source hashes, preparation, reproducibility and remaining scientific limits. These checks do not claim PLIP equivalence or general detection accuracy. Protein–protein analysis, protonation preparation, energetic modeling and full large-assembly benchmarking remain later work.
+Phase 2 validation includes 31 deterministic scientific tests, controlled positive/negative geometry fixtures, a 100,000-atom spatial regression, and recorded comparisons against separately executed PLIP 3.0.0 on 3PTB, 1EVE and 1RMD. [Validation evidence and discrepancies](validation/README.md) document source hashes, preparation, reproducibility and remaining scientific limits. These checks do not claim PLIP equivalence or general detection accuracy. Protein–protein analysis, protonation preparation, energetic modeling and full large-assembly benchmarking remain later work.
+
+## Phase 3 capabilities and scientific policy
+
+Biological annotations load independently after a public PDB structure opens. Select a chain to see its protein identity, reviewed status, entry/sequence versions, mapping coverage, and functional tracks. The residue inspector preserves author, label and UniProt numbering. Selecting a feature selects its exactly mapped observed residues in 3D; missing coordinates and uncertain correspondence never create an atom selection.
+
+In 3PTB, the ASP189 salt-bridge contact maps to P00760 position 194 and a binding-site feature. UniProt active-site position 200 selects SER195 (deposited label 177). In 4HHB, alpha chains map to P69905 and beta chains to P68871, including biological-assembly instances.
+
+Mappings require matching discovery chain/entity IDs, individual SIFTS correspondence, author numbering/insertion codes and UniProt sequence identity. Modified residues require a deposited `chem_comp` parent. Conflicts, unsupported isoforms and ambiguous rows remain visible; no author-number offset or sequence-alignment guess is used. Multiple accessions in a chimeric chain remain separate and require a protein choice.
+
+Initial categories are active sites, binding sites, domains, regions, sites, signal peptides, propeptides and processed chains. Function/catalytic statements and their own evidence are available separately. Uncertain or invalid feature bounds are retained but do not project as exact structural features. Evidence drawers distinguish coordinate provenance, computed geometry and database annotations, preserving attached ECO codes/citations. A reviewed record does not establish experimental support for each feature.
+
+Binding-site summaries show mapped, ambiguous and unmapped polymer-contact residues with explicit denominators, plus functional-feature overlap (active/binding sites, domains, regions and sites; whole-chain processing labels are excluded from the functional numerator). Proximity, chemical contacts and clashes remain separate. Neither overlap nor contact counts establish functional importance or affinity. Annotation filters leave interaction runs unchanged.
+
+**Interpretation JSON** (schema 1) includes protein/feature snapshots, residue correspondence, projections, evidence, source hashes, coordinates and the unchanged current Phase 2 analysis, when available. **Residue annotations CSV** includes every deposited polymer position, including explicit unmapped rows, as a separate correspondence/feature export; Phase 2 interaction CSV remains unchanged. Raw biological response bytes are preserved locally in IndexedDB.
+
+Biological sources normally reuse cached snapshots for seven days. Expired sources are requested again, with labeled stale-cache fallback during service failure. Manual refresh creates a new interpretation revision; failure preserves the previous interpretation. Saved session schema 2 pins its interpretation and analysis, category filters and protein choice. Restoration uses those saved revisions without new biological requests; explicitly refresh and save to replace them. Schema 1 sessions remain readable.
+
+Local files receive no automatic biological requests. Explicitly associate a PDB accession to retrieve identifiers only; every polymer chain must match the full deposited sequence and numbering (at least 10 positions). Coordinates are never uploaded. Unsupported/truncated constructs remain unannotated while exploration and interaction computation continue.
+
+See [biological validation evidence](validation/BIOLOGY.md) for frozen source hashes, regression cases and limitations.
 
 ## Phase status
 
 - **Phase 1 — complete:** reliable structure exploration, identity and linked selection.
 - **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain.
-- **Phase 3 — planned:** [detailed implementation plan](docs/PHASE_3_PLAN.md) with data contracts, five milestones, source verification and acceptance tests. Implementation has not started.
+- **Phase 3 — complete:** validated SIFTS mappings, UniProt identity/features, linked annotation tracks, residue context, binding-site summaries, evidence, pinned sessions and interpretation exports. [Validation and limits](validation/BIOLOGY.md).
 - **Phases 4–5 — pending:** structural comparison, mutations, protein interfaces and advanced analyses.
 
 ## GitHub and GitHub Pages
@@ -103,6 +123,11 @@ src/
     types.ts              Rendering-independent structure and session models
     identity.ts           Compound identity and coherent conformer policy
     analysis.ts           Independent interactions, graph, binding site and provenance
+    biology.ts            Proteins, features, mappings, evidence and interpretation snapshots
+  biology/
+    mapping.ts, projection.ts  Exact correspondence and annotation projection
+    controller.ts, load.ts     Independent loading, cancellation and pinned restoration
+    evidence.ts, export.ts     Statement provenance and interpretation exports
   analysis/
     worker.ts, client.ts   Dedicated computation and cancellation
     engine.ts             Mol* chemistry wrapper and normalized interaction graph
@@ -117,6 +142,8 @@ src/
   data/
     provider.ts           RCSB/local ingestion, validation, hashes, and metadata
     chemistry.ts          Optional component dictionary acquisition
+    sifts.ts, uniprot.ts   Validated biological provider adapters
+    biologyResources.ts   Bounded acquisition, freshness and stale fallback
     repository.ts         Versioned IndexedDB source, session, chemistry and result caches
   state/
     explorer.ts           UI state and domain references
@@ -146,8 +173,10 @@ Current limits:
 - Parsing and scene construction currently use Mol* on the main thread. Download cancellation aborts the request; cancellation during parsing discards its result and clears the scene once the current serialized operation finishes.
 - Cache reads reuse downloaded bytes; there is no automatic source-refresh policy or LRU eviction yet.
 - Session restoration saves structure/context/selection/representation/water state; camera orientation is not restored.
-- Analysis settings and results are cached independently of saved explorer sessions. Restore the structure, then run the same configuration to retrieve its cached result.
-- UniProt mapping and functional annotations remain Phase 3 work.
+- Saved schema 2 sessions also reference the current analysis and interpretation; camera orientation and annotation selection are not restored.
+- Biological annotation supports four-character PDB accessions, up to 32 protein records, four concurrent protein requests, a 20-second request timeout and at most two transient retries. Extended structure IDs remain viewable without this mapping.
+- SIFTS compression requires a browser with `DecompressionStream`; inputs/output are bounded to 10/50 MB, XML to 500,000 correspondence rows, and provider JSON to 5 MB discovery / 10 MB UniProt. XML parsing occurs on the main thread.
+- No automatic cache eviction, inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation interpretation is included.
 
 ## Test evidence
 
@@ -161,6 +190,8 @@ Browser tests run the production build and verify worker computation, contact se
 - [RCSB PDB](https://www.rcsb.org/) — public structural data.
 - [PDB Chemical Component Dictionary](https://www.wwpdb.org/data/ccd) — chemical definitions; fetched from RCSB.
 - [Mol* interaction implementation](https://github.com/molstar/molstar/tree/v5.13.1/src/mol-model-props/computed/interactions) — chemistry and geometry rules wrapped by this engine.
+- [SIFTS](https://www.ebi.ac.uk/pdbe/docs/sifts/) — residue-level PDB/UniProt correspondence.
+- [UniProt](https://www.uniprot.org/) — protein identity, sequences, features and statement evidence.
 - [PDB identifiers](https://www.rcsb.org/docs/general-help/identifiers-in-pdb).
 - [Biological assemblies](https://pdb101.rcsb.org/learn/guide-to-understanding-pdb-data/biological-assemblies).
 - Sample source files: [3PTB mmCIF](https://files.rcsb.org/download/3PTB.cif), [4HHB mmCIF](https://files.rcsb.org/download/4HHB.cif).

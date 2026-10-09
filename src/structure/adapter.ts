@@ -147,6 +147,14 @@ export class MolecularViewer {
     this.plugin.managers.interactivity.lociSelects.selectOnly({ loci });
     if (focus) this.plugin.managers.camera.focusLoci(loci, { minRadius: 8, extraRadius: 5, durationMs: 250 });
   }
+  selectResidues(ids:string[],focus=false) {
+    this.plugin.managers.interactivity.lociSelects.deselectAll();
+    const selected=new Set(ids);
+    const loci=this.lociForAtoms(this.snapshot?.residues.filter(r=>selected.has(r.id)).flatMap(r=>r.atomIndices)??[]);
+    if(!loci||!loci.elements.length)return;
+    this.plugin.managers.interactivity.lociSelects.selectOnly({loci});
+    if(focus)this.plugin.managers.camera.focusLoci(loci,{minRadius:8,extraRadius:5,durationMs:250});
+  }
   private lociForAtoms(atomIndices: number[]) {
     if (!this.structure || !this.selections) return null;
     const grouped = new Map<number, Set<number>>();

@@ -82,6 +82,7 @@ export interface StructureSnapshot {
   ligands: LigandInstance[];
   atoms: AtomRecord[];
   atomBuffer: AtomBuffer;
+  componentParentIds?: Record<string,string>;
   chemistry: { embeddedBondComponentIds: string[]; expectedHeavyAtomNames?: Record<string,string[]>; appliedChemicalDefinitionHashes?: string[] };
   provenance: {
     schemaVersion: 1;
@@ -99,7 +100,12 @@ export interface StructureOptions {
 }
 export type Representation = 'cartoon' | 'ball-and-stick' | 'molecular-surface';
 export interface SessionDescriptor {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
+  interpretationId?: string;
+  annotationCategories?: string[];
+  selectedProteinAccession?: string | null;
+  associationAccession?: string;
+  analysisCacheKey?: string;
   sourceHash: string;
   modelIndex: number;
   assemblyId: string;
