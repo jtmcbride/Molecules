@@ -95,6 +95,9 @@ export function parseSiftsXml(
             notObserved: array(residue.residueDetail).some(
               (d) => d["#text"] === "Not_Observed",
             ),
+            annotations: array(residue.residueDetail)
+              .filter((d) => d.property === "Annotation" && d["#text"])
+              .map((d) => d["#text"]!),
             accession: uniprot.dbAccessionId,
             uniprotPosition,
             uniprotResidue: uniprot.dbResName,
@@ -142,4 +145,11 @@ export async function decompressSifts(bytes: Uint8Array): Promise<string> {
     offset += chunk.length;
   }
   return new TextDecoder().decode(output);
+}
+/** Decompress, validate and normalize a SIFTS residue file. Pure; runs in the SIFTS worker or inline. */
+export async function readSifts(
+  bytes: Uint8Array,
+  entryId: string,
+): Promise<{ rows: SiftsRow[]; release?: string }> {
+  return parseSiftsXml(await decompressSifts(bytes), entryId);
 }

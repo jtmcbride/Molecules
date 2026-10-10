@@ -93,3 +93,37 @@ export const discoverySchema = z.record(
   }),
 );
 export type AttachedEvidence = z.infer<typeof attachedEvidence>;
+export const chemCompSchema = z.object({
+  chem_comp: z.object({ id: z.string(), name: z.string() }),
+  rcsb_chem_comp_related: z
+    .array(
+      z.object({
+        resource_name: z.string(),
+        resource_accession_code: z.string(),
+      }),
+    )
+    .optional(),
+});
+const score = z.number().nullable().optional();
+export const ligandInstanceSchema = z.object({
+  rcsb_nonpolymer_entity_instance_container_identifiers: z.object({
+    entry_id: z.string(),
+    asym_id: z.string(),
+    comp_id: z.string(),
+  }),
+  rcsb_nonpolymer_instance_validation_score: z
+    .array(
+      z.object({
+        RSCC: score,
+        RSR: score,
+        completeness: score,
+        mogul_bonds_RMSZ: score,
+        mogul_angles_RMSZ: score,
+        ranking_model_fit: score,
+        ranking_model_geometry: score,
+        type: z.string().optional(),
+      }),
+    )
+    .nullable()
+    .optional(),
+});

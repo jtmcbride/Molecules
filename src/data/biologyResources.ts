@@ -143,3 +143,31 @@ export function uniprotRequest(accession: string): ResourceRequest {
     limit: 10 * 1024 * 1024,
   };
 }
+export function chemCompRequest(componentId: string): ResourceRequest {
+  if (!/^[A-Z0-9]{1,5}$/.test(componentId))
+    throw Error("Unsupported chemical component identifier.");
+  return {
+    key: `rcsb:chemcomp:${componentId}`,
+    provider: "RCSB",
+    identifier: componentId,
+    url: `https://data.rcsb.org/rest/v1/core/chemcomp/${componentId}`,
+    limit: 2 * 1024 * 1024,
+  };
+}
+export function ligandFitRequest(
+  entryId: string,
+  labelAsymId: string,
+): ResourceRequest {
+  if (
+    !/^[0-9][A-Z0-9]{3}$/.test(entryId) ||
+    !/^[A-Za-z0-9]{1,4}$/.test(labelAsymId)
+  )
+    throw Error("Unsupported ligand instance identifier.");
+  return {
+    key: `rcsb:ligand-instance:${entryId}:${labelAsymId}`,
+    provider: "RCSB",
+    identifier: `${entryId}.${labelAsymId}`,
+    url: `https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/${entryId}/${labelAsymId}`,
+    limit: 2 * 1024 * 1024,
+  };
+}

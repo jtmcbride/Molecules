@@ -6,12 +6,17 @@ import {
 import type { StructureSnapshot, StructureSource } from "../domain/types";
 import {
   biologyResource,
+  chemCompRequest,
   discoveryRequest,
+  ligandFitRequest,
   siftsRequest,
   uniprotRequest,
 } from "../data/biologyResources";
-import { decompressSifts, parseDiscovery, parseSiftsXml } from "../data/sifts";
+import { parseDiscovery } from "../data/sifts";
+import { parseSiftsOffThread } from "./siftsClient";
 import { parseUniProt } from "../data/uniprot";
+import { parseChemComp } from "../data/chemcomp";
+import { parseLigandFit } from "../data/ligandFit";
 import { hashBytes } from "../data/provider";
 import { database } from "../data/repository";
 import { resourceEvidence, structureEvidence } from "./evidence";
@@ -40,10 +45,7 @@ export async function loadInterpretation(
     JSON.parse(new TextDecoder().decode(discovery.resource.bytes)),
     entryId,
   );
-  const sifts = parseSiftsXml(
-    await decompressSifts(xml.resource.bytes),
-    entryId,
-  );
+  const sifts = await parseSiftsOffThread(xml.resource.bytes, entryId, signal);
   const xmlResource = { ...xml.resource, release: sifts.release };
   const relevant = segments.filter((s) =>
     snapshot.chains.some(
@@ -114,6 +116,13 @@ export async function loadInterpretation(
     throw Error(
       `Protein annotations are unavailable. ${qualityFlags.join(" ")}`,
     );
+  progress("Loading ligand identities and validation scores");
+  const { ligands, ligandFits } = await loadLigandRecords(
+    snapshot,
+    entryId,
+    { signal, nonce, refresh },
+    { resources, modes, evidence, qualityFlags },
+  );
   const mapped = mapResidues(snapshot, segments, sifts.rows, proteins, [
     resourceEvidence(discovery.resource).id,
     resourceEvidence(xmlResource).id,
@@ -175,6 +184,8 @@ export async function loadInterpretation(
     projections: projectAnnotations(annotations, mapped.mappings),
     evidence,
     qualityFlags,
+    ligands,
+    ligandFits,
   };
   let persisted = true;
   await database
@@ -202,4 +213,120 @@ export async function loadInterpretation(
         : "fresh",
     persisted,
   };
+}
+
+/** Above this many records of one kind, ligand records are not requested. */
+const MAX_LIGAND_RECORDS = 32;
+type Sink = {
+  resources: ResourceSnapshot[];
+  modes: string[];
+  evidence: InterpretationSnapshot["evidence"];
+  qualityFlags: string[];
+};
+type Context = { signal: AbortSignal; nonce: string; refresh: boolean };
+
+/**
+ * Fetches one RCSB record per key (four at a time), parses it and records its source
+ * snapshot and evidence. A failed record adds a quality flag and is skipped; ligand
+ * records never prevent protein annotation.
+ */
+async function loadRecords<T>(
+  keys: string[],
+  label: string,
+  request: (key: string) => Parameters<typeof biologyResource>[0],
+  parse: (
+    value: unknown,
+    key: string,
+    resource: ResourceSnapshot,
+  ) => { record: T; evidence: InterpretationSnapshot["evidence"][number] },
+  context: Context,
+  into: Sink,
+): Promise<T[]> {
+  if (keys.length > MAX_LIGAND_RECORDS) {
+    into.qualityFlags.push(
+      `${label} was not requested for ${keys.length} ligand records (limit ${MAX_LIGAND_RECORDS}).`,
+    );
+    return [];
+  }
+  const records: T[] = [];
+  for (let offset = 0; offset < keys.length; offset += 4) {
+    const results = await Promise.all(
+      keys.slice(offset, offset + 4).map(async (key) => {
+        try {
+          const result = await biologyResource(
+            request(key),
+            context.signal,
+            context.nonce,
+            context.refresh,
+          );
+          const json = JSON.parse(
+            new TextDecoder().decode(result.resource.bytes),
+          );
+          return { result, parsed: parse(json, key, result.resource) };
+        } catch (error) {
+          context.signal.throwIfAborted();
+          return {
+            error: `${label} unavailable for ${key}: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+      }),
+    );
+    context.signal.throwIfAborted();
+    for (const r of results)
+      if (r.error) into.qualityFlags.push(r.error);
+      else if (r.result && r.parsed) {
+        records.push(r.parsed.record);
+        into.evidence.push(r.parsed.evidence);
+        into.resources.push(r.result.resource);
+        into.modes.push(r.result.mode);
+      }
+  }
+  return records;
+}
+
+/** RCSB chemical identities per component and validation scores per nonpolymer instance. */
+async function loadLigandRecords(
+  snapshot: StructureSnapshot,
+  entryId: string,
+  context: Context,
+  into: Sink,
+) {
+  const components = [
+    ...new Set(snapshot.ligands.map((l) => l.componentId)),
+  ].sort();
+  const residues = new Map(snapshot.residues.map((r) => [r.id, r]));
+  const chains = new Map(snapshot.chains.map((c) => [c.id, c]));
+  // Assembly copies share a label asym ID; branched entities have no nonpolymer record.
+  const instances = [
+    ...new Set(
+      snapshot.ligands
+        .filter((l) => l.kind !== "branched")
+        .map(
+          (l) => chains.get(residues.get(l.residueId)!.chainId)!.labelAsymId,
+        ),
+    ),
+  ].sort();
+  const ligands = await loadRecords(
+    components,
+    "Chemical identity",
+    chemCompRequest,
+    (value, key, resource) => {
+      const { ligand, evidence } = parseChemComp(value, key, resource);
+      return { record: ligand, evidence };
+    },
+    context,
+    into,
+  );
+  const ligandFits = await loadRecords(
+    instances,
+    "Ligand validation",
+    (asym) => ligandFitRequest(entryId, asym),
+    (value, asym, resource) => {
+      const { fit, evidence } = parseLigandFit(value, entryId, asym, resource);
+      return { record: fit, evidence };
+    },
+    context,
+    into,
+  );
+  return { ligands, ligandFits };
 }

@@ -4,7 +4,7 @@ The application uses the pinned Mol* 5.13.1 rules plus explicitly versioned adap
 
 ## Deterministic fixtures
 
-`npm test` runs 31 tests across structural identity, geometry, eligibility, chemical dictionaries, completeness, interaction categories, graph consistency and reference comparisons. All tests run without scientific-service requests. Synthetic files are artificial examples, not experimental observations:
+The Phase 1–2 suite has 31 tests across structural identity, geometry, eligibility, chemical dictionaries, completeness, interaction categories, graph consistency and reference comparisons (`npm test` now runs 81 tests including Phase 3). All tests run without scientific-service requests. Synthetic files are artificial examples, not experimental observations:
 
 - `hydrogen-geometry.cif`: explicit SER donor hydrogen points toward an acetamide acceptor. Reversing only the hydrogen removes the hydrogen bond while preserving heavy-atom distances.
 - `pi-stacking.cif`: parallel complete six-membered aromatic rings, centroid separation 3.6 Å. Reduced distance cutoff or increased lateral offset rejects the contact.
@@ -15,6 +15,12 @@ The application uses the pinned Mol* 5.13.1 rules plus explicitly versioned adap
 - Incomplete receptor/ligand examples retain measured contacts, report expected missing/excluded heavy atoms and skip nonmetal chemical classification on those endpoints. Malformed/mismatched optional CCD definitions are reported and never attributed as applied chemistry.
 
 Independent spatial tests compare index results with brute force over negative coordinates and multiple cutoffs/cell sizes. A 100,000-atom lattice fixture validates five indexed queries against full scans. Analytical ring-normal tests include perpendicular and degenerate inputs.
+
+## Engine restructuring and golden output (milestone 3H)
+
+In engine `contacts-2.1.0`, `src/analysis/engine.ts` is orchestration only. Each rule lives in its own module, and each interaction type has its own pure classifier (`src/analysis/classify.ts`). Before the split, `tests/engine-golden.test.ts` recorded the SHA-256 of every run's canonical scientific fields for 13 cases: 3PTB BEN under default, CCD-supplied, varied-parameter and chemistry-disabled settings; 1EVE E20; 1RMD ZN; and every synthetic category fixture. The restructured engine reproduces all 13 hashes byte-for-byte, confirmed again against the pre-change commit. `RULESET_VERSION` is unchanged because no rule changed. The only output addition is `stats.rejections`, which counts why Mol* candidate edges did not become interactions (for example, 3PTB BEN: 2 refinement-filtered, 3 not ligand–receptor). Those counts are recorded in the golden file but excluded from the hash. `tests/classify.test.ts` covers each classifier with positive, negative and exactly-at-cutoff cases. Regenerate the golden file only for a deliberate ruleset change (`UPDATE_ENGINE_GOLDEN=1 npm test`), and document why here. `DUMP_ENGINE_GOLDEN=<dir>` writes full canonical JSON for diffing.
+
+Element symbols are normalized once when the snapshot is built. `isHydrogenElement` is the single hydrogen/deuterium/tritium test. A lowercase/mixed-case `type_symbol` fixture gives identical eligibility, completeness and explicit-hydrogen classification. Mol* already upper-cases `type_symbol`, so this removed a latent inconsistency rather than changing results.
 
 ## External reference: PLIP 3.0.0
 

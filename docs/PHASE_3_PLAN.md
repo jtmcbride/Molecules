@@ -1,6 +1,6 @@
 # Phase 3 implementation plan: functional interpretation
 
-Status: implemented, 2026-10-09. Milestones 3A–3E are complete. This document retains the design and acceptance criteria; [validation/BIOLOGY.md](../validation/BIOLOGY.md) records the final implementation, test evidence and limitations. Baseline: completed ligand-centered Phase 2 engine, React/TypeScript/Mol* application on GitHub Pages.
+Status: milestones 3A–3E implemented 2026-10-09. Follow-up milestones 3F–3J, planned after a post-release review, were implemented 2026-10-10. See [Post-release review and follow-up milestones](#post-release-review-and-follow-up-milestones) and the [3F–3J implementation record](#3f3j-implementation-record). This document retains the design and acceptance criteria; [validation/BIOLOGY.md](../validation/BIOLOGY.md) records the final implementation, test evidence and limitations. Baseline: completed ligand-centered Phase 2 engine, React/TypeScript/Mol* application on GitHub Pages.
 
 ## Outcome and boundaries
 
@@ -49,7 +49,7 @@ First vertical slice: bundled 3PTB → chain A → SIFTS mapping → P00760 → 
 
 ## Domain contracts
 
-Create `src/domain/biology.ts` without importing Mol* or external response types. The following contracts specify the intended relationships; implementation can refine names while preserving these invariants.
+`src/domain/biology.ts` contains no Mol* or external response types. The excerpt below matches the implemented `biology-1.0.0` contracts (synchronized 2026-10-10). `src/domain/biology.ts` is authoritative; 3F adds a test that keeps this excerpt from drifting again.
 
 ```ts
 interface ProteinRecord {
@@ -58,23 +58,28 @@ interface ProteinRecord {
   canonicalAccession?: string;
   name: string;
   organism: { name: string; taxonomyId?: number };
+  reviewed: boolean; // descriptive record metadata, not per-feature evidence
   sequence: string;
   sequenceVersion?: number;
   entryVersion?: number;
   sequenceHash: string;
   evidenceIds: string[];
+  notes: { type: string; description: string; evidenceIds: string[] }[]; // function/catalytic statements
 }
 interface ResidueMapping {
   id: string;
   snapshotId: string;
   chainInstanceId: string;
   residueId?: string; // absent for an unobserved deposited sequence position
-  labelSeqId: number | null;
+  labelSeqId: number; // every mapping row has a deposited polymer position
   authSeqId: string | null;
   insertionCode: string | null;
   proteinId: string;
+  accession: string;
   uniprotPosition: number; // explicitly 1-based
-  status: 'exact' | 'ambiguous' | 'sequence_mismatch';
+  status: 'exact' | 'ambiguous' | 'sequence_mismatch' | 'source_conflict';
+  identity?: 'match' | 'engineered_mutation' | 'conflict' | 'unexplained_mismatch'; // 3J; absent before biology-1.1.0
+  residueChange?: { uniprot: string; deposited: string }; // one-letter codes when identity is not 'match'
   evidenceIds: string[];
 }
 interface FeatureBoundary {
@@ -91,10 +96,12 @@ interface FunctionalAnnotation {
   sourceFeatureId?: string;
   ligand?: { name?: string; identifier?: string; label?: string };
   evidenceIds: string[];
+  valid: boolean; // false when bounds fall outside the referenced sequence
+  qualityFlags: string[];
 }
 interface Evidence {
   id: string;
-  kind: 'experimental_structure' | 'database_annotation' | 'computed_geometry';
+  kind: 'experimental_structure' | 'structure_coordinates' | 'database_annotation' | 'computed_geometry';
   provider: string;
   sourceIdentifier?: string;
   url?: string;
@@ -105,16 +112,39 @@ interface Evidence {
   citationIds?: string[];
   algorithmVersion?: string;
   assumptions?: string[];
+  quality?: StructureQuality; // 3J: method, resolution, R-free, coordinate error (structure evidence only)
 }
 interface AnnotationProjection {
   annotationId: string;
+  chainInstanceId: string;
   residueIds: string[];
   observedPositions: number[];
   unobservedPositions: number[];
   ambiguousPositions: number[];
-  mappingSnapshotId: string;
+  uncertain: boolean; // non-exact feature boundary; residueIds is then empty
+}
+interface LigandIdentity { // 3I: RCSB chemical component record of a deposited ligand
+  componentId: string;
+  name: string;
+  chebiIds: string[]; // normalized "CHEBI:<number>"
+  evidenceIds: string[];
+}
+interface LigandFit { // 3J: RCSB/wwPDB validation scores of one deposited ligand instance
+  labelAsymId: string;
+  componentId: string;
+  rscc?: number;
+  rsr?: number;
+  completeness?: number;
+  mogulBondsRmsz?: number;
+  mogulAnglesRmsz?: number;
+  rankingModelFit?: number;
+  rankingModelGeometry?: number;
+  scoreType?: string;
+  evidenceIds: string[];
 }
 ```
+
+Status meanings: `source_conflict` means the discovery segment, SIFTS row, author number/insertion code or observation flag disagree. `sequence_mismatch` means the sources agree on position but the residue identity differs from UniProt. `ambiguous` means several candidate rows or observed instances. Positions with no row are counted as `unmapped` in `ChainCoverage` rather than stored as mapping rows. Projections carry no `mappingSnapshotId`. They live inside an immutable `InterpretationSnapshot`, which pins mapping, protein and annotation sources through `resourceRefs` hashes.
 
 Use explicit `unmapped` coverage records for deposited positions with no mapping, rather than inventing a UniProt position. A mapping dataset contains all correspondences and per-chain coverage; repeated assembly operators reference the same original chain correspondence but project to distinct `chainInstanceId`/`residueId` values. One chain may map to multiple accessions in chimeras, and one protein position may have several observed structural instances.
 
@@ -226,8 +256,101 @@ Avoid a global blocking loading screen: each track or inspector section displays
 | Local file with misleading entry ID | No unvalidated remote annotation attachment and no coordinate upload |
 | JSON/CSV export and restore | Stable IDs, hashes, numbering and evidence references are retained |
 
+## Post-release review and follow-up milestones
+
+A code and scientific review on 2026-10-10 found no failures in the 3A–3E acceptance gates. It did find engineering debt and interpretation weaknesses that should be fixed before Phase 4 builds on these contracts. Milestones are ordered: 3F–3H are behavior-preserving, or affect only latent edge cases, and must not change any frozen scientific output. 3I–3J deliberately change interpretation output and require version bumps.
+
+Total initial estimate: 9–14 working days.
+
+### 3F — Contract, documentation and element-symbol consistency (1 day)
+
+Files: `docs/PHASE_3_PLAN.md`, `docs/PHASE_2_STATUS.md`, `README.md`, new `src/domain/elements.ts`, `src/analysis/{policy,completeness,engine,prepare}.ts`, `tests/analysis.test.ts`, `tests/biology.test.ts`.
+
+- **Contract drift.** The domain-contract excerpt above has been synchronized with `src/domain/biology.ts`. Before that, it omitted `source_conflict`, `structure_coordinates`, `ProteinRecord.reviewed/notes`, `FunctionalAnnotation.valid/qualityFlags`, `ResidueMapping.accession` and `AnnotationProjection.chainInstanceId/uncertain`, and it listed a nonexistent `mappingSnapshotId`. Add a test that keeps the status and evidence-kind unions in this document in step with the exported TypeScript constants (e.g. export `MAPPING_STATUSES` and `EVIDENCE_KINDS` as `as const` arrays and assert that each value appears in the plan's code block). The test fails on future drift instead of relying on review.
+- **Stale status documents.** `PHASE_2_STATUS.md` still lists π, metal, water-bridge and clash categories as future work. It also reports 18 scientific tests and 8 browser workflows, where the README reports 31 and 13. Update it, and move `PHASE_1_STATUS.md` and `PHASE_2_STATUS.md` into `docs/` beside this plan. Fix the README links.
+- **Hydrogen element-symbol handling.** Hydrogen/deuterium/tritium detection is written four times with different case handling. `policy.ts` and `prepare.ts` upper-case the symbol. `completeness.ts` (heavy-atom completeness) and `engine.ts` (explicit donor-hydrogen lookup for H-bond geometry) compare it raw. Mol* currently normalizes `type_symbol`, so the inconsistency is believed latent. A lowercase or mixed-case symbol would still diverge: eligibility would exclude the hydrogen while the explicit-H lookup misses it, silently downgrading a `geometry_supported` H-bond to `implicit`/`candidate`. Add `isHydrogenElement(symbol)` (and `normalizeElement`) in `src/domain/elements.ts`. Normalize once when building `AtomRecord.element` in `extract.ts`, and use the helper at every call site.
+- Add a synthetic fixture with lowercase `type_symbol` values (`h`, `d`, mixed-case `Zn`) that asserts identical eligibility, completeness and explicit-hydrogen H-bond classification to the uppercase original.
+
+Acceptance: all frozen outputs (3PTB/1EVE/1RMD reference comparisons, interpretation exports) are byte-identical in scientific fields; the drift test fails when a status value is removed from the plan; the lowercase-element fixture passes.
+
+### 3G — Worker-side SIFTS decompression and XML parsing (1–2 days)
+
+Files: new `src/biology/worker.ts` and `src/biology/workerClient.ts`, `src/biology/load.ts`, `src/data/sifts.ts`, `vite.config.ts` (`optimizeDeps.entries`), `tests/biology.test.ts`, `tests/e2e/interpretation.spec.ts`.
+
+- Before 3G, `load.ts` ran `decompressSifts` and `parseSiftsXml` on the main thread. Validated XML of up to 50 MB and 500,000 rows can freeze rendering and selection, which contradicts the rule that annotation work never blocks exploration.
+- Move gzip decompression, `XMLValidator`, `XMLParser` and row normalization into a dedicated module worker, following the `AnalysisClient` pattern. Copy and transfer source bytes so the cached `ResourceSnapshot.bytes` buffer is never detached. Return plain `SiftsRow[]` plus parser diagnostics.
+- Cancellation terminates the worker, and generation checks reject late results, as they do for analysis. Enforce the existing input, output and row limits inside the worker; size errors keep their current user-facing messages.
+- Keep `parseSiftsXml` a pure function so Vitest calls it directly. The worker is a thin wrapper, and one integration test drives the worker client in the browser suite.
+- Consider moving discovery/UniProt Zod normalization into the same worker only if profiling shows a measurable main-thread cost. Don't move it by default.
+
+Acceptance: identical `SiftsRow[]` and interpretation hashes for the 3PTB/4HHB fixtures; a browser test shows residue selection and camera interaction staying responsive (no long task over 200 ms attributable to SIFTS) while a large synthetic SIFTS file parses; cancelling a structure load terminates the parse; malformed XML and invalid gzip still produce the same actionable errors.
+
+### 3H — Interaction-engine restructuring (3–4 days)
+
+Files: `src/analysis/engine.ts`, new `src/analysis/{connectivity,features,classify,metal,evaluation,provenance}.ts`, `tests/analysis.test.ts`, `tests/interaction-categories.test.ts`, new `tests/engine-golden.test.ts`.
+
+`engine.ts` is 27 KB, most of it in one `analyze()` function that mixes Mol* structure selection, bond adjacency, proximity search, clash detection, feature extraction, per-type classification, metal grouping, evaluation status and provenance text. Scientific reviewers cannot audit one rule without reading all of them. The planned Phase 2.x ruleset changes listed below would be risky in the current shape. This is a refactor and must not change results.
+
+1. **Golden output first.** Before moving code, snapshot complete `AnalysisRun` scientific fields (interactions, geometry, evaluation, qualityFlags, assumptions, bindingSite, bonds; excluding `id`, `generatedAt` and timing) for 3PTB BEN, 1EVE E20, 1RMD ZN and every synthetic category fixture, under default and non-default parameters. Store them as JSON fixtures with a hash.
+2. **Split by responsibility,** with typed inputs and outputs and no shared mutable closure state:
+   - `connectivity.ts`: selected-structure construction, bond extraction, adjacency, `isWithinBonds(a, b, n)` (currently the inline one/two-bond `bonded` closure).
+   - `features.ts`: Mol* feature → domain atom-group translation and the ligand/receptor orientation of edges.
+   - `classify.ts`: one function per interaction type (`classifyHydrogenBond`, `classifyIonic`, `classifyHydrophobic`, `classifyRing`, `classifyWaterBridge`). Each is pure over (endpoints, positions, adjacency, snapshot chemistry, parameters) and returns `MolecularInteraction | Rejection`. Explicit rejection reasons (bonded, incomplete endpoint, unknown chemistry, multi-residue group, nitrogen-only negative feature) become testable and countable instead of silent `return`s.
+   - `metal.ts`: metal/partner feature pairing, grouping and angle enumeration.
+   - `evaluation.ts`: the evaluation-status matrix and reason strings, as a table rather than nested ternaries.
+   - `provenance.ts`: assumptions and quality-flag text, versioned with `RULESET_VERSION`.
+   - `engine.ts` keeps orchestration only: eligibility → connectivity → proximity → clashes → Mol* compute → classify → group → assemble the run.
+3. **Unit-test each classifier** with minimal synthetic inputs, including boundary values at exactly the cutoff and rejection reasons. Keep the existing fixture tests.
+4. Record rejection counts per reason in `AnalysisRun.stats`. This is the only intended output addition; bump `ENGINE_VERSION` to `contacts-2.1.0` for the schema addition. Leave `RULESET_VERSION` unchanged because no rule changes.
+5. Adopt Prettier and ESLint for the new modules, and reformat `engine.ts`'s remainder in the same change, so the file stops mixing two styles.
+
+Acceptance: golden fixtures match exactly, apart from the documented `stats.rejections` addition; each classifier has positive, negative and at-cutoff tests; no module exceeds roughly 250 lines; the PLIP reference comparison is unchanged.
+
+### 3I — Binding-site interpretation corrections (2–3 days)
+
+Files: `src/domain/biology.ts`, `src/biology/projection.ts`, `src/components/BindingSiteSummary.tsx`, `src/biology/export.ts`, `tests/interpretation.test.ts`, `tests/e2e/interpretation.spec.ts`, README and `validation/BIOLOGY.md`.
+
+- **Separate site features from context features.** `FUNCTIONAL_SITE_TYPES` includes `Domain` and `Region`. In P00760 the "Peptidase S1" domain (24–244, ECO:0000255) covers the whole mature chain, so the headline "mapped residues overlap functional features" is close to 100% for any 3PTB binding site by construction. Report site-level overlap (Active site, Binding site, Site) as the headline. Report Domain/Region membership as context, not as a functional numerator.
+- **Add a background rate.** For each feature class, report the fraction of all exactly mapped, observed residues in the same chain instances that carry the feature, beside the binding-site fraction. Show both as counts. Do not show a p-value unless a defensible null model is documented.
+- **Ligand identity of the annotation.** UniProt binding-site features carry a ligand (P00760: Ca²⁺ ChEBI:29108 at 75/77/80/85; "substrate" at 194–195, 197–198, 200). Overlaps are grouped only by feature type. Group and label overlaps by the annotation's ligand, and state its relation to the analyzed component: `same` (CCD→ChEBI cross-reference matches), `different`, or `unresolved` (generic labels such as "substrate", or no cross-reference). Never infer `same` from a name match. A CCD→ChEBI cross-reference comes from the CCD definition already fetched in Phase 2 when it carries one; otherwise the relation stays `unresolved`.
+- Bump `BIOLOGY_VERSION` to `biology-1.1.0` (summary semantics change). Saved schema-2 sessions keep their pinned summaries; a refresh produces the new form.
+
+Acceptance: the 3PTB summary no longer counts the S1 domain toward functional overlap; BEN–ASP189 overlap is shown against the "substrate" site with relation `unresolved`; the Ca²⁺ sites are shown as `different` if any contact residue touches them; background rates appear in the UI and the residue-annotation CSV.
+
+### 3J — Engineered mutations and structure-quality evidence (2–4 days)
+
+Files: `src/data/sifts.ts`, `src/biology/mapping.ts`, `src/domain/biology.ts`, `src/biology/evidence.ts`, `src/components/{ResidueBiology,EvidenceDrawer}.tsx`, new fixture with an engineered catalytic mutant, `tests/biology.test.ts`.
+
+- **Engineered mutations.** Any residue identity difference currently yields `sequence_mismatch`, and nothing projects. Catalytically inactive mutants (e.g. Ser→Ala at the nucleophile) are common in ligand complexes, and that is exactly the position users want annotated. Parse the SIFTS `residueDetail` annotations (`Engineered mutation`, `Conflict`, `Expression tag`, `Cloning artifact`, `Microheterogeneity`). Record position correspondence separately from residue identity: add `identity: 'match' | 'engineered_mutation' | 'conflict' | 'unexplained_mismatch'` to `ResidueMapping`. Project annotations onto engineered positions with a prominent `S200A (engineered)` label. Unexplained mismatches stay unprojected.
+- **Structure-quality evidence.** Resolution is captured (`StructureMetadata.resolution`) and B-factors are loaded, but neither is shown with interpretations. Add an `experimental_structure` evidence record per snapshot: method, resolution, R-free and Cruickshank DPI where computable. Add per-ligand fit metrics (RSCC/RSR) from the wwPDB validation data, fetched by identifier only after a CORS check. Show them in the binding-site summary and evidence drawer. Ligand fit is the main caveat for any contact claim.
+- Carry an estimated coordinate uncertainty into the interaction table as a "borderline" flag for contacts within that uncertainty of their cutoff. This is display and export metadata derived from an unchanged `AnalysisRun`; it does not reclassify interactions.
+
+Acceptance: a frozen engineered-mutant fixture projects its active-site annotation with the mutation label; an unexplained mismatch still does not project; 3PTB shows resolution and ligand-fit evidence with source hashes; validation failures leave interpretation usable with "quality evidence unavailable."
+
+### Deferred: Phase 2.x ruleset revisions enabled by 3H
+
+The review also found weaknesses in the interaction rules. They belong to a Phase 2 ruleset revision, not to Phase 3, but they should land after 3H so each change is a small, separately tested classifier edit with a `RULESET_VERSION` bump and an updated PLIP comparison:
+
+- Per-altloc ensemble analysis (consistent A/B sets across residues, interactions reported as present in all or some conformers). This replaces whole-residue exclusion as the default, which biases against high-resolution structures.
+- Halogen bonds enabled, with fixture and PLIP reference.
+- Element-specific metal-coordination distances (Harding tables) instead of a uniform 3.0 Å.
+- His salt bridges as a separate pH-dependent tier; Asn/Gln amide and His ring H-bonds flagged flip/tautomer-ambiguous; metal-bound His/Cys excluded from ionic typing.
+- Covalent-ligand detection from `struct_conn`, with one-to-three-bond exclusions across the covalent link, and donor–acceptor pairs exempt from steric clashes.
+- Multi-residue ligand groups (branched glycans, peptides, BIRD molecules) and optional non-polymer receptor components (cofactors, metals).
+- A broader curated validation set with per-category agreement against PLIP and a second tool.
+
+### 3F–3J implementation record
+
+Implemented 2026-10-10 on the `phase-3f-consistency` branch: 81 deterministic tests (up from 45) and 20 production-browser workflows (up from 19). Versions: engine `contacts-2.1.0` (ruleset unchanged), `BIOLOGY_VERSION` `biology-1.1.0`, interpretation JSON schema 2. Older pinned interpretations without ligand records or residue identity remain readable; their relations show as unresolved and their identity as absent.
+
+- **3F.** Implemented as planned. `src/domain/elements.ts` provides the shared hydrogen test, and `tests/contracts.test.ts` compares this plan's contract excerpt with `src/domain/biology.ts` (status, evidence-kind and identity unions plus field names). It caught two real drifts while 3I/3J were being built. Status records moved to `docs/`.
+- **3G.** Implemented as planned. Deviation: the acceptance check asserts in the production browser that the SIFTS worker starts, and unit-tests equality, cancellation and buffer ownership. It does not include a long-task timing assertion, because software-WebGL rendering in CI produces long tasks unrelated to SIFTS, so the measurement could not be attributed.
+- **3H.** Implemented as planned, with 13 golden cases byte-identical. Deviations: `engine.ts` is about 300 lines after Prettier rather than about 250, because the run-assembly object is kept inline for review. ESLint was not adopted: `typescript-eslint` 8.70 supports TypeScript below 6.1, and this project pins TypeScript 7.0.2. Prettier is adopted for all of `src/` and enforced in CI (`npm run format:check`). Revisit ESLint when `typescript-eslint` supports TypeScript 7.
+- **3I.** Implemented. Deviation: CCD definition files carry no ChEBI cross-references, so identities come from RCSB chemical component records (`data.rcsb.org/rest/v1/core/chemcomp/<id>`, CORS verified 2026-10-10), pinned in the interpretation snapshot. Background rates appear in the UI and in the interpretation JSON's binding-site summary. The per-residue CSV gains `feature_category`, `feature_ligand` and `feature_ligand_id` instead of rate columns, because a per-feature-type rate does not fit a per-residue row.
+- **3J.** Implemented. The engineered-mutant fixture is real (1OPH, S195A trypsin with alpha-1-antitrypsin Pittsburgh), not synthetic; an unexplained-mismatch negative control is an in-memory modification of it. The coordinate error is read from the coordinate file (deposited ESU(R-free), otherwise computed Cruickshank DPI_free) and is unavailable for 3PTB/4HHB, which deposit no R-free or reflection counts. Ligand fit comes from RCSB nonpolymer-instance validation records rather than the wwPDB XML. Borderline flags appear in the interaction table, the selected-contact inspector and the interpretation JSON; the Phase 2 CSV is unchanged.
+
 ## Release checklist and phase status
 
 Phase 3 is complete when the 3PTB vertical slice and the mapping edge cases above pass, annotation tracks/inspector/binding-site summary agree, provenance survives export/restore, and the deployed application remains usable through scientific API failures. Optional PDBe cross-checks can then add independent binding-site annotations using the same contracts; they must not be confused with computed Phase 2 results.
 
-Phase 1: complete. Phase 2: complete for the planned ligand-centered interaction workbench, with documented scientific preparation limits. Phase 3: complete, including exact mapping, functional interpretation, evidence, pinned restoration and enriched exports. Phase 4: structural comparison, pending. Phase 5: mutations, protein–protein interfaces and advanced analysis, pending.
+Phase 1: complete. Phase 2: complete for the planned ligand-centered interaction workbench, with documented scientific preparation limits. Phase 3: complete, including exact mapping, functional interpretation, evidence, pinned restoration and enriched exports. Follow-up milestones 3F–3J (consistency, worker parsing, engine restructuring, interpretation corrections, mutation and quality evidence) are implemented. The deferred Phase 2.x ruleset revisions are the recommended next step before Phase 4. Phase 4: structural comparison, pending. Phase 5: mutations, protein–protein interfaces and advanced analysis, pending.

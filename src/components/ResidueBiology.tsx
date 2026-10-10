@@ -1,4 +1,20 @@
 import { useExplorer } from "../state/explorer";
+import type { ResidueMapping } from "../domain/biology";
+
+const IDENTITY_LABEL: Partial<
+  Record<NonNullable<ResidueMapping["identity"]>, string>
+> = {
+  engineered_mutation: "engineered",
+  conflict: "sequence conflict",
+  unexplained_mismatch: "unexplained mismatch",
+};
+/** e.g. "S200A (engineered)": UniProt residue, UniProt position, deposited residue. */
+export function residueChangeLabel(m: ResidueMapping) {
+  if (!m.residueChange) return "";
+  const { uniprot, deposited } = m.residueChange;
+  const kind = m.identity ? IDENTITY_LABEL[m.identity] : undefined;
+  return `${uniprot}${m.uniprotPosition}${deposited}${kind ? ` (${kind})` : ""}`;
+}
 export function ResidueBiology() {
   const s = useExplorer(),
     interpretation = s.interpretation,
@@ -35,6 +51,15 @@ export function ResidueBiology() {
                   <dt>UniProt {m.accession}</dt>
                   <dd>
                     {m.uniprotPosition} · {m.status.replaceAll("_", " ")}
+                    {m.residueChange && (
+                      <span
+                        className={`residue-change identity-${m.identity}`}
+                        data-testid="residue-change"
+                      >
+                        {" · "}
+                        {residueChangeLabel(m)}
+                      </span>
+                    )}
                   </dd>
                 </div>
               ))

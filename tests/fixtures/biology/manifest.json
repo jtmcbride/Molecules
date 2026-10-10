@@ -40,5 +40,101 @@
     "url": "https://rest.uniprot.org/uniprotkb/P68871.json",
     "sha256": "937a46d0da699853316d18ae8becb21e949eed48ec8e1c8d2fdbd9bc2798fd12",
     "retrievedOn": "2026-10-09"
+  },
+  {
+    "file": "chemcomp-BEN.json",
+    "url": "https://data.rcsb.org/rest/v1/core/chemcomp/BEN",
+    "sha256": "5a5511abe25378302c70521f6be76366bff8191a0d6939d2c565e48960998632",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "chemcomp-CA.json",
+    "url": "https://data.rcsb.org/rest/v1/core/chemcomp/CA",
+    "sha256": "c1ae10493abc600884057b136a18faaddfb856a4a2dbb76fffa2f8a56d8a009d",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "chemcomp-HEM.json",
+    "url": "https://data.rcsb.org/rest/v1/core/chemcomp/HEM",
+    "sha256": "4c8c972266257ffde5ab0ca0d4a67d4b989f256032bfe07bb5c1c676c3979539",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "chemcomp-PO4.json",
+    "url": "https://data.rcsb.org/rest/v1/core/chemcomp/PO4",
+    "sha256": "f9fbab7b35db10602b9bff92c5696734f82d156c24a8182a1b628ba85ab79315",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "1oph-discovery.json",
+    "url": "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/1oph",
+    "sha256": "881822f20ebd43f4ddb3345bf41f65b7016583435d49c11142eed9e34db3175c",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "1oph-sifts.xml.gz",
+    "url": "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/1oph.xml.gz",
+    "sha256": "0e39b74ad3fe053d567bff573a974e47b157edb9dd275f2e80ada76d4e775ad7",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "1OPH.cif",
+    "url": "https://files.rcsb.org/download/1OPH.cif",
+    "sha256": "25e67ac6aa718cec66436fb66452b76d380e40240d8a84f33e649e989e5a9958",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "P01009.json",
+    "url": "https://rest.uniprot.org/uniprotkb/P01009.json",
+    "sha256": "8c49c159ec9905d3abbf42a8ba927950c3ad487325c29e232afa8ffbd41628a4",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "ligand-3PTB-B.json",
+    "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/3PTB/B",
+    "sha256": "d2f1d1c7dd43f7ab0f0ccdff4aa38bd7d57ee19a74cf27303834479f4319673a",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "ligand-3PTB-C.json",
+    "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/3PTB/C",
+    "sha256": "5e5ea8a52219d394253c8299142a0515f2d1d7ea00d9f41e1f34c16e99ff622f",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "ligand-4HHB-E.json",
+    "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/4HHB/E",
+    "sha256": "6ccd8006ed5aaaedcc63b7e5406886d8e4337ba0c8abb9e8efe8782c705616d0",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "ligand-4HHB-F.json",
+    "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/4HHB/F",
+    "sha256": "2f805aa7718235d937e91ab3a66e98995840b46cd5ed38623c50c3e0b747a4fe",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "ligand-4HHB-G.json",
+    "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/4HHB/G",
+    "sha256": "b02c924bb06336b2fcf892e7ee908f6738d14b2856771b6d4c7425da8bf25f62",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "ligand-4HHB-H.json",
+    "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/4HHB/H",
+    "sha256": "161dca9908b7214de08c881e4c5f861d8f3c8d39f4bcbfd85ae2ab7dcb401bdb",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "ligand-4HHB-I.json",
+    "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/4HHB/I",
+    "sha256": "7e71f1c86e31d047fb971d6c2c1d6a791f092fc384adc432a77c82d8104f4676",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "ligand-4HHB-J.json",
+    "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/4HHB/J",
+    "sha256": "bb354f189ffb9e7905689075b05bce04daacefdb7590d905a56e5f07eb4301f4",
+    "retrievedOn": "2026-10-10"
   }
 ]

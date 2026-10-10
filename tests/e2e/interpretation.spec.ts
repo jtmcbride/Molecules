@@ -25,6 +25,32 @@ async function biologyRoutes(page: Page) {
       });
     },
   );
+  await page.route(
+    "https://data.rcsb.org/rest/v1/core/chemcomp/*",
+    async (route) => {
+      const component = route.request().url().split("/").at(-1)!;
+      await route.fulfill({
+        body: await readFile(
+          `tests/fixtures/biology/chemcomp-${component}.json`,
+        ),
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+      });
+    },
+  );
+  await page.route(
+    "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/**",
+    async (route) => {
+      const [entry, asym] = route.request().url().split("/").slice(-2);
+      await route.fulfill({
+        body: await readFile(
+          `tests/fixtures/biology/ligand-${entry}-${asym}.json`,
+        ),
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+      });
+    },
+  );
   await page.route("https://rest.uniprot.org/uniprotkb/*", async (route) => {
     const accession = route.request().url().split("/").at(-1)!;
     await route.fulfill({
@@ -47,13 +73,17 @@ test.beforeEach(async ({ page }) => {
 test("links computed ASP189, UniProt features, sequence tracks, 3D and evidence exports", async ({
   page,
 }) => {
-  const errors: string[] = [];
+  const errors: string[] = [],
+    workers: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("worker", (w) => workers.push(w.url()));
   await page.goto("/");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
   await expect(page.getByTestId("mapping-coverage")).toContainText("223 / 223");
+  // SIFTS decompression and XML parsing run in their own module worker.
+  expect(workers.some((url) => /siftsWorker/.test(url))).toBe(true);
   await page.getByRole("button", { name: "Run analysis", exact: true }).click();
   await expect(page.locator(".analysis-summary")).toBeVisible();
   await page
@@ -69,6 +99,24 @@ test("links computed ASP189, UniProt features, sequence tracks, 3D and evidence 
   );
   await expect(page.getByTestId("binding-site-summary")).toContainText(
     "17 / 17",
+  );
+  // Site-level headline against the chain background; the whole-chain S1 domain is context only.
+  await expect(page.getByTestId("site-overlap")).toHaveText("4 / 17");
+  await expect(page.getByTestId("site-background")).toHaveText("11 / 223");
+  await expect(page.getByTestId("ligand-sites")).toContainText(
+    "Binding-site ligands vs BEN (CHEBI:41033)",
+  );
+  await expect(page.getByTestId("ligand-sites")).toContainText(
+    "relation unresolved",
+  );
+  await expect(page.locator(".binding-context")).toContainText("Domain");
+  // 3PTB records resolution but no R-free or reflection count; BEN fit comes from RCSB validation.
+  await expect(page.getByTestId("structure-evidence")).toContainText("1.70 Å");
+  await expect(page.getByTestId("coordinate-error")).toContainText(
+    "not estimable",
+  );
+  await expect(page.getByTestId("ligand-fit")).toHaveText(
+    "RSCC 0.921 · RSR 0.067 · 100% modeled",
   );
   await page
     .getByRole("button", {
@@ -389,5 +437,50 @@ test("ambiguous track positions do not select another residue from the feature r
   await expect(page.locator(".residue-identity")).toHaveCount(0);
   await expect(page.getByTestId("selected-annotation")).toContainText(
     "194–195",
+  );
+});
+
+test("engineered catalytic mutant keeps its active-site annotation with a mutation label", async ({
+  page,
+}) => {
+  await page.route("https://files.rcsb.org/download/1OPH.cif", async (route) =>
+    route.fulfill({
+      body: await readFile("tests/fixtures/biology/1OPH.cif"),
+      contentType: "chemical/x-mmcif",
+      headers: { "access-control-allow-origin": "*" },
+    }),
+  );
+  await page.route("https://data.rcsb.org/rest/v1/core/entry/**", (route) =>
+    route.fulfill({
+      status: 404,
+      headers: { "access-control-allow-origin": "*" },
+    }),
+  );
+  await page.goto("/");
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("LOAD A STRUCTURE").fill("1OPH");
+  await page.getByRole("button", { name: "Load PDB structure" }).click();
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: /^Chain B / }).click();
+  await expect(page.locator(".protein-strip")).toContainText("P00760");
+  await page
+    .getByRole("button", {
+      name: "Inspect Active site UniProt 200",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".residue-identity")).toContainText("195");
+  await expect(page.getByTestId("residue-biology")).toContainText(
+    "200 · exact",
+  );
+  await expect(page.getByTestId("residue-change")).toContainText(
+    "S200A (engineered)",
+  );
+  await expect(page.getByTestId("residue-biology")).toContainText(
+    "Active site",
   );
 });

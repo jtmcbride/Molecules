@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: process.env.VITE_BASE_PATH || '/',
-  optimizeDeps: { entries: ['index.html', 'src/analysis/worker.ts'] },
+  optimizeDeps: { entries: ['index.html', 'src/analysis/worker.ts', 'src/biology/siftsWorker.ts'] },
   server: { host: '0.0.0.0' },
   build: { chunkSizeWarningLimit: 4000 },
   test: { include: ['tests/**/*.test.ts'], testTimeout: 30000 },
