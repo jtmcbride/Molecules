@@ -2238,3 +2238,8 @@ select {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+.covalent-attachment {
+  font-size: 11px;
+  color: var(--accent);
+  margin: 6px 0 0;
+}

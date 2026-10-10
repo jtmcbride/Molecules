@@ -71,3 +71,28 @@ export function participantRole(
       return fallback;
   }
 }
+
+/** Single-atom hydrogen-bond donor and acceptor features, in domain atom indices. */
+export function polarTyping(
+  computed: Interactions,
+  read: FeatureReader,
+  donors: Set<number>,
+  acceptors: Set<number>,
+) {
+  for (const unit of computed.unitsFeatures.keys()) {
+    const f = computed.unitsFeatures.get(unit)!;
+    for (let i = 0; i < f.count; i++) {
+      const type = Number(f.types[i]);
+      if (
+        type !== Number(FeatureTypes.HydrogenDonor) &&
+        type !== Number(FeatureTypes.HydrogenAcceptor)
+      )
+        continue;
+      const { atoms } = read(unit, i);
+      if (atoms.length !== 1) continue;
+      (type === Number(FeatureTypes.HydrogenDonor) ? donors : acceptors).add(
+        atoms[0],
+      );
+    }
+  }
+}

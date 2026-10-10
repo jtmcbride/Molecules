@@ -124,6 +124,23 @@ These were investigated before any rule change. Each is mapped to the milestone 
 - **ProLIF hydrophobic definition.** ProLIF 2.2's hydrophobic pattern excludes methyl carbons and carbons bonded to N/O/F, so methyl contacts from Ala/Val/Leu/Ile/Thr/Met appear app-only. This is a definitional difference, not an app error. The baseline was checked by geometry: ALA75 CB in 1TOW is 3.86 Å from a ligand carbon.
 - **Harness defects fixed before pinning.** Open Babel appends added hydrogens after all heavy atoms, and its residue numbering and names are wrong for some files (1R55 offset by about 207, "UNK" in 1HQ2). The harness regroups atoms by residue and labels them from the deposited coordinates. Without this, ProLIF agreement looked about ten times worse than it is.
 
+## Ruleset molstar-5.13.1-ligand-3 change log
+
+Each Phase 2.x milestone regenerates the engine goldens and the reference-set agreement on purpose. This log records what changed and why.
+
+### R1 — covalent ligands and clash exemptions
+
+- **Rules:**
+  - Ligand–receptor pairs up to three bonds apart are excluded (previously two). Any covalent path between ligand and receptor crosses a ligand–receptor link, so this only changes covalently attached ligands, where 1–4 pairs across the link are bonded geometry, not contacts.
+  - Ligand–receptor covalent bonds are recorded as `covalentAttachments`, with deposited or geometry-inferred provenance.
+  - A ligand–receptor heavy-atom pair closer than the sum of covalent radii (Cordero et al. 2008) plus 0.4 Å, with no bond, adds a "possible unrecorded covalent attachment" flag. No bond is inferred.
+  - Van der Waals overlaps between Mol*-typed hydrogen-bond donor and acceptor atoms are treated as short hydrogen bonds, not clashes (the matching H-bond gets a note). Without chemical typing they stay clash candidates.
+- **Evidence:**
+  - 5P9J and 4G5J record their deposited Cys481 SG–8E8 CAA and Cys797 SG–0WN C30 attachments, and no reported interaction lies within three bonds across them.
+  - Synthetic O···O probes pin the boundaries: Mol* infers a bond at 1.45 Å, which is recorded as geometry-inferred; 1.65 Å is flagged; 1.8 Å is neither.
+  - A 2.40 Å typed OG–O1 pair is an H-bond with a short-distance note, not a clash. Without typing it remains a clash.
+- **Golden and reference changes:** all 13 golden hashes changed only through the assumption text and ruleset version; interaction counts are identical in every golden case. Reference-set agreement is unchanged, because the comparison covers chemical categories and R1 changes proximity and clash results.
+
 ## Scale and browser verification
 
 A local Node 24 run on 2026-10-09 built the 100,000-atom grid in approximately 34 ms, with five queries plus independent brute-force validation taking approximately 83 ms. The coordinate buffer alone occupies 1.2 MB. These are observations from this environment, not browser speed promises or whole-engine memory measurements. Reproduce with `RECORD_REFERENCE=1 npm test`; diagnostic JSON is written under `/tmp`. Normal tests assert correctness rather than a machine-specific timing threshold.

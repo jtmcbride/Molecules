@@ -55,7 +55,8 @@ export const ASSUMPTIONS = [
   "Coordinates are in Å and include the selected assembly transformations.",
   "The selected ligand and polymer receptor chains define endpoints. Eligible deposited waters mediate bridges only when enabled. Other ligand/ion instances are excluded.",
   "Missing atoms and hydrogens are not added. Zero and unknown occupancies are excluded. Standard amino acids and components with atom dictionaries are checked for missing eligible heavy atoms; incomplete endpoints are skipped for nonmetal chemical classification. Completeness of other components is not established.",
-  "Noncovalent pairs separated by one or two covalent bonds are excluded. Metal coordination candidates retain deposited coordinate-bond pairs.",
+  "Noncovalent pairs separated by one or two covalent bonds are excluded; ligand–receptor pairs up to three bonds apart are excluded across a covalent attachment. Metal coordination candidates retain deposited coordinate-bond pairs.",
+  "Heavy-atom overlaps between typed hydrogen-bond donor and acceptor atoms are short hydrogen bonds, not steric clashes; without chemical typing, such overlaps remain clash candidates.",
   "Mol* infers connectivity/valence when deposited chemistry is incomplete. Standard residue templates treat ARG/LYS/HIS as positive and ASP/GLU as negative for ionic candidates.",
   "Mol* contact refinement suppresses redundant hydrophobic contacts and hydrogen bonds overlapping ionic contacts. Negative nitrogen features require an explicit negative formal charge in this ruleset.",
   "Distance measurements and chemical candidates do not estimate affinity or binding energy.",
@@ -68,6 +69,20 @@ export interface QualityInputs {
   unknownComponents: string[];
   excludedDisorderedResidues: number;
   excludedOccupancyAtoms: number;
+  covalentAttachments?: {
+    ligandAtom: number;
+    receptorAtom: number;
+    provenance: string;
+  }[];
+  unrecordedCovalent?: [number, number][];
+  exemptedClashes?: number;
+}
+
+/** "CYS A:481 SG" for a domain atom index. */
+export function atomLabel(snapshot: StructureSnapshot, atom: number): string {
+  const r = snapshot.residues[snapshot.atomBuffer.residueIndices[atom]],
+    c = snapshot.chains.find((ch) => ch.id === r.chainId)!;
+  return `${r.componentId} ${c.authAsymId}:${r.authSeqId ?? "?"}${r.insertionCode ?? ""} ${snapshot.atoms[atom].name}`;
 }
 
 /** Structure flags plus run-specific completeness, chemistry, conformer and occupancy notes. */
@@ -94,6 +109,19 @@ export function qualityFlags(x: QualityInputs): string[] {
       : []),
     ...(x.excludedOccupancyAtoms
       ? [`${x.excludedOccupancyAtoms} atoms were excluded by occupancy.`]
+      : []),
+    ...(x.covalentAttachments ?? []).map(
+      (l) =>
+        `Covalently attached ligand: ${atomLabel(x.snapshot, l.ligandAtom)}–${atomLabel(x.snapshot, l.receptorAtom)} (${l.provenance === "geometry_inferred" ? "geometry-inferred" : "deposited"} bond). Pairs up to three bonds apart across the link are excluded.`,
+    ),
+    ...(x.unrecordedCovalent ?? []).map(
+      ([a, b]) =>
+        `Possible unrecorded covalent attachment: ${atomLabel(x.snapshot, a)}–${atomLabel(x.snapshot, b)} is closer than the sum of covalent radii plus 0.4 Å with no recorded bond. No bond was inferred.`,
+    ),
+    ...(x.exemptedClashes
+      ? [
+          `${x.exemptedClashes} van der Waals overlap(s) between typed hydrogen-bond donor and acceptor atoms were treated as short hydrogen bonds, not steric clashes.`,
+        ]
       : []),
   ];
 }

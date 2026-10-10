@@ -81,3 +81,23 @@ export function clashRadius(element: string): number | undefined {
   const number = AtomicNumbers[symbol];
   return number === undefined ? undefined : ElementVdwRadii[number];
 }
+
+// Single-bond covalent radii (Å) for nonmetal elements; Cordero et al., Dalton Trans. 2832 (2008),
+// sp3 carbon. Metals are excluded: metal–ligand contacts are coordination, not unrecorded bonds.
+const COVALENT_RADII: Record<string, number> = {
+  H: 0.31,
+  B: 0.84,
+  C: 0.76,
+  N: 0.71,
+  O: 0.66,
+  F: 0.57,
+  P: 1.07,
+  S: 1.05,
+  CL: 1.02,
+  SE: 1.2,
+  BR: 1.2,
+  I: 1.39,
+};
+export function covalentRadius(element: string): number | undefined {
+  return COVALENT_RADII[element.toUpperCase()];
+}

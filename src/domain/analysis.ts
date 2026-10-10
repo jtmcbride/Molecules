@@ -1,5 +1,5 @@
 export const ENGINE_VERSION = "contacts-2.1.0";
-export const RULESET_VERSION = "molstar-5.13.1-ligand-2";
+export const RULESET_VERSION = "molstar-5.13.1-ligand-3";
 export type InteractionType =
   | "proximity_contact"
   | "hydrogen_bond"
@@ -208,6 +208,12 @@ export interface AnalysisRun {
     elapsedMilliseconds: number;
     rejections?: Partial<Record<RejectionReason, number>>;
   };
+  /** Ligand–receptor covalent bonds in the selected context (ruleset ligand-3). */
+  covalentAttachments?: {
+    ligandAtom: number;
+    receptorAtom: number;
+    provenance: "dictionary_or_explicit" | "geometry_inferred";
+  }[];
   interactions: MolecularInteraction[];
   residues: ResidueInteractionSummary[];
   /** Atom-derived residue adjacency. IDs point to canonical interactions above. */

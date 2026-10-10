@@ -82,6 +82,43 @@ export class Connectivity {
     return this.adjacency.get(atom) ?? new Set();
   }
 
+  /** True when the atoms are at most `maxBonds` covalent bonds apart. */
+  withinBonds(a: number, b: number, maxBonds: number): boolean {
+    let frontier = [a];
+    const seen = new Set([a]);
+    for (let depth = 0; depth < maxBonds && frontier.length; depth++) {
+      const next: number[] = [];
+      for (const atom of frontier)
+        for (const n of this.adjacency.get(atom) ?? []) {
+          if (n === b) return true;
+          if (!seen.has(n)) {
+            seen.add(n);
+            next.push(n);
+          }
+        }
+      frontier = next;
+    }
+    return false;
+  }
+
+  /**
+   * Ligand–receptor pairs are excluded up to three bonds apart. Any covalent path between
+   * them crosses a ligand–receptor link, so this only differs from the two-bond rule for
+   * covalently attached ligands, where 1–4 pairs across the link are not noncovalent contacts.
+   */
+  ligandReceptorBonded(ligandAtom: number, receptorAtom: number): boolean {
+    return this.withinBonds(ligandAtom, receptorAtom, 3);
+  }
+
+  /** Covalent bonds joining a ligand atom to a receptor atom. */
+  crossLinks(ligand: Set<number>, receptor: Set<number>) {
+    return this.bonds.filter(
+      (b) =>
+        (ligand.has(b.atomA) && receptor.has(b.atomB)) ||
+        (ligand.has(b.atomB) && receptor.has(b.atomA)),
+    );
+  }
+
   /** True when the atoms are one or two covalent bonds apart. */
   withinTwoBonds(a: number, b: number): boolean {
     const first = this.adjacency.get(a);

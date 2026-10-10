@@ -64,7 +64,7 @@ export function validateEndpoints(
     closest: [number, number] = [ligand.atoms[0], receptor.atoms[0]];
   for (const x of ligand.atoms)
     for (const y of receptor.atoms) {
-      if (!metal && ctx.connectivity.withinTwoBonds(x, y))
+      if (!metal && ctx.connectivity.ligandReceptorBonded(x, y))
         return reject("bonded_endpoints");
       const d = atomDistance(positions, x, y);
       if (d < distance) {
@@ -269,7 +269,7 @@ export function classifyWaterBridge(
   if (
     c.withinTwoBonds(x, w) ||
     c.withinTwoBonds(y, w) ||
-    c.withinTwoBonds(x, y)
+    c.ligandReceptorBonded(x, y)
   )
     return reject("bonded_endpoints");
   const positions = ctx.snapshot.atomBuffer.positions;

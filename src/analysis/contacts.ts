@@ -1,8 +1,11 @@
-import type { AnalysisParameters } from "../domain/analysis";
+import type {
+  AnalysisParameters,
+  MolecularInteraction,
+} from "../domain/analysis";
 import type { ResidueRecord, StructureSnapshot } from "../domain/types";
 import type { InteractionCollector } from "./collector";
 import type { Connectivity } from "./connectivity";
-import { clashRadius } from "./geometry";
+import { clashRadius, covalentRadius } from "./geometry";
 import { SpatialGrid } from "./spatial";
 
 export interface ContactContext {
@@ -30,7 +33,7 @@ export function proximityContacts(
   for (const a of ctx.ligand)
     for (const near of grid.neighbors(a, cutoff)) {
       const b = near.index;
-      if (ctx.connectivity.withinTwoBonds(a, b)) {
+      if (ctx.connectivity.ligandReceptorBonded(a, b)) {
         excludedBondedPairs++;
         continue;
       }
@@ -85,7 +88,7 @@ export function stericClashes(
     const grid = new SpatialGrid(positions, supportedReceptor, searchCutoff);
     for (const a of supportedLigand)
       for (const { index: b, distance } of grid.neighbors(a, searchCutoff)) {
-        if (ctx.connectivity.withinTwoBonds(a, b)) continue;
+        if (ctx.connectivity.ligandReceptorBonded(a, b)) continue;
         const radii: [number, number] = [radius(a)!, radius(b)!],
           overlap = radii[0] + radii[1] - distance;
         if (overlap + 1e-6 < minimum) continue;
@@ -113,4 +116,55 @@ export function stericClashes(
     supportedLigand: supportedLigand.length,
     supportedReceptor: supportedReceptor.length,
   };
+}
+
+/**
+ * Removes steric-overlap candidates between a typed hydrogen-bond donor and acceptor: a
+ * short donor–acceptor distance is a strong hydrogen bond, not a clash. Matching H-bond
+ * interactions get a note. Returns the number of exempted pairs.
+ */
+export function exemptPolarClashes(
+  interactions: MolecularInteraction[],
+  donors: Set<number>,
+  acceptors: Set<number>,
+): number {
+  const polar = (a: number, b: number) =>
+    (donors.has(a) && acceptors.has(b)) || (acceptors.has(a) && donors.has(b));
+  const exempted = new Set<string>();
+  for (let i = interactions.length - 1; i >= 0; i--) {
+    const x = interactions[i];
+    if (x.type !== "steric_clash" || !polar(...x.closestAtomPair)) continue;
+    exempted.add(x.closestAtomPair.join(":"));
+    interactions.splice(i, 1);
+  }
+  for (const x of interactions)
+    if (x.type === "hydrogen_bond" && exempted.has(x.closestAtomPair.join(":")))
+      x.notes.push(SHORT_HBOND_NOTE);
+  return exempted.size;
+}
+export const SHORT_HBOND_NOTE =
+  "Short donor–acceptor distance with van der Waals overlap; treated as a strong hydrogen bond, not a steric clash.";
+
+/**
+ * Ligand–receptor heavy-atom pairs closer than the sum of covalent radii plus 0.4 Å with no
+ * recorded bond. Reported as a quality flag only; no bond is inferred.
+ */
+export function unrecordedCovalentContacts(
+  interactions: MolecularInteraction[],
+  snapshot: StructureSnapshot,
+): [number, number][] {
+  const found: [number, number][] = [];
+  for (const x of interactions) {
+    if (x.type !== "proximity_contact") continue;
+    const [a, b] = x.closestAtomPair;
+    const ra = covalentRadius(snapshot.atoms[a].element),
+      rb = covalentRadius(snapshot.atoms[b].element);
+    if (
+      ra !== undefined &&
+      rb !== undefined &&
+      x.distanceAngstrom < ra + rb + 0.4
+    )
+      found.push([a, b]);
+  }
+  return found;
 }

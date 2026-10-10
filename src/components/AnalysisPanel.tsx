@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useExplorer } from "../state/explorer";
 import { INTERACTION_LABELS, type InteractionType } from "../domain/analysis";
+import { atomLabel } from "../analysis/provenance";
 import {
   cutoffMargin,
   distanceUncertainty,
@@ -375,6 +376,21 @@ export function AnalysisPanel({
               <span>·</span> {(run.stats.elapsedMilliseconds / 1000).toFixed(2)}{" "}
               s
             </div>
+            {run.covalentAttachments?.map((link) => (
+              <p
+                className="covalent-attachment"
+                data-testid="covalent-attachment"
+                key={`${link.ligandAtom}:${link.receptorAtom}`}
+              >
+                Covalently attached: {atomLabel(snapshot, link.ligandAtom)} –{" "}
+                {atomLabel(snapshot, link.receptorAtom)} (
+                {link.provenance === "geometry_inferred"
+                  ? "geometry-inferred bond"
+                  : "deposited bond"}
+                ). Pairs up to three bonds apart across the link are not
+                reported as contacts.
+              </p>
+            ))}
             <div className="interaction-counts">
               {(Object.keys(INTERACTION_LABELS) as InteractionType[]).map(
                 (t) => (

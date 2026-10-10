@@ -20,9 +20,14 @@ import {
 import { InteractionCollector } from "./collector";
 import { incompleteResidues } from "./completeness";
 import { atomLocations, buildConnectivity, selectAtoms } from "./connectivity";
-import { proximityContacts, stericClashes } from "./contacts";
+import {
+  exemptPolarClashes,
+  proximityContacts,
+  stericClashes,
+  unrecordedCovalentContacts,
+} from "./contacts";
 import { evaluationStatus } from "./evaluation";
-import { featureReader, orient } from "./features";
+import { featureReader, orient, polarTyping } from "./features";
 import { annotateMetalGroups, metalFeaturePairs } from "./metal";
 import {
   analysisKey,
@@ -104,6 +109,8 @@ export async function analyze(
     metalEnabled,
   );
 
+  const donors = new Set<number>(),
+    acceptors = new Set<number>();
   if (chemicalEnabled || metalEnabled) {
     progress("Classifying geometry and chemical features");
     const assets = new AssetManager();
@@ -128,6 +135,7 @@ export async function analyze(
         },
       );
       const read = featureReader(computed, selected, locations);
+      if (chemicalEnabled) polarTyping(computed, read, donors, acceptors);
       const ctx: ClassificationContext = {
         snapshot,
         target,
@@ -218,6 +226,21 @@ export async function analyze(
   }
 
   const interactions = collector.interactions;
+  // Typed donor–acceptor overlaps are strong hydrogen bonds, not clashes (requires typing).
+  const exemptedClashes = chemicalEnabled
+    ? exemptPolarClashes(interactions, donors, acceptors)
+    : 0;
+  const covalentAttachments = connectivity
+    .crossLinks(ligandSet, receptorSet)
+    .map((b) => {
+      const ligandAtom = ligandSet.has(b.atomA) ? b.atomA : b.atomB;
+      return {
+        ligandAtom,
+        receptorAtom: ligandAtom === b.atomA ? b.atomB : b.atomA,
+        provenance: b.provenance,
+      };
+    });
+  const unrecordedCovalent = unrecordedCovalentContacts(interactions, snapshot);
   interactions.sort(
     (a, b) =>
       a.distanceAngstrom - b.distanceAngstrom || a.id.localeCompare(b.id),
@@ -262,6 +285,9 @@ export async function analyze(
       unknownComponents: unknown,
       excludedDisorderedResidues: eligible.excludedDisorderedResidues,
       excludedOccupancyAtoms: eligible.excludedOccupancyAtoms,
+      covalentAttachments,
+      unrecordedCovalent,
+      exemptedClashes,
     }),
     evaluation,
     bindingSite: {
@@ -290,6 +316,7 @@ export async function analyze(
       elapsedMilliseconds: performance.now() - started,
       rejections: collector.rejections,
     },
+    covalentAttachments,
     interactions,
     ...summary,
     bonds: connectivity.bonds,
