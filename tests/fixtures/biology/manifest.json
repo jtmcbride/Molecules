@@ -247,5 +247,43 @@
     "url": "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/1HHO/G",
     "sha256": "8e699177fa3819f8e2690617e8d4013e605f3bf65a86bd4e02bb67a68838ab6e",
     "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2DN2.cif.gz",
+    "url": "https://files.rcsb.org/download/2DN2.cif",
+    "sha256": "0b0fa30fc7783492cdd566e630a69a035a5265ccf3fcfc05d1d7b871a6d83496",
+    "uncompressedSha256": "b228200cbc09d0cfa6c147d49ded52917cb028d177e6780544e8028c0d5bc6ca",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2dn2-discovery.json",
+    "url": "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/2dn2",
+    "sha256": "9559125b4ddd045cad557d17916167b262f9019af72e845d8dc384ba77535afd",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2dn2-sifts.xml.gz",
+    "url": "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/2dn2.xml.gz",
+    "sha256": "a2f8fa1c1045886e115ba758bce38bd22e2f919d35f1c35917467b55fefd603b",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2DN1.cif.gz",
+    "url": "https://files.rcsb.org/download/2DN1.cif",
+    "sha256": "57b435459cbfb94397c983650cc30cac9292c74bb0ba0b1f5f3a060cbb1322e2",
+    "uncompressedSha256": "cd114c21d276ad69d7e0b667e0edae1161e089c25c04bcfe7468e4102e484bc9",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2dn1-discovery.json",
+    "url": "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/2dn1",
+    "sha256": "fdbfa7b9e11b22368e2594fa462ab9ccdb140a0ac5cb3944c37a594854a377f8",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2dn1-sifts.xml.gz",
+    "url": "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/2dn1.xml.gz",
+    "sha256": "312ced5e9ea03477d7b8c0d56b2226aa7cc5f0b2f066811db015b2d7981111fa",
+    "retrievedOn": "2026-10-10"
   }
 ]

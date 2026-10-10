@@ -1,3 +1,4 @@
+import type { InteractionType } from "./analysis";
 /**
  * Phase 4 structural comparison contracts. Comparison structures are independent of the
  * reference: each has its own source, snapshot, interpretation and analysis, built by the
@@ -101,4 +102,77 @@ export interface SuperpositionResult {
   rejected: string[];
   siteRadiusAngstrom?: number;
   referenceLigandIds?: string[];
+}
+
+/** Interaction types in fingerprints: chemical interactions, not proximity or clashes. */
+export const FINGERPRINT_TYPES = [
+  "hydrogen_bond",
+  "salt_bridge",
+  "hydrophobic_contact",
+  "pi_stacking",
+  "cation_pi",
+  "halogen_bond",
+  "metal_coordination",
+  "water_bridge",
+] as const satisfies readonly InteractionType[];
+export type FingerprintType = (typeof FINGERPRINT_TYPES)[number];
+/**
+ * One structure's state at one fingerprint row. Only `present` and `absent` are
+ * measurements; the others say why there is none and are never counted as absent.
+ */
+export type FingerprintCell =
+  "present" | "absent" | "not_evaluated" | "not_observed" | "not_comparable";
+export interface FingerprintRow {
+  /** JSON key: ["polymer", reference chain ID, accession, UniProt position, type] or ["component", component ID, type]. */
+  key: string;
+  kind: "polymer" | "component";
+  type: FingerprintType;
+  referenceChainId?: string;
+  accession?: string;
+  uniprotPosition?: number;
+  componentId?: string;
+  /** Aligned with `FingerprintMatrix.columns`. */
+  cells: FingerprintCell[];
+  /** Columns whose cell differs from the reference (present vs absent), with distance margins. */
+  changes?: FingerprintChange[];
+}
+/**
+ * How far a gained or lost interaction is from its cutoff. `presentMarginAngstrom` is the
+ * present side's distance inside the cutoff; `absentExcessAngstrom` is how far the absent
+ * side's closest candidate atoms lie beyond it (candidate atoms by element, so it errs low).
+ * `marginal` marks a change within FINGERPRINT_MARGIN_ANGSTROM of the cutoff on either side.
+ */
+export interface FingerprintChange {
+  column: number;
+  presentMarginAngstrom?: number;
+  absentExcessAngstrom?: number;
+  marginal: boolean;
+}
+/** Changes this close to a cutoff are flagged: the 4.0 vs 4.5 Å hydrophobic cutoffs of the
+ * application and ProLIF differ by this much, and it is typical coordinate error near 2 Å. */
+export const FINGERPRINT_MARGIN_ANGSTROM = 0.5;
+export interface FingerprintColumn {
+  /** "reference" or the comparison slot ID. */
+  id: string;
+  label: string;
+  analysisCacheKey?: string;
+  ligandLabel?: string;
+  /** Why this column cannot be compared with the reference (absent when comparable). */
+  refusal?: string;
+  /** Chemical interactions whose receptor residue has no row (no exact mapping or chain pairing). */
+  unplacedInteractions: number;
+  /** Versus the reference, over rows measured in both. Absent for the reference column. */
+  similarity?: {
+    tanimoto: number | null;
+    shared: number;
+    gained: number;
+    lost: number;
+    compared: number;
+    excluded: number;
+  };
+}
+export interface FingerprintMatrix {
+  version: string;
+  columns: FingerprintColumn[];
+  rows: FingerprintRow[];
 }

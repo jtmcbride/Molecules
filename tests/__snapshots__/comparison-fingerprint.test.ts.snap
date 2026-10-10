@@ -1,0 +1,57 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fingerprint differences against ProLIF > 2DN2 ↔ 2DN1 1`] = `
+{
+  "agree": [],
+  "appOnly": [
+    "hydrogen_bond@62 lost",
+    "hydrophobic_contact@106 gained",
+    "hydrophobic_contact@47 gained",
+    "hydrophobic_contact@62 lost",
+    "hydrophobic_contact@66 gained",
+    "pi_stacking@59 lost",
+  ],
+  "opposite": [],
+  "prolifOnly": [
+    "hydrophobic_contact@84 lost",
+    "hydrophobic_contact@94 lost",
+  ],
+}
+`;
+
+exports[`fingerprint differences against ProLIF > 3PTB ↔ 1S0R 1`] = `
+{
+  "agree": [],
+  "appOnly": [],
+  "opposite": [],
+  "prolifOnly": [
+    "hydrophobic_contact@197 lost",
+  ],
+}
+`;
+
+exports[`interaction fingerprints keyed by UniProt position > flags gained and lost interactions that lie near a cutoff > 2DN2-2DN1 1`] = `
+[
+  "hydrophobic_contact@47 gained present-margin 0.02 absent-excess -0.03 marginal",
+  "pi_stacking@59 lost present-margin 0.76 absent-excess –",
+  "hydrogen_bond@62 lost present-margin 0.59 absent-excess 0.99",
+  "hydrophobic_contact@62 lost present-margin 0.06 absent-excess -0.13 marginal",
+  "hydrophobic_contact@66 gained present-margin 0.18 absent-excess 0.02 marginal",
+  "hydrophobic_contact@106 gained present-margin 0.10 absent-excess 0.30 marginal",
+]
+`;
+
+exports[`interaction fingerprints keyed by UniProt position > flags gained and lost interactions that lie near a cutoff > 4HHB-1HHO 1`] = `
+[
+  "hydrophobic_contact@43 gained present-margin 0.13 absent-excess 0.07 marginal",
+  "pi_stacking@59 lost present-margin 0.62 absent-excess –",
+  "cation_pi@59 lost present-margin 1.47 absent-excess –",
+  "water_bridge@59 lost present-margin 1.10 absent-excess –",
+  "hydrophobic_contact@62 lost present-margin 0.09 absent-excess -0.34 marginal",
+  "water_bridge@62 lost present-margin 1.28 absent-excess –",
+  "hydrophobic_contact@66 gained present-margin 0.48 absent-excess 0.04 marginal",
+  "hydrophobic_contact@67 gained present-margin 0.05 absent-excess 0.24 marginal",
+  "hydrophobic_contact@87 lost present-margin 0.50 absent-excess 0.13 marginal",
+  "hydrophobic_contact@133 gained present-margin 0.44 absent-excess 0.26 marginal",
+]
+`;

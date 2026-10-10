@@ -21,13 +21,12 @@ from rdkit.Chem import AllChem
 RDLogger.DisableLog("rdApp.*")
 ob.obErrorLog.SetOutputLevel(0)
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-WORK = pathlib.Path(sys.argv[1]).resolve()
-WORK.mkdir(parents=True, exist_ok=True)
 FIXTURES = ROOT / "tests/fixtures/reference-set"
-FIXTURES.mkdir(parents=True, exist_ok=True)
-PLIP_SOURCE = pathlib.Path(os.environ["PLIP_SOURCE"]).resolve()
 PLIP_COMMIT = "017a4e35115f26af70f9e822a63766c800835d9d"
-assert subprocess.check_output(["git", "-C", str(PLIP_SOURCE), "rev-parse", "HEAD"], text=True).strip() == PLIP_COMMIT
+# Set by main(); the preparation functions below are also imported by
+# scripts/comparison-prolif.py, which needs neither.
+WORK = None
+PLIP_SOURCE = None
 
 PLIP_KINDS = {"hydrophobic_interaction": "hydrophobic_contact", "hydrogen_bond": "hydrogen_bond", "water_bridge": "water_bridge",
               "salt_bridge": "salt_bridge", "pi_stack": "pi_stacking", "pi_cation_interaction": "cation_pi",
@@ -224,39 +223,53 @@ def prolif_child(index):
     print("PROLIF_RESULT " + json.dumps(result))
 
 
-if len(sys.argv) > 3 and sys.argv[2] == "--prolif-case":
-    prolif_child(int(sys.argv[3]))
-    sys.exit(0)
+def main():
+    global WORK, PLIP_SOURCE
+    WORK = pathlib.Path(sys.argv[1]).resolve()
+    WORK.mkdir(parents=True, exist_ok=True)
+    if len(sys.argv) > 3 and sys.argv[2] == "--prolif-case":
+        prolif_child(int(sys.argv[3]))
+        sys.exit(0)
+    FIXTURES.mkdir(parents=True, exist_ok=True)
+    PLIP_SOURCE = pathlib.Path(os.environ["PLIP_SOURCE"]).resolve()
+    assert subprocess.check_output(["git", "-C", str(PLIP_SOURCE), "rev-parse", "HEAD"], text=True).strip() == PLIP_COMMIT
+    run_all()
 
-cases = json.loads((ROOT / "validation/reference-set-cases.json").read_text())["cases"]
-results = []
-for case in cases:
-    accession = case["accession"]
-    cif = download(f"https://files.rcsb.org/download/{accession}.cif", WORK / f"{accession}.cif")
-    pdb_path = WORK / f"{accession}.pdb"
-    pdb = download(f"https://files.rcsb.org/download/{accession}.pdb", pdb_path)
-    (FIXTURES / f"{accession}.cif.gz").write_bytes(gzip.compress(cif, mtime=0))
-    st = gemmi.read_structure(str(pdb_path))
-    st.setup_entities()
-    entry = {"accession": accession, "ligand": {k: case[k] for k in ("component", "authChain", "authNumber")}, "tags": case["tags"],
-             "cifSha256": sha(cif), "pdbSha256": sha(pdb)}
-    try:
-        entry["plip"] = run_plip(pdb_path, case)
-    except Exception as error:
-        entry["plip"] = {"status": "failed", "error": str(error)[:300], "observations": []}
-    child = subprocess.run([sys.executable, "-I", "-W", "ignore", __file__, str(WORK), "--prolif-case", str(cases.index(case))],
-                           capture_output=True, text=True, env={**os.environ, "PYTHONWARNINGS": "ignore"})
-    line = next((l for l in child.stdout.splitlines() if l.startswith("PROLIF_RESULT ")), None)
-    entry["prolif"] = json.loads(line[len("PROLIF_RESULT "):]) if line else {"status": "failed", "error": f"ProLIF process exited with code {child.returncode}", "observations": []}
-    results.append(entry)
-    print(accession, case["component"], entry["plip"]["status"], len(entry["plip"]["observations"]),
-          entry["prolif"]["status"], len(entry["prolif"]["observations"]), entry["prolif"].get("ligandPreparation", entry["prolif"].get("error", "")), flush=True)
 
-out = {"schemaVersion": 1, "generatedOn": "2026-10-10", "references": {
-    "plip": {"tool": "PLIP", "version": "3.0.0", "commit": PLIP_COMMIT, "preparation": "Deposited PDB file; --nofix --nofixfile; default Open Babel hydrogen addition", "citation": "doi:10.1093/nar/gkaf361"},
-    "prolif": {"tool": "ProLIF", "version": importlib.metadata.version("prolif"), "rdkit": importlib.metadata.version("rdkit"), "mdanalysis": importlib.metadata.version("MDAnalysis"),
-               "preparation": "Receptor: polymer chains of the deposited PDB file, protonated by Open Babel at pH 7.4. Ligand: deposited heavy atoms (first conformer), bond orders from the RCSB CCD canonical SMILES template or Open Babel perception, RDKit-added hydrogens. Ions as single charged atoms. No waters.",
-               "citation": "doi:10.1186/s13321-021-00548-6"},
-    "environment": {"python": sys.version.split()[0], "openbabelWheel": importlib.metadata.version("openbabel-wheel"), "numpy": importlib.metadata.version("numpy"), "gemmi": importlib.metadata.version("gemmi")}},
-    "cases": results}
-(ROOT / "validation/reference-set.json").write_text(json.dumps(out, indent=1) + "\n")
+def run_all():
+    cases = json.loads((ROOT / "validation/reference-set-cases.json").read_text())["cases"]
+    results = []
+    for case in cases:
+        accession = case["accession"]
+        cif = download(f"https://files.rcsb.org/download/{accession}.cif", WORK / f"{accession}.cif")
+        pdb_path = WORK / f"{accession}.pdb"
+        pdb = download(f"https://files.rcsb.org/download/{accession}.pdb", pdb_path)
+        (FIXTURES / f"{accession}.cif.gz").write_bytes(gzip.compress(cif, mtime=0))
+        st = gemmi.read_structure(str(pdb_path))
+        st.setup_entities()
+        entry = {"accession": accession, "ligand": {k: case[k] for k in ("component", "authChain", "authNumber")}, "tags": case["tags"],
+                 "cifSha256": sha(cif), "pdbSha256": sha(pdb)}
+        try:
+            entry["plip"] = run_plip(pdb_path, case)
+        except Exception as error:
+            entry["plip"] = {"status": "failed", "error": str(error)[:300], "observations": []}
+        child = subprocess.run([sys.executable, "-I", "-W", "ignore", __file__, str(WORK), "--prolif-case", str(cases.index(case))],
+                               capture_output=True, text=True, env={**os.environ, "PYTHONWARNINGS": "ignore"})
+        line = next((l for l in child.stdout.splitlines() if l.startswith("PROLIF_RESULT ")), None)
+        entry["prolif"] = json.loads(line[len("PROLIF_RESULT "):]) if line else {"status": "failed", "error": f"ProLIF process exited with code {child.returncode}", "observations": []}
+        results.append(entry)
+        print(accession, case["component"], entry["plip"]["status"], len(entry["plip"]["observations"]),
+              entry["prolif"]["status"], len(entry["prolif"]["observations"]), entry["prolif"].get("ligandPreparation", entry["prolif"].get("error", "")), flush=True)
+
+    out = {"schemaVersion": 1, "generatedOn": "2026-10-10", "references": {
+        "plip": {"tool": "PLIP", "version": "3.0.0", "commit": PLIP_COMMIT, "preparation": "Deposited PDB file; --nofix --nofixfile; default Open Babel hydrogen addition", "citation": "doi:10.1093/nar/gkaf361"},
+        "prolif": {"tool": "ProLIF", "version": importlib.metadata.version("prolif"), "rdkit": importlib.metadata.version("rdkit"), "mdanalysis": importlib.metadata.version("MDAnalysis"),
+                   "preparation": "Receptor: polymer chains of the deposited PDB file, protonated by Open Babel at pH 7.4. Ligand: deposited heavy atoms (first conformer), bond orders from the RCSB CCD canonical SMILES template or Open Babel perception, RDKit-added hydrogens. Ions as single charged atoms. No waters.",
+                   "citation": "doi:10.1186/s13321-021-00548-6"},
+        "environment": {"python": sys.version.split()[0], "openbabelWheel": importlib.metadata.version("openbabel-wheel"), "numpy": importlib.metadata.version("numpy"), "gemmi": importlib.metadata.version("gemmi")}},
+        "cases": results}
+    (ROOT / "validation/reference-set.json").write_text(json.dumps(out, indent=1) + "\n")
+
+
+if __name__ == "__main__":
+    main()

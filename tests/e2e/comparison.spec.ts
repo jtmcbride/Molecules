@@ -66,6 +66,22 @@ async function fixtureRoutes(page: Page) {
       return file(`tests/fixtures/biology/ligand-${entry}-${asym}.json`)(route);
     },
   );
+  // Chemical Component Dictionary definitions: the frozen BEN record; others unavailable.
+  await page.route(
+    "https://files.rcsb.org/ligands/download/*.cif",
+    async (route) => {
+      const id = route.request().url().split("/").at(-1)!.replace(".cif", "");
+      try {
+        await route.fulfill({
+          body: await readFile(`tests/fixtures/${id}-ccd.cif`),
+          contentType: "text/plain",
+          headers: { "access-control-allow-origin": "*" },
+        });
+      } catch {
+        await route.fulfill(missing);
+      }
+    },
+  );
   await page.route("https://data.rcsb.org/rest/v1/core/entry/*", (route) =>
     route.fulfill(missing),
   );
@@ -216,5 +232,56 @@ test("hemoglobin chains pair by author chain, can be re-paired, and the pairing 
   await expect(
     slot.getByLabel("Partner of reference chain C (P69905) in 1HHO"),
   ).toHaveValue("");
+  expect(errors).toEqual([]);
+});
+
+test("fingerprints compare like-for-like analyses by UniProt position and export with the comparison", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  await addComparison(page, "1S0R");
+  const slot = page.getByTestId("comparison-slot");
+  await expect(slot.getByTestId("comparison-fit")).toContainText("Core RMSD");
+  const fingerprint = page.getByTestId("fingerprint");
+  await expect(fingerprint).toContainText("Run the reference analysis");
+  await page.getByRole("button", { name: "Run analysis", exact: true }).click();
+  await expect(page.locator(".analysis-summary")).toContainText("Fresh result");
+  await expect(
+    fingerprint.getByTestId("fingerprint-column").nth(1),
+  ).toContainText("Not analyzed");
+  await slot.getByRole("button", { name: "Analyze" }).click();
+  await expect(
+    fingerprint.getByTestId("fingerprint-column").nth(1),
+  ).toContainText("Tanimoto 1.00 · +0 −0");
+  // Asp189 in 3PTB numbering is UniProt 194; both structures form the salt bridge.
+  const saltBridge = fingerprint.locator("tr", {
+    hasText: /A · 194 · ASP 189\s*Salt-bridge/,
+  });
+  await expect(saltBridge.locator("td")).toHaveText(["●", "●"]);
+  const downloaded = page.waitForEvent("download");
+  await fingerprint.getByRole("button", { name: "Comparison JSON" }).click();
+  const json = JSON.parse(
+    await readFile((await (await downloaded).path())!, "utf8"),
+  );
+  expect(json.schemaVersion).toBe(1);
+  expect(json.comparisonVersion).toBe("comparison-1.0.0");
+  expect(json.structures[0].correspondence.counts.paired).toBe(223);
+  expect(json.structures[0].superposition.fitted).toBe(213);
+  expect(json.fingerprint.columns[1].similarity.tanimoto).toBe(1);
+  // A different reference setting invalidates the reference run; after re-running it the
+  // comparison analysis no longer matches and its column is refused.
+  await page
+    .getByRole("spinbutton", { name: "Proximity cutoff", exact: true })
+    .fill("4.5");
+  await expect(fingerprint).toContainText("Run the reference analysis");
+  await page.getByRole("button", { name: "Run analysis", exact: true }).click();
+  await expect(
+    fingerprint.getByTestId("fingerprint-column").nth(1),
+  ).toContainText("Different parameters proximityCutoff");
   expect(errors).toEqual([]);
 });

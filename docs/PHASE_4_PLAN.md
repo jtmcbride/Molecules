@@ -149,4 +149,11 @@ Acceptance: all gates above pass in CI; the release records the comparison versi
   - **Acceptance wording.** The 4HHB↔1HHO tetramer is fitted from assembly 1 of both entries. The quaternary change shows as a core RMSD of 2.24 Å against 0.62 Å for the αβ dimer; rejection removes only 11 atoms, because deviations spread over whole subunits.
   - **Validation.** All six fixture fits match numpy SVD exactly (`validation/COMPARISON.md`).
   - **Behavior.** The fit runs automatically once both residue mappings exist, and again whenever pairings, scope or the reference ligand change. The scope is saved in the session, and the stored transform is shown until the fit is recomputed.
+- **4D.** As planned, plus distance margins.
+  - **Margins.** Every gained or lost cell records how far it lies from the cutoff, and changes within 0.5 Å are flagged `marginal`. This came from the ProLIF comparison: the two tools agree on none of the changes, and every disagreement is a contact near one tool's cutoff (4.0 vs 4.5 Å) or a type ProLIF does not detect here.
+  - **Second hemoglobin pair.** The ProLIF check uses 2DN2↔2DN1 (1.25 Å deoxy/oxy). Open Babel fragments 4HHB's heme, and ProLIF then reports no interactions.
+  - **Scope.** Fingerprints cover chemical interaction types only, not proximity or clashes.
+  - **Unplaced interactions.** Interactions whose residue has no exact mapping or chain pairing are counted per column.
+  - **Exports.** Comparison JSON (schema 1) and fingerprint CSV.
+  - **Shared preparation.** `scripts/reference-set.py` gained a `main()` guard so its preparation can be imported. Regenerated observations are identical as sets; only ProLIF's output order varies.
 

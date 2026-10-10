@@ -282,5 +282,541 @@
    "minFraction": 0.5,
    "minAtoms": 10
   }
+ },
+ "prolifTool": {
+  "tool": "ProLIF",
+  "version": "2.2.2",
+  "rdkit": "2026.3.6",
+  "preparation": "As validation/reference-set.json: polymer chains of the deposited PDB file protonated by Open Babel at pH 7.4; deposited ligand heavy atoms with CCD-template bond orders and RDKit hydrogens; no waters."
+ },
+ "prolif": {
+  "3PTB": {
+   "status": "ok",
+   "ligandPreparation": "openbabel_perception",
+   "observations": [
+    {
+     "type": "hydrogen_bond",
+     "tool": "HBDonor",
+     "receptor": {
+      "component": "ASP",
+      "authChain": "A",
+      "authNumber": "189"
+     },
+     "distance": 2.872
+    },
+    {
+     "type": "hydrogen_bond",
+     "tool": "HBDonor",
+     "receptor": {
+      "component": "ASP",
+      "authChain": "A",
+      "authNumber": "189"
+     },
+     "distance": 2.919
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "GLN",
+      "authChain": "A",
+      "authNumber": "192"
+     },
+     "distance": 4.373
+    }
+   ],
+   "ligand": {
+    "component": "BEN",
+    "authChain": "A",
+    "authNumber": "1"
+   },
+   "pdbSha256": "288f7954d4d013fa8eab3808e1037e2958e2dcd12c9eca65a3f1014404a9f9a2"
+  },
+  "1S0R": {
+   "status": "ok",
+   "ligandPreparation": "openbabel_perception",
+   "observations": [
+    {
+     "type": "hydrogen_bond",
+     "tool": "HBDonor",
+     "receptor": {
+      "component": "ASP",
+      "authChain": "A",
+      "authNumber": "171"
+     },
+     "distance": 2.815
+    },
+    {
+     "type": "hydrogen_bond",
+     "tool": "HBDonor",
+     "receptor": {
+      "component": "ASP",
+      "authChain": "A",
+      "authNumber": "171"
+     },
+     "distance": 2.868
+    }
+   ],
+   "ligand": {
+    "component": "BEN",
+    "authChain": "A",
+    "authNumber": "225"
+   },
+   "pdbSha256": "3f18682a9afb05a59e6b40409a9e4be8f84b8188f9ad376a8ed491a8ecf17382"
+  },
+  "2DN2": {
+   "status": "ok",
+   "ligandPreparation": "openbabel_perception",
+   "observations": [
+    {
+     "type": "metal_coordination",
+     "tool": "MetalDonor",
+     "receptor": {
+      "component": "HIS",
+      "authChain": "A",
+      "authNumber": "87"
+     },
+     "distance": 2.196
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 3.886
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "98"
+     },
+     "distance": 3.924
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 3.939
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "LYS",
+      "authChain": "A",
+      "authNumber": "61"
+     },
+     "distance": 3.94
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 3.944
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "TYR",
+      "authChain": "A",
+      "authNumber": "42"
+     },
+     "distance": 4.025
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "TYR",
+      "authChain": "A",
+      "authNumber": "42"
+     },
+     "distance": 4.119
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "46"
+     },
+     "distance": 4.119
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "TYR",
+      "authChain": "A",
+      "authNumber": "42"
+     },
+     "distance": 4.148
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "98"
+     },
+     "distance": 4.173
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "98"
+     },
+     "distance": 4.335
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "LEU",
+      "authChain": "A",
+      "authNumber": "91"
+     },
+     "distance": 4.344
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "VAL",
+      "authChain": "A",
+      "authNumber": "93"
+     },
+     "distance": 4.344
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "LEU",
+      "authChain": "A",
+      "authNumber": "83"
+     },
+     "distance": 4.357
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 4.376
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "LYS",
+      "authChain": "A",
+      "authNumber": "61"
+     },
+     "distance": 4.376
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 4.378
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "VAL",
+      "authChain": "A",
+      "authNumber": "93"
+     },
+     "distance": 4.407
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "ASN",
+      "authChain": "A",
+      "authNumber": "97"
+     },
+     "distance": 4.412
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "98"
+     },
+     "distance": 4.431
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 4.437
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "46"
+     },
+     "distance": 4.477
+    }
+   ],
+   "ligand": {
+    "component": "HEM",
+    "authChain": "A",
+    "authNumber": "142"
+   },
+   "pdbSha256": "cc2fca4182e61cb85c2b0082c80167eb7d189a84b148faaa6eb810977c64e214"
+  },
+  "2DN1": {
+   "status": "ok",
+   "ligandPreparation": "openbabel_perception",
+   "observations": [
+    {
+     "type": "metal_coordination",
+     "tool": "MetalDonor",
+     "receptor": {
+      "component": "HIS",
+      "authChain": "A",
+      "authNumber": "87"
+     },
+     "distance": 2.071
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 3.843
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 3.869
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "TYR",
+      "authChain": "A",
+      "authNumber": "42"
+     },
+     "distance": 3.954
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "46"
+     },
+     "distance": 3.978
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "TYR",
+      "authChain": "A",
+      "authNumber": "42"
+     },
+     "distance": 4.005
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "46"
+     },
+     "distance": 4.031
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "98"
+     },
+     "distance": 4.081
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "LYS",
+      "authChain": "A",
+      "authNumber": "61"
+     },
+     "distance": 4.103
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 4.184
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "98"
+     },
+     "distance": 4.268
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "TYR",
+      "authChain": "A",
+      "authNumber": "42"
+     },
+     "distance": 4.271
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "LEU",
+      "authChain": "A",
+      "authNumber": "91"
+     },
+     "distance": 4.335
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "LYS",
+      "authChain": "A",
+      "authNumber": "61"
+     },
+     "distance": 4.355
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "98"
+     },
+     "distance": 4.357
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "LEU",
+      "authChain": "A",
+      "authNumber": "91"
+     },
+     "distance": 4.391
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 4.399
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "ASN",
+      "authChain": "A",
+      "authNumber": "97"
+     },
+     "distance": 4.406
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "TYR",
+      "authChain": "A",
+      "authNumber": "42"
+     },
+     "distance": 4.426
+    },
+    {
+     "type": "hydrophobic_contact",
+     "tool": "Hydrophobic",
+     "receptor": {
+      "component": "PHE",
+      "authChain": "A",
+      "authNumber": "43"
+     },
+     "distance": 4.479
+    }
+   ],
+   "ligand": {
+    "component": "HEM",
+    "authChain": "A",
+    "authNumber": "142"
+   },
+   "pdbSha256": "4251fa525fb3378c87094495d39e449fb2368aad40d94c3ee8f2e61c130e44e1"
+  }
  }
 }

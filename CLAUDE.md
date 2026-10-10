@@ -22,6 +22,7 @@ npx vitest run tests/biology.test.ts   # single file
 - E2E runs one worker with software WebGL (SwiftShader). Don't parallelize it. Set `PLAYWRIGHT_CHROMIUM_PATH` to use a system Chromium.
 - `RECORD_REFERENCE=1 npm test` writes diagnostic timing JSON under `/tmp`.
 - `tests/reference-set.test.ts` compares engine output with pinned PLIP 3.0.0 and ProLIF 2.2.2 observations on 26 cases (`validation/reference-set*.json`, fixtures in `tests/fixtures/reference-set/`). A rule change re-pins it with `RECORD_REFERENCE_SET=1 npm test`, and every agreement change is explained in the `validation/README.md` change log. Regenerating reference observations needs the Python environment described there (`scripts/reference-set*.py`).
+- `tests/comparison-*.test.ts` check comparison against `validation/comparison.json` (numpy superposition, ProLIF fingerprint differences). Regenerate with `RECORD_COMPARISON_PAIRS=1`, `scripts/comparison-reference.py` and `scripts/comparison-prolif.py` (see `validation/COMPARISON.md`).
 - `tests/engine-golden.test.ts` pins SHA-256 hashes of engine output for 13 cases. Any engine change must keep them unless the ruleset changes on purpose: then `UPDATE_ENGINE_GOLDEN=1 npm test`, bump `RULESET_VERSION`, and document why in `validation/README.md`. Use `DUMP_ENGINE_GOLDEN=<dir>` to diff full output.
 - Regenerate PLIP reference observations with `scripts/plip-reference.py` (see `validation/README.md`). Normal CI doesn't run it.
 - CI (`.github/workflows/ci.yml`) runs format:check → test → build → e2e. `pages.yml` deploys `main` with `VITE_BASE_PATH=/<repo>/`. Asset URLs must respect the Vite base path.
@@ -76,6 +77,10 @@ src/
   state/comparison.ts  Comparison slots, one per comparison structure
   comparison/  Phase 4 structural comparison
     controller.ts  Per-slot loading, pinned restore, interpretation and queued analysis; never touches the reference
+    correspondence.ts  SIFTS-only chain pairing and residue correspondence
+    superposition.ts   Horn fit of paired Cα with outlier rejection (validated against numpy)
+    fingerprint.ts     Fingerprint matrix keyed by UniProt position; unmeasured cells never count as absent
+    derived.ts, export.ts  Memoized correspondence/fingerprints; comparison JSON/CSV
   components/  AnalysisPanel, BiologyPanel, ComparisonPanel, CacheUsage, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
   App.tsx      Workspace layout and synchronized views
 tests/
@@ -99,7 +104,7 @@ public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ## Conventions
 
 - `src/` is Prettier-formatted (defaults, double quotes) and CI enforces it. Older test files keep their dense single-quoted style; new test files use Prettier. ESLint isn't set up because `typescript-eslint` doesn't support TypeScript 7 yet.
-- Version bumps: `ENGINE_VERSION` for output-shape changes, `RULESET_VERSION` for rule/assumption changes, `BIOLOGY_VERSION` for interpretation semantics. Analysis JSON is schema 3; interpretation JSON is schema 2. New request/parameter fields must be optional, and restored parameters merge over `DEFAULT_PARAMETERS`.
+- Version bumps: `ENGINE_VERSION` for output-shape changes, `RULESET_VERSION` for rule/assumption changes, `BIOLOGY_VERSION` for interpretation semantics. Analysis JSON is schema 3; interpretation JSON is schema 2; comparison JSON is schema 1. `COMPARISON_VERSION` (`src/domain/comparison.ts`) for comparison semantics. New request/parameter fields must be optional, and restored parameters merge over `DEFAULT_PARAMETERS`.
 - Dependencies are pinned exactly. The Mol* version is part of the ruleset version, so upgrading Mol* means bumping `RULESET_VERSION` and re-reviewing the PLIP reference comparison.
 - Tests use frozen fixtures, never live APIs. A source hash change means re-retrieving and reviewing inputs, not editing assertions. Label synthetic fixtures and in-memory modifications as artificial.
 - Treat discrepancies against external tools (PLIP) as investigated, documented differences in `validation/README.md`. Don't hide them behind count tolerances.

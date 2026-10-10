@@ -7,6 +7,7 @@ import type { StructureSnapshot } from "../domain/types";
 import type { ExplorerController } from "../structure/controller";
 import { CorrespondenceSummary } from "./CorrespondenceSummary";
 import { SuperpositionSummary } from "./SuperpositionSummary";
+import { FingerprintMatrix } from "./FingerprintMatrix";
 
 function ligandLabel(snapshot: StructureSnapshot, residueId: string) {
   const residue = snapshot.residues.find((r) => r.id === residueId);
@@ -251,6 +252,7 @@ export function ComparisonPanel({
             ))}
           </ul>
         )}
+        <FingerprintMatrix />
       </div>
     </section>
   );
