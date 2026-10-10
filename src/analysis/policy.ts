@@ -1,8 +1,9 @@
 import { SpatialGrid } from "./spatial";
-import type {
-  AnalysisRequest,
-  MolecularInteraction,
-  ResidueInteractionSummary,
+import {
+  ligandResidueIds,
+  type AnalysisRequest,
+  type MolecularInteraction,
+  type ResidueInteractionSummary,
 } from "../domain/analysis";
 import type { StructureSnapshot } from "../domain/types";
 import { isHydrogenElement } from "../domain/elements";
@@ -40,8 +41,18 @@ export function validateRequest(
   snapshot: StructureSnapshot,
   request: AnalysisRequest,
 ) {
-  if (!snapshot.ligands.some((l) => l.residueId === request.ligandResidueId))
+  const ligandIds = new Set(snapshot.ligands.map((l) => l.residueId));
+  const group = ligandResidueIds(request);
+  if (
+    !group.includes(request.ligandResidueId) ||
+    group.some((id) => !ligandIds.has(id))
+  )
     throw new Error("Select a ligand instance from this structure.");
+  for (const id of request.receptorComponentResidueIds ?? [])
+    if (!ligandIds.has(id) || group.includes(id))
+      throw new Error(
+        "Receptor components must be other ligands, cofactors or ions in this structure.",
+      );
   if (
     !request.receptorChainIds.length ||
     request.receptorChainIds.some(
@@ -116,10 +127,13 @@ export function eligibleAtoms(
     waters: number[] = [];
   let excludedDisorderedResidues = 0,
     excludedOccupancyAtoms = 0;
+  const target = new Set(ligandResidueIds(request)),
+    components = new Set(request.receptorComponentResidueIds ?? []);
   for (const residue of snapshot.residues) {
-    const isTarget = residue.id === request.ligandResidueId;
+    const isTarget = target.has(residue.id);
     const isReceptor =
-      residue.kind === "polymer" && receptorChains.has(residue.chainId);
+      (residue.kind === "polymer" && receptorChains.has(residue.chainId)) ||
+      components.has(residue.id);
     const isWater =
       residue.kind === "water" &&
       request.parameters.includeWaters &&

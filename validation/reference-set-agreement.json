@@ -2,9 +2,9 @@
  "totals": {
   "plip": {
    "hydrogen_bond": {
-    "shared": 64,
-    "appOnly": 23,
-    "referenceOnly": 36
+    "shared": 78,
+    "appOnly": 31,
+    "referenceOnly": 22
    },
    "hydrophobic_contact": {
     "shared": 84,
@@ -12,9 +12,9 @@
     "referenceOnly": 0
    },
    "salt_bridge": {
-    "shared": 4,
-    "appOnly": 4,
-    "referenceOnly": 9
+    "shared": 6,
+    "appOnly": 8,
+    "referenceOnly": 7
    },
    "pi_stacking": {
     "shared": 6,
@@ -27,9 +27,9 @@
     "referenceOnly": 2
    },
    "metal_coordination": {
-    "shared": 7,
-    "appOnly": 0,
-    "referenceOnly": 24
+    "shared": 18,
+    "appOnly": 2,
+    "referenceOnly": 13
    },
    "halogen_bond": {
     "shared": 2,
@@ -37,9 +37,9 @@
     "referenceOnly": 2
    },
    "water_bridge": {
-    "shared": 32,
-    "appOnly": 33,
-    "referenceOnly": 19
+    "shared": 39,
+    "appOnly": 39,
+    "referenceOnly": 12
    }
   },
   "prolif": {
@@ -169,43 +169,54 @@
    "app": "ok",
    "plip": {
     "shared": [
+     "hydrogen_bond:ARG:A:92",
      "hydrogen_bond:ASN:A:55",
+     "hydrogen_bond:GLN:A:74",
+     "hydrogen_bond:ILE:A:98",
      "hydrogen_bond:LEU:A:45",
+     "hydrogen_bond:THR:A:112",
      "hydrogen_bond:THR:A:42",
+     "hydrogen_bond:TRP:A:89",
+     "hydrogen_bond:TYR:A:116",
+     "metal_coordination:ASP:A:95",
+     "metal_coordination:ASP:A:97",
      "pi_stacking:PHE:A:123",
      "pi_stacking:TYR:A:53",
+     "water_bridge:ARG:A:110",
      "water_bridge:ARG:A:121",
+     "water_bridge:ARG:A:84",
+     "water_bridge:ARG:A:88",
+     "water_bridge:GLN:A:74",
      "water_bridge:GLY:A:90",
      "water_bridge:TRP:A:89"
     ],
     "appOnly": [
+     "hydrogen_bond:ARG:A:110",
+     "hydrogen_bond:ARG:A:121",
+     "hydrogen_bond:ARG:A:84",
+     "hydrogen_bond:HIS:A:115",
      "hydrogen_bond:PRO:A:43",
+     "salt_bridge:ARG:A:84",
+     "salt_bridge:ARG:A:92",
+     "salt_bridge:ASP:A:95",
+     "salt_bridge:ASP:A:97",
+     "water_bridge:ARG:A:92",
      "water_bridge:ASP:A:97",
+     "water_bridge:HIS:A:115",
+     "water_bridge:TYR:A:116",
      "water_bridge:TYR:A:53"
     ],
     "referenceOnly": [
      "cation_pi:PHE:A:123",
-     "hydrogen_bond:ARG:A:92",
      "hydrogen_bond:ASP:A:97",
-     "hydrogen_bond:GLN:A:74",
-     "hydrogen_bond:ILE:A:98",
-     "hydrogen_bond:THR:A:112",
-     "hydrogen_bond:TRP:A:89",
-     "hydrogen_bond:TYR:A:116",
      "metal_coordination:APC:A:171",
-     "metal_coordination:ASP:A:95",
-     "metal_coordination:ASP:A:97",
      "metal_coordination:HOH:A:201",
      "metal_coordination:HOH:A:208",
      "metal_coordination:HOH:A:210",
      "pi_stacking:TRP:A:89",
      "salt_bridge:ARG:A:121",
      "salt_bridge:HIS:A:115",
-     "water_bridge:ARG:A:110",
-     "water_bridge:ARG:A:84",
-     "water_bridge:ARG:A:88",
      "water_bridge:ASP:A:95",
-     "water_bridge:GLN:A:74",
      "water_bridge:LEU:A:96"
     ]
    },
@@ -235,6 +246,9 @@
      "hydrophobic_contact:ALA:A:376",
      "hydrophobic_contact:THR:A:342",
      "hydrophobic_contact:VAL:A:311",
+     "metal_coordination:HIS:A:345",
+     "metal_coordination:HIS:A:349",
+     "metal_coordination:HIS:A:355",
      "water_bridge:ALA:A:314",
      "water_bridge:THR:A:310"
     ],
@@ -243,9 +257,6 @@
      "water_bridge:ALA:A:375"
     ],
     "referenceOnly": [
-     "metal_coordination:HIS:A:345",
-     "metal_coordination:HIS:A:349",
-     "metal_coordination:HIS:A:355",
      "metal_coordination:HOH:A:540"
     ]
    },
@@ -729,6 +740,9 @@
      "hydrophobic_contact:ASN:A:67",
      "hydrophobic_contact:LEU:A:198",
      "hydrophobic_contact:VAL:A:121",
+     "metal_coordination:HIS:A:119",
+     "metal_coordination:HIS:A:94",
+     "metal_coordination:HIS:A:96",
      "pi_stacking:PHE:A:131"
     ],
     "appOnly": [
@@ -737,11 +751,7 @@
      "hydrophobic_contact:PRO:A:202",
      "hydrophobic_contact:VAL:A:135"
     ],
-    "referenceOnly": [
-     "metal_coordination:HIS:A:119",
-     "metal_coordination:HIS:A:94",
-     "metal_coordination:HIS:A:96"
-    ]
+    "referenceOnly": []
    },
    "prolif": {
     "shared": [
@@ -993,13 +1003,12 @@
    "plip": {
     "shared": [
      "metal_coordination:GLY:C:77",
-     "metal_coordination:TYR:C:78"
+     "metal_coordination:THR:C:75",
+     "metal_coordination:TYR:C:78",
+     "metal_coordination:VAL:C:76"
     ],
     "appOnly": [],
-    "referenceOnly": [
-     "metal_coordination:THR:C:75",
-     "metal_coordination:VAL:C:76"
-    ]
+    "referenceOnly": []
    },
    "prolif": {
     "shared": [],
@@ -1022,6 +1031,7 @@
      "hydrogen_bond:PHE:E:54",
      "hydrogen_bond:SER:E:53",
      "hydrogen_bond:THR:E:183",
+     "metal_coordination:ASP:E:184",
      "salt_bridge:LYS:E:168",
      "salt_bridge:LYS:E:72",
      "water_bridge:ASN:E:171",
@@ -1033,6 +1043,7 @@
      "hydrogen_bond:LYS:E:168",
      "hydrogen_bond:LYS:E:72",
      "hydrogen_bond:VAL:E:123",
+     "metal_coordination:ASN:E:171",
      "water_bridge:GLY:E:186",
      "water_bridge:LEU:E:49",
      "water_bridge:TYR:E:330"
@@ -1040,7 +1051,6 @@
     "referenceOnly": [
      "hydrogen_bond:ASP:E:184",
      "hydrogen_bond:LEU:E:49",
-     "metal_coordination:ASP:E:184",
      "metal_coordination:ATP:E:355",
      "metal_coordination:HOH:E:447",
      "metal_coordination:HOH:E:477",
@@ -1073,29 +1083,38 @@
    "app": "ok",
    "plip": {
     "shared": [
-     "metal_coordination:ASP:E:184"
-    ],
-    "appOnly": [],
-    "referenceOnly": [
      "hydrogen_bond:ALA:I:21",
      "hydrogen_bond:ARG:I:18",
-     "hydrogen_bond:ASP:E:184",
      "hydrogen_bond:GLU:E:121",
      "hydrogen_bond:GLU:E:127",
      "hydrogen_bond:GLY:E:55",
-     "hydrogen_bond:LEU:E:49",
      "hydrogen_bond:PHE:E:54",
      "hydrogen_bond:SER:E:53",
      "hydrogen_bond:THR:E:183",
-     "metal_coordination:ATP:E:355",
-     "metal_coordination:HOH:E:447",
-     "metal_coordination:HOH:E:477",
-     "metal_coordination:HOH:E:635",
+     "metal_coordination:ASP:E:184",
      "salt_bridge:LYS:E:168",
      "salt_bridge:LYS:E:72",
      "water_bridge:ASN:E:171",
      "water_bridge:ASN:I:20",
      "water_bridge:LYS:E:168"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLU:E:170",
+     "hydrogen_bond:LYS:E:168",
+     "hydrogen_bond:LYS:E:72",
+     "hydrogen_bond:VAL:E:123",
+     "metal_coordination:ASN:E:171",
+     "water_bridge:GLY:E:186",
+     "water_bridge:LEU:E:49",
+     "water_bridge:TYR:E:330"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:ASP:E:184",
+     "hydrogen_bond:LEU:E:49",
+     "metal_coordination:ATP:E:355",
+     "metal_coordination:HOH:E:447",
+     "metal_coordination:HOH:E:477",
+     "metal_coordination:HOH:E:635"
     ]
    },
    "prolif": {

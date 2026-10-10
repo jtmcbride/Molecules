@@ -122,6 +122,18 @@ export function BindingSiteSummary() {
           </p>
         ) : null;
       })()}
+      {summary.cofactorContactIds.length > 0 && (
+        <p className="small muted" data-testid="cofactor-contacts">
+          Cofactor/ion receptor contacts (not in polymer counts):{" "}
+          {summary.cofactorContactIds
+            .map((id) => {
+              const r = s.snapshot!.residues.find((x) => x.id === id);
+              return r ? `${r.componentId} ${r.authSeqId ?? "?"}` : id;
+            })
+            .join(", ")}
+          .
+        </p>
+      )}
       <div className="biology-tags">
         <span>{summary.proximityResidueCount} proximity</span>
         <span>{summary.chemicalResidueCount} chemical</span>

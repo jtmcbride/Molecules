@@ -10,7 +10,6 @@ import { SpatialGrid } from "./spatial";
 
 export interface ContactContext {
   snapshot: StructureSnapshot;
-  ligandResidueId: string;
   ligand: number[];
   receptor: number[];
   connectivity: Connectivity;
@@ -40,7 +39,7 @@ export function proximityContacts(
       collector.record({
         type: "proximity_contact",
         ligand: {
-          residueId: ctx.ligandResidueId,
+          residueId: ctx.residueOf(a).id,
           atomIndices: [a],
           role: "ligand",
         },
@@ -95,7 +94,7 @@ export function stericClashes(
         collector.record({
           type: "steric_clash",
           ligand: {
-            residueId: ctx.ligandResidueId,
+            residueId: ctx.residueOf(a).id,
             atomIndices: [a],
             role: "ligand",
           },

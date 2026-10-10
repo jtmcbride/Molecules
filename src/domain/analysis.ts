@@ -116,9 +116,20 @@ export interface ChemicalDefinition {
   retrievedAt: string;
 }
 export interface AnalysisRequest {
+  /** The ligand residue, or the anchor (first residue) of a ligand group. */
   ligandResidueId: string;
+  /** Ruleset ligand-3: every residue of a multi-residue ligand (includes ligandResidueId). */
+  ligandResidueIds?: string[];
   receptorChainIds: string[];
+  /** Ruleset ligand-3: non-polymer residues (cofactors, metal ions) included as receptor endpoints. */
+  receptorComponentResidueIds?: string[];
   parameters: AnalysisParameters;
+}
+/** Residue IDs analyzed as the ligand. */
+export function ligandResidueIds(request: AnalysisRequest): string[] {
+  return request.ligandResidueIds?.length
+    ? request.ligandResidueIds
+    : [request.ligandResidueId];
 }
 export interface Participant {
   residueId: string;

@@ -78,9 +78,13 @@ export function validateEndpoints(
   if (!ligand.atoms.length || !receptor.atoms.length)
     return reject("not_ligand_receptor");
   const receptorResidue = ctx.residueOf(receptor.atoms[0]);
-  if (!ctx.knownComponents.has(receptorResidue.componentId))
-    return reject("unknown_receptor_chemistry");
   const metal = type === MolType.MetalCoordination;
+  // A metal-ion receptor component needs no chemical definition for coordination.
+  if (
+    !ctx.knownComponents.has(receptorResidue.componentId) &&
+    !(metal && receptorResidue.kind === "ion")
+  )
+    return reject("unknown_receptor_chemistry");
   if (!metal && !ctx.chemicalEnabled) return reject("chemistry_not_evaluated");
   if (!metal && ctx.incomplete.has(receptorResidue.id))
     return reject("incomplete_receptor_residue");
@@ -104,7 +108,7 @@ export function validateEndpoints(
     receptor,
     base: {
       ligand: {
-        residueId: ctx.target.id,
+        residueId: ctx.residueOf(ligand.atoms[0]).id,
         atomIndices: ligand.atoms,
         role: participantRole(ligand.type, "ligand"),
       },
@@ -384,7 +388,7 @@ export function classifyWaterBridge(
   return {
     type: "water_bridge",
     ligand: {
-      residueId: ctx.target.id,
+      residueId: ctx.residueOf(x).id,
       atomIndices: ligand.atoms,
       role: role(ligand),
     },

@@ -564,7 +564,7 @@ describe("evaluation status", () => {
     chemicalEnabled: true,
     metalEnabled: true,
     targetIncomplete: false,
-    targetComponentId: "LIG",
+    targetComponentIds: ["LIG"],
     unknownComponents: [],
     incompleteResidueCount: 0,
     ligandAtoms: 10,

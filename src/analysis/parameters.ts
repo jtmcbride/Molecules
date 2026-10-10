@@ -9,6 +9,7 @@ import { metalSearchDistance } from "./metalDistances";
 import {
   ENGINE_VERSION,
   RULESET_VERSION,
+  ligandResidueIds as ligandResidueIdsOf,
   type AnalysisRequest,
   type ChemicalDefinition,
 } from "../domain/analysis";
@@ -106,6 +107,8 @@ export function analysisKey(
     snapshot.provenance.parser,
     snapshot.id,
     request.ligandResidueId,
+    [...ligandResidueIdsOf(request)].sort(),
+    [...(request.receptorComponentResidueIds ?? [])].sort(),
     [...new Set(request.receptorChainIds)].sort(),
     Object.entries(request.parameters).sort(([a], [b]) => a.localeCompare(b)),
     chemicalParameters(request),

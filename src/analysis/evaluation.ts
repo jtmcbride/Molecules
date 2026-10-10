@@ -9,7 +9,7 @@ export interface EvaluationInputs {
   chemicalEnabled: boolean;
   metalEnabled: boolean;
   targetIncomplete: boolean;
-  targetComponentId: string;
+  targetComponentIds: string[];
   unknownComponents: string[];
   incompleteResidueCount: number;
   ligandAtoms: number;
@@ -76,7 +76,8 @@ function metalStatus(x: EvaluationInputs): Status {
       reason: "Chemical classification was disabled.",
     };
   const unknownReceptor =
-    x.unknownComponents.filter((c) => c !== x.targetComponentId).length > 0;
+    x.unknownComponents.filter((c) => !x.targetComponentIds.includes(c))
+      .length > 0;
   return unknownReceptor
     ? {
         status: "partially_evaluated",

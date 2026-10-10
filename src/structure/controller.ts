@@ -126,6 +126,8 @@ export class ExplorerController {
           result.snapshot.ligands.find((l) => l.kind === "ligand")?.residueId ??
           result.snapshot.ligands[0]?.residueId ??
           null,
+        ligandGroupId: null,
+        receptorComponentIds: [],
         receptorChainIds: result.snapshot.chains
           .filter((c) => c.type === "polymer")
           .map((c) => c.id),
@@ -155,6 +157,17 @@ export class ExplorerController {
                 ...run.request.parameters,
               },
               targetLigandId: run.request.ligandResidueId,
+              ligandGroupId:
+                result.snapshot.ligandGroups?.find(
+                  (g) =>
+                    run.request.ligandResidueIds?.length ===
+                      g.residueIds.length &&
+                    g.residueIds.every((id) =>
+                      run.request.ligandResidueIds!.includes(id),
+                    ),
+                )?.id ?? null,
+              receptorComponentIds:
+                run.request.receptorComponentResidueIds ?? [],
               receptorChainIds: run.request.receptorChainIds,
             });
             void this.enqueue(async () => {
@@ -254,9 +267,28 @@ export class ExplorerController {
     this.invalidateAnalysis();
     useExplorer.setState({ analysisStatus: "Analysis cancelled." });
   }
-  setAnalysisTarget(id: string) {
+  /** A ligand residue ID, or `group:<id>` for a multi-residue ligand group. */
+  setAnalysisTarget(value: string) {
     this.invalidateAnalysis();
-    useExplorer.setState({ targetLigandId: id });
+    const group = value.startsWith("group:")
+      ? useExplorer
+          .getState()
+          .snapshot?.ligandGroups?.find((g) => g.id === value.slice(6))
+      : undefined;
+    useExplorer.setState((s) => {
+      const members = new Set(group?.residueIds ?? [value]);
+      return {
+        targetLigandId: group ? group.residueIds[0] : value,
+        ligandGroupId: group?.id ?? null,
+        receptorComponentIds: s.receptorComponentIds.filter(
+          (id) => !members.has(id),
+        ),
+      };
+    });
+  }
+  setReceptorComponents(ids: string[]) {
+    this.invalidateAnalysis();
+    useExplorer.setState({ receptorComponentIds: ids });
   }
   setAnalysisParameters(parameters: Partial<AnalysisParameters>) {
     this.invalidateAnalysis();
@@ -281,9 +313,16 @@ export class ExplorerController {
     const current = this.analysisGeneration;
     const snapshot = state.snapshot,
       source = state.source;
+    const group = state.snapshot.ligandGroups?.find(
+      (g) => g.id === state.ligandGroupId,
+    );
     const request = {
       ligandResidueId: state.targetLigandId,
+      ...(group ? { ligandResidueIds: [...group.residueIds] } : {}),
       receptorChainIds: [...state.receptorChainIds],
+      ...(state.receptorComponentIds.length
+        ? { receptorComponentResidueIds: [...state.receptorComponentIds] }
+        : {}),
       parameters: { ...state.analysisParameters },
     };
     this.analysisAbort = new AbortController();

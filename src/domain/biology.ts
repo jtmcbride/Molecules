@@ -218,6 +218,8 @@ export interface BindingSiteSummary {
   clashResidueCount: number;
   overlaps: FeatureOverlap[];
   ligandSites: LigandSiteOverlap[];
+  /** Non-polymer receptor components (cofactors, ions) contacted; excluded from polymer denominators. */
+  cofactorContactIds: string[];
   /** ChEBI identifiers of the analyzed component, when cross-referenced. */
   analyzedLigand: { componentId: string; chebiIds: string[] };
 }

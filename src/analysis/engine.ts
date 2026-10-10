@@ -6,6 +6,7 @@ import { InteractionType as MolType } from "molstar/lib/mol-model-props/computed
 import type { StructureSnapshot } from "../domain/types";
 import {
   ENGINE_VERSION,
+  ligandResidueIds,
   RULESET_VERSION,
   type AnalysisRequest,
   type AnalysisRun,
@@ -153,7 +154,6 @@ async function analyzeSelection(
   const collector = new InteractionCollector();
   const contactContext = {
     snapshot,
-    ligandResidueId: request.ligandResidueId,
     ligand: eligible.ligand,
     receptor: eligible.receptor,
     connectivity,
@@ -173,13 +173,19 @@ async function analyzeSelection(
   const sources = chemistrySources(snapshot, components, definitions);
   const known = new Set(sources.map((s) => s.componentId));
   const unknown = [...components].filter((c) => !known.has(c));
-  const isIon =
-    snapshot.ligands.find((l) => l.residueId === target.id)?.kind === "ion";
+  // Group ligands: chemistry is evaluated when every member is typed and complete.
+  const members = ligandResidueIds(request).map((id) =>
+    snapshot.residues.find((r) => r.id === id)!,
+  );
+  // Ion members (e.g. a zinc bound by the ligand) need no chemical definition; they take
+  // part through metal coordination. Nonmetal chemistry needs every other member typed.
+  const typedMembers = members.filter((m) => m.kind !== "ion");
+  const isIon = typedMembers.length === 0;
   const chemicalEnabled =
     parameters.classifyChemistry &&
-    known.has(target.componentId) &&
+    typedMembers.every((m) => known.has(m.componentId)) &&
     !isIon &&
-    !incomplete.has(target.id);
+    !members.some((m) => incomplete.has(m.id));
   const metalEnabled = parameters.classifyChemistry;
   const effectiveParams = effectiveParameters(
     chemicalParameters(request),
@@ -335,8 +341,8 @@ async function analyzeSelection(
     includeWaters: parameters.includeWaters,
     chemicalEnabled,
     metalEnabled,
-    targetIncomplete: incomplete.has(target.id),
-    targetComponentId: target.componentId,
+    targetIncomplete: members.some((m) => incomplete.has(m.id)),
+    targetComponentIds: members.map((m) => m.componentId),
     unknownComponents: unknown,
     incompleteResidueCount: incomplete.size,
     ligandAtoms: eligible.ligand.length,

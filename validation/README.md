@@ -203,6 +203,24 @@ Each Phase 2.x milestone regenerates the engine goldens and the reference-set ag
   - PLIP hydrophobic: shared 83 → 84, PLIP-only 1 → 0 (1T46 Val654). PLIP H-bond app-only 22 → 23 (1HQ2 Pro43).
   - ProLIF H-bond: shared 57 → 58 (1HQ2 Pro43). ProLIF hydrophobic: shared 53 → 54 (1KZK Val82 chain B).
 
+### R6 — multi-residue ligands and receptor components
+
+- **Rules:**
+  - Snapshots list `ligandGroups`: branched-entity chain instances (glycans), `pdbx_molecule` (BIRD) asyms, and non-polymer residues joined by covalent `struct_conn` records (union-find, per assembly copy).
+  - A request may analyze a group as one ligand (`ligandResidueIds`) and add non-polymer residues (cofactors, ions) as receptor endpoints (`receptorComponentResidueIds`).
+  - Ligand participants carry their own residue; intra-group pairs are never contacts.
+  - Ion members of a group, and ion receptor components, need no chemical definition: they take part through metal coordination. Nonmetal chemistry requires every other member to be typed and complete.
+  - The binding-site summary keeps polymer-only denominators and lists cofactor contacts separately. Single-residue requests keep identical output (goldens unchanged).
+- **Finding during R6:** the first version required every group member, ions included, to have chemistry. Composite ligand-plus-metal sites therefore lost all nonmetal chemistry, which the reference comparison exposed immediately (PLIP H-bond agreement fell from 64 to 47 shared). Ion members are now exempt, and `tests/ligand-groups.test.ts` covers 1R55 ligand plus zinc.
+- **Evidence:**
+  - The 4KZN N-glycan is one six-residue group with contacts from several sugars, more contact residues than its anchor alone, and no intra-glycan pairs.
+  - 1ATP ATP with both Mn²⁺ as receptor components reports Mn–phosphate-oxygen coordination; the cofactor contacts stay out of polymer counts.
+  - Inconsistent groups and components are rejected.
+- **Reference comparison made like-for-like:**
+  - The app analyzes PLIP's composite site members as one group (ligand plus metals, the four K⁺ in 1K4C, the glycan), and gives ProLIF's comparison the whole glycan as ProLIF had.
+  - PLIP H-bonds: shared 64 → 78, PLIP-only 36 → 22. Metal coordination: shared 7 → 18, PLIP-only 24 → 13 (zinc–His in 1R55 and 1OQ5, Thr75/Val76 K⁺ in 1K4C, Asp184 Mn in 1ATP). Water bridges: shared 32 → 39, PLIP-only 19 → 12. Salt bridges: shared 4 → 6.
+  - App-only counts also rise (H-bonds 23 → 31), because each group adds contacts PLIP does not report, for example Asn171 coordinating Mn in 1ATP, a known Mn ligand of protein kinase A.
+
 ## Scale and browser verification
 
 A local Node 24 run on 2026-10-09 built the 100,000-atom grid in approximately 34 ms, with five queries plus independent brute-force validation taking approximately 83 ms. The coordinate buffer alone occupies 1.2 MB. These are observations from this environment, not browser speed promises or whole-engine memory measurements. Reproduce with `RECORD_REFERENCE=1 npm test`; diagnostic JSON is written under `/tmp`. Normal tests assert correctness rather than a machine-specific timing threshold.

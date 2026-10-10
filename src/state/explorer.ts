@@ -47,6 +47,10 @@ interface ExplorerState {
   analysisError: string | null;
   analysisCached: boolean;
   targetLigandId: string | null;
+  /** Ligand group analyzed as one ligand (glycan, BIRD, covalently linked residues). */
+  ligandGroupId: string | null;
+  /** Non-polymer residues (cofactors, ions) included as receptor endpoints. */
+  receptorComponentIds: string[];
   receptorChainIds: string[];
   analysisParameters: AnalysisParameters;
   selectedInteractionId: string | null;
@@ -70,6 +74,8 @@ export const useExplorer = create<ExplorerState>((set, get) => ({
   analysisError: null,
   analysisCached: false,
   targetLigandId: null,
+  ligandGroupId: null,
+  receptorComponentIds: [],
   receptorChainIds: [],
   analysisParameters: { ...DEFAULT_PARAMETERS },
   selectedInteractionId: null,

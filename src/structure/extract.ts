@@ -12,6 +12,7 @@ import {
 } from "../domain/identity";
 import { normalizeElement } from "../domain/elements";
 import { structureQuality } from "./quality";
+import { ligandGroups } from "./ligandGroups";
 import type {
   AtomRecord,
   ChainRecord,
@@ -277,6 +278,7 @@ export function extractSnapshot(
           if (!parent.includes(",")) componentParentIds[ids.str(i)] = parent;
         }
   }
+  const groups = ligandGroups({ chains, residues, ligands }, model);
   return {
     selectionIndex,
     snapshot: {
@@ -291,6 +293,7 @@ export function extractSnapshot(
       ligands,
       componentParentIds,
       quality: structureQuality(model),
+      ligandGroups: groups,
       chemistry: {
         embeddedBondComponentIds: [
           ...(ComponentBond.Provider.get(model)?.entries.keys() ?? []),

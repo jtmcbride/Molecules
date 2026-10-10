@@ -32,6 +32,31 @@ export function AnalysisPanel({
     snapshot = s.snapshot,
     run = s.analysis,
     sigma = distanceUncertainty(snapshot?.quality);
+  // Non-polymer residues within 8 Å of the target that can be added as receptor components.
+  const nearbyComponents = (() => {
+    if (!snapshot || !s.targetLigandId) return [];
+    const group = snapshot.ligandGroups?.find((g) => g.id === s.ligandGroupId);
+    const target = new Set(group?.residueIds ?? [s.targetLigandId]);
+    const residues = new Map(snapshot.residues.map((r) => [r.id, r]));
+    const p = snapshot.atomBuffer.positions;
+    const targetAtoms = [...target].flatMap(
+      (id) => residues.get(id)?.atomIndices ?? [],
+    );
+    const near = (a: number) =>
+      targetAtoms.some(
+        (b) =>
+          Math.hypot(
+            p[a * 3] - p[b * 3],
+            p[a * 3 + 1] - p[b * 3 + 1],
+            p[a * 3 + 2] - p[b * 3 + 2],
+          ) <= 8,
+      );
+    return snapshot.ligands
+      .map((l) => l.residueId)
+      .filter(
+        (id) => !target.has(id) && residues.get(id)!.atomIndices.some(near),
+      );
+  })();
   const [type, setType] = useState<InteractionType | "chemical" | "all">(
     "chemical",
   );
@@ -106,7 +131,11 @@ export function AnalysisPanel({
             Target ligand
             <select
               aria-label="Analysis target ligand"
-              value={s.targetLigandId ?? ""}
+              value={
+                s.ligandGroupId
+                  ? `group:${s.ligandGroupId}`
+                  : (s.targetLigandId ?? "")
+              }
               disabled={!ready}
               onChange={(e) => controller?.setAnalysisTarget(e.target.value)}
             >
@@ -118,6 +147,20 @@ export function AnalysisPanel({
                   {label(l.residueId)}
                 </option>
               ))}
+              {!!snapshot.ligandGroups?.length && (
+                <optgroup label="Multi-residue ligands">
+                  {snapshot.ligandGroups.map((g) => (
+                    <option key={g.id} value={`group:${g.id}`}>
+                      {g.kind === "branched"
+                        ? "Glycan"
+                        : g.kind === "bird"
+                          ? "BIRD molecule"
+                          : "Linked ligand"}{" "}
+                      {g.label}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </label>
           <label>
@@ -182,6 +225,32 @@ export function AnalysisPanel({
               {s.assemblyId && ` · ${c.operatorId}`}
             </label>
           ))}
+          {nearbyComponents.length > 0 && (
+            <div
+              className="receptor-components"
+              data-testid="receptor-components"
+            >
+              <span className="field-label">
+                COFACTORS &amp; IONS AS RECEPTOR
+              </span>
+              {nearbyComponents.map((id) => (
+                <label key={id}>
+                  <input
+                    type="checkbox"
+                    checked={s.receptorComponentIds.includes(id)}
+                    onChange={(e) =>
+                      controller?.setReceptorComponents(
+                        e.target.checked
+                          ? [...s.receptorComponentIds, id]
+                          : s.receptorComponentIds.filter((x) => x !== id),
+                      )
+                    }
+                  />{" "}
+                  {label(id)}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
         <button
           className="analysis-settings-toggle"

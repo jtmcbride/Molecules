@@ -35,14 +35,22 @@ interface ReferenceCase {
   ligand: { component: string; authChain: string; authNumber: string };
   tags: string[];
   cifSha256: string;
-  plip: { status: string; observations: Observation[] };
+  plip: {
+    status: string;
+    observations: Observation[];
+    site?: { members: string[] };
+  };
   prolif: { status: string; observations: Observation[] };
 }
 const key = (o: Observation) =>
   `${o.type}:${o.receptor.component}:${o.receptor.authChain}:${o.receptor.authNumber}`;
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex");
 
-async function appKeys(c: ReferenceCase) {
+/**
+ * App interaction keys for a case. `members` ("COMP:CHAIN:NUM") makes the app analyze the
+ * same residues as one ligand group, matching a reference tool's composite ligand (R6).
+ */
+async function appKeys(c: ReferenceCase, members?: string[]) {
   const bytes = gunzipSync(
     await readFile(`tests/fixtures/reference-set/${c.accession}.cif.gz`),
   );
@@ -66,6 +74,18 @@ async function appKeys(c: ReferenceCase) {
       chains.get(r.chainId)!.authAsymId === c.ligand.authChain,
   );
   if (!residue) return { status: "ligand_not_found", keys: [] as string[] };
+  const group = (members ?? [])
+    .map((m) => {
+      const [component, chain, number] = m.split(":");
+      return p.snapshot.residues.find(
+        (r) =>
+          r.componentId === component &&
+          r.authSeqId === number &&
+          chains.get(r.chainId)!.authAsymId === chain &&
+          p.snapshot.ligands.some((l) => l.residueId === r.id),
+      )?.id;
+    })
+    .filter((id): id is string => id !== undefined);
   try {
     const run = await analyze(
       p.structure,
@@ -73,6 +93,14 @@ async function appKeys(c: ReferenceCase) {
       p.selectionIndex,
       {
         ligandResidueId: residue.id,
+        ...(group.length > 1
+          ? {
+              ligandResidueIds: [
+                residue.id,
+                ...group.filter((id) => id !== residue.id),
+              ],
+            }
+          : {}),
         receptorChainIds: p.snapshot.chains
           .filter((ch) => ch.type === "polymer")
           .map((ch) => ch.id),
@@ -128,10 +156,20 @@ describe("reference validation set (PLIP 3.0.0, ProLIF)", () => {
         totals[tool][category] = { shared: 0, appOnly: 0, referenceOnly: 0 };
     for (const c of reference.cases) {
       const id = `${c.accession}:${c.ligand.component}`;
-      const app = await appKeys(c);
+      // Like-for-like ligand definitions: PLIP's composite site members, and the whole
+      // glycan for ProLIF (which was given the glycan); otherwise the single residue.
+      const glycan = c.tags.includes("glycan")
+        ? c.plip.site?.members
+        : undefined;
+      const runs: Record<Tool, Awaited<ReturnType<typeof appKeys>>> = {
+        plip: await appKeys(c, c.plip.site?.members),
+        prolif: await appKeys(c, glycan),
+      };
+      const app = runs.plip;
       const entry: Record<string, unknown> = { app: app.status };
       for (const tool of ["plip", "prolif"] as Tool[]) {
         const ref = c[tool];
+        const app = runs[tool];
         if (ref.status !== "ok" || app.status !== "ok") {
           entry[tool] = { status: ref.status };
           continue;
