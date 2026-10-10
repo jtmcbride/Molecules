@@ -5,10 +5,12 @@ import {
   FINGERPRINT_MARGIN_ANGSTROM,
   type Correspondence,
   type FingerprintMatrix,
+  type SiteDifferences,
 } from "../domain/comparison";
 import type { StructureSnapshot, StructureSource } from "../domain/types";
 import type { ComparisonSlot } from "../state/comparison";
 import { SUPERPOSITION_POLICY } from "./superposition";
+import { SITE_POLICY } from "./siteDifferences";
 
 const csv = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 
@@ -37,6 +39,7 @@ export function comparisonJson(
   slots: ComparisonSlot[],
   correspondences: Map<string, Correspondence | null>,
   matrix: FingerprintMatrix | null,
+  sites: Map<string, SiteDifferences | null> = new Map(),
 ) {
   const structure = (source: StructureSource, snapshot: StructureSnapshot) => ({
     id: source.id,
@@ -60,6 +63,7 @@ export function comparisonJson(
         correspondence:
           "SIFTS exact mapping only: observed residues at the same UniProt position in paired chains.",
         superposition: SUPERPOSITION_POLICY,
+        bindingSite: SITE_POLICY,
         fingerprintMarginAngstrom: FINGERPRINT_MARGIN_ANGSTROM,
       },
       reference: {
@@ -98,6 +102,7 @@ export function comparisonJson(
               })),
             },
             superposition: s.superposition ?? { scope: s.superpositionScope },
+            bindingSiteDifferences: sites.get(s.id) ?? null,
           };
         }),
       fingerprint: matrix,

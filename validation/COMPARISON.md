@@ -108,3 +108,39 @@ The tools agree on no gained or lost interaction. Every disagreement is explaine
 | 2DN2 ↔ 2DN1 | hydrogen bond @62 (Lys61 NZ–propionate) | lost | absent in both | ProLIF's ligand preparation leaves the propionates neutral and finds no Lys61 hydrogen bond in either state. The application's deoxy N–O distance is 2.91 Å, and the oxy side chain has moved away (0.99 Å beyond cutoff). |
 
 **Conclusion.** Interaction fingerprint differences between structures are dominated by contacts near a cutoff. Two tools with different cutoffs (4.0 and 4.5 Å) and atom typing disagree on all of them, even where the coordinates barely move. The application therefore reports a margin with every change and marks those within 0.5 Å. Without a margin, a gained or lost hydrophobic contact should not be read as a structural difference.
+
+## Binding-site differences (4E)
+
+**Site.** Residues with a heavy atom within 5 Å of either structure's ligand. Comparison residues are mapped through the correspondence, so an apo structure is assessed in the reference's site.
+
+**Measurements.** For each paired site residue, after superposition:
+- Cα displacement.
+- Side-chain RMSD over heavy atoms matched by name. Equivalent atoms may swap (Asp OD1/OD2, Glu OE1/OE2, Phe/Tyr ring CD/CE, Arg NH1/NH2), and the smallest RMSD is used.
+- χ1 and χ2 (IUPAC-IUB), with differences taken modulo 180° for Asp, Phe and Tyr χ2.
+
+Side chains and torsions are compared only between identical residue types.
+
+**Significance.** The larger shift (Cα or side chain) is compared with 2σ, where σ = √(σ_ref² + σ_cmp²) from each structure's Cruickshank DPI (deposited ESU_R_free when present). It is `not_assessable` when either value is missing. DPI describes an atom with average B and excludes superposition error, so it underestimates the error of mobile atoms. The panel says so, and always shows the shift itself.
+
+**Rotamer changes.** A χ difference above 60° (half a rotamer well).
+
+**Waters.**
+- Site waters have an oxygen within 4 Å of a ligand or site-residue heavy atom, in the reference frame.
+- A water is `conserved` when a superposed partner lies within 1.0 Å.
+- Comparison waters within 2.5 Å of a reference ligand heavy atom occupy the ligand site.
+
+Checked in `tests/comparison-site.test.ts` (global superposition):
+
+| Pair | Site residues | σ (Å) | Beyond 2σ | Rotamer changes | Reference waters conserved | Comparison waters in ligand site |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1S0R (holo) ↔ 1S0Q (apo) | 16 | 0.031 | 14 | 0 | 16 / 22 | 6 |
+| 3PTB ↔ 1S0R | 17 | not assessable (3PTB lacks DPI inputs) | – | 1 (Gln192, Δχ2 151°) | 7 / 8 | 0 |
+| 2DN2 (deoxy) ↔ 2DN1 (oxy) | 24 | not assessable | – | 1 (Leu83) | 11 / 21 | 1 |
+
+**Apo/holo trypsin.** At 1.02 Å the combined DPI is only 0.031 Å, so Cα shifts of 0.1–0.35 Å around the S1 pocket exceed 2σ. The largest is Gln174, which is Gln192 in chymotrypsinogen numbering. These shifts are statistically above the DPI estimate, but small. Six apo waters occupy the benzamidine site, as expected for a ligand that displaces ordered water.
+
+**Trypsin crystals.** Gln192, a known flexible residue at the rim of the S1 pocket, adopts a different rotamer in 3PTB and 1S0R.
+
+**Hemoglobin.** In the α heme pocket, the F-helix residues Leu83, Leu86, His87 (proximal) and Leu91 shift by more than 1 Å between deoxy and oxy. This is the T→R ligation shift of the F helix.
+
+**Equivalent atoms.** Swapping Asp189 OD1/OD2 in memory (artificial) leaves its side-chain RMSD unchanged and changes Δχ2 by under 5°: the deposited carboxylate oxygens are not exactly 180° apart.

@@ -156,4 +156,8 @@ Acceptance: all gates above pass in CI; the release records the comparison versi
   - **Unplaced interactions.** Interactions whose residue has no exact mapping or chain pairing are counted per column.
   - **Exports.** Comparison JSON (schema 1) and fingerprint CSV.
   - **Shared preparation.** `scripts/reference-set.py` gained a `main()` guard so its preparation can be imported. Regenerated observations are identical as sets; only ProLIF's output order varies.
+- **4E.** As planned.
+  - **Site definition.** The 4 Å binding-site union became residues within 5 Å of either structure's ligand. It works for apo comparisons and does not depend on contact rules.
+  - **Significance.** "Beyond 2σ" uses the combined DPI. At atomic resolution (1S0R↔1S0Q, σ 0.031 Å), most site residues exceed it with shifts under 0.4 Å. The panel explains that DPI describes an average-B atom and leaves out fit error, and always shows the shift.
+  - **Outputs.** Site differences are included in the comparison JSON.
 

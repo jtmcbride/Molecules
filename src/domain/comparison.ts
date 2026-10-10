@@ -176,3 +176,51 @@ export interface FingerprintMatrix {
   columns: FingerprintColumn[];
   rows: FingerprintRow[];
 }
+
+/** Shift significance against the combined Cruickshank coordinate error of both structures. */
+export type ShiftSignificance =
+  "within_coordinate_error" | "exceeds_coordinate_error" | "not_assessable";
+export interface SiteResidueDifference {
+  accession: string;
+  uniprotPosition: number;
+  referenceChainId: string;
+  referenceResidueId: string;
+  comparisonResidueId: string;
+  /** Cα distance after superposition (Å). */
+  caDisplacementAngstrom?: number;
+  /** RMSD of side-chain heavy atoms matched by name, equivalent atoms allowed to swap (Å). */
+  sideChainRmsdAngstrom?: number;
+  matchedSideChainAtoms: number;
+  /** χ1, χ2 in each structure and their smallest difference (180° periodic where symmetric). */
+  chi: {
+    index: number;
+    reference: number;
+    comparison: number;
+    delta: number;
+  }[];
+  /** Significance of the larger of the Cα displacement and side-chain RMSD. */
+  significance: ShiftSignificance;
+  /** A χ angle differs by more than ROTAMER_CHANGE_DEGREES. */
+  rotamerChange: boolean;
+}
+export interface SiteWater {
+  residueId: string;
+  status: "conserved" | "not_conserved";
+  /** Distance to the closest superposed water of the other structure (Å). */
+  distanceAngstrom?: number;
+  partnerResidueId?: string;
+}
+export interface SiteDifferences {
+  version: string;
+  superpositionScope: Exclude<SuperpositionScope, "none">;
+  siteRadiusAngstrom: number;
+  referenceLigandIds: string[];
+  comparisonLigandIds: string[];
+  /** √(σ_ref² + σ_cmp²) from each structure's Cruickshank DPI (Å), when both are known. */
+  combinedCoordinateErrorAngstrom?: number;
+  residues: SiteResidueDifference[];
+  /** Site residues without a paired residue in the other structure. */
+  unpairedSiteResidues: number;
+  referenceWaters: SiteWater[];
+  comparisonWaters: (SiteWater & { overlapsReferenceLigand: boolean })[];
+}

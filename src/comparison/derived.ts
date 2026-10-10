@@ -1,10 +1,15 @@
 import type { AnalysisRun } from "../domain/analysis";
 import type { InterpretationSnapshot } from "../domain/biology";
-import type { Correspondence, FingerprintMatrix } from "../domain/comparison";
+import type {
+  Correspondence,
+  FingerprintMatrix,
+  SiteDifferences,
+} from "../domain/comparison";
 import type { StructureSnapshot, StructureSource } from "../domain/types";
 import type { ComparisonSlot } from "../state/comparison";
 import { correspondence } from "./correspondence";
 import { buildFingerprint } from "./fingerprint";
+import { siteDifferences } from "./siteDifferences";
 
 interface Reference {
   snapshot: StructureSnapshot | null;
@@ -106,4 +111,60 @@ export function comparisonFingerprint(
       })),
     ),
   };
+}
+
+const siteCache = new Map<string, SiteDifferences>();
+const ligandIdsOf = (
+  snapshot: StructureSnapshot,
+  target: string | null,
+  group: string | null,
+) =>
+  snapshot.ligandGroups?.find((g) => g.id === group)?.residueIds ??
+  (target ? [target] : []);
+
+/** Binding-site differences of a superposed slot, or null until it is superposed. */
+export function slotSiteDifferences(
+  reference: Reference & {
+    targetLigandId: string | null;
+    ligandGroupId: string | null;
+  },
+  slot: ComparisonSlot,
+): SiteDifferences | null {
+  const corr = slotCorrespondence(reference, slot);
+  if (!corr || !slot.superposition || !reference.snapshot || !slot.snapshot)
+    return null;
+  const refLigands = ligandIdsOf(
+    reference.snapshot,
+    reference.targetLigandId,
+    reference.ligandGroupId,
+  );
+  const cmpLigands = ligandIdsOf(
+    slot.snapshot,
+    slot.targetLigandId,
+    slot.ligandGroupId,
+  );
+  if (!refLigands.length && !cmpLigands.length) return null;
+  const key = JSON.stringify([
+    reference.interpretation?.id,
+    slot.id,
+    slot.interpretation?.id,
+    slot.pairingOverrides,
+    slot.superposition.transform,
+    refLigands,
+    cmpLigands,
+  ]);
+  let result = siteCache.get(key);
+  if (!result) {
+    if (siteCache.size > 64) siteCache.clear();
+    result = siteDifferences(
+      reference.snapshot,
+      slot.snapshot,
+      corr,
+      slot.superposition,
+      refLigands,
+      cmpLigands,
+    );
+    siteCache.set(key, result);
+  }
+  return result;
 }

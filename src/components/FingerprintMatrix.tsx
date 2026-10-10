@@ -5,6 +5,7 @@ import type { FingerprintCell, FingerprintRow } from "../domain/comparison";
 import {
   comparisonFingerprint,
   slotCorrespondence,
+  slotSiteDifferences,
 } from "../comparison/derived";
 import { comparisonJson, download, fingerprintCsv } from "../comparison/export";
 import { useComparison } from "../state/comparison";
@@ -77,6 +78,10 @@ export function FingerprintMatrix() {
     const correspondences = new Map(
       slots.map((s) => [s.id, slotCorrespondence(reference, s)]),
     );
+    const explorer = useExplorer.getState();
+    const sites = new Map(
+      slots.map((s) => [s.id, slotSiteDifferences(explorer, s)]),
+    );
     download(
       `${source.id.replace(/[^a-z0-9_-]/gi, "_")}-comparison.json`,
       comparisonJson(
@@ -89,6 +94,7 @@ export function FingerprintMatrix() {
         slots,
         correspondences,
         matrix,
+        sites,
       ),
       "application/json",
     );

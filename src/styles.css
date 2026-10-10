@@ -2546,3 +2546,29 @@ select {
   gap: 8px;
   flex-wrap: wrap;
 }
+.comparison-site summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.comparison-site p {
+  margin: 6px 0;
+}
+.comparison-site-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.comparison-site-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 3px 6px 3px 0;
+}
+.comparison-site-table td {
+  padding: 3px 6px 3px 0;
+  border-top: 1px solid #1d2838;
+  font-variant-numeric: tabular-nums;
+}
+.comparison-site-table tr.moved td {
+  color: var(--accent);
+}

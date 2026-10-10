@@ -273,6 +273,14 @@ test("fingerprints compare like-for-like analyses by UniProt position and export
   expect(json.structures[0].correspondence.counts.paired).toBe(223);
   expect(json.structures[0].superposition.fitted).toBe(213);
   expect(json.fingerprint.columns[1].similarity.tanimoto).toBe(1);
+  expect(json.structures[0].bindingSiteDifferences.residues).toHaveLength(17);
+  // Gln192 (UniProt 197) changes rotamer between 3PTB and 1S0R; 3PTB has no DPI inputs.
+  await expect(slot.getByTestId("comparison-site")).toContainText(
+    "Binding site: 17 paired residues · significance not assessable",
+  );
+  await expect(slot.getByTestId("comparison-site")).toContainText(
+    "1 rotamer changes",
+  );
   // A different reference setting invalidates the reference run; after re-running it the
   // comparison analysis no longer matches and its column is refused.
   await page

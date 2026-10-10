@@ -7,6 +7,7 @@ import type { StructureSnapshot } from "../domain/types";
 import type { ExplorerController } from "../structure/controller";
 import { CorrespondenceSummary } from "./CorrespondenceSummary";
 import { SuperpositionSummary } from "./SuperpositionSummary";
+import { SiteDifferencesSummary } from "./SiteDifferencesSummary";
 import { FingerprintMatrix } from "./FingerprintMatrix";
 
 function ligandLabel(snapshot: StructureSnapshot, residueId: string) {
@@ -98,6 +99,7 @@ function SlotRow({
           </dl>
           <CorrespondenceSummary slot={slot} controller={controller} />
           <SuperpositionSummary slot={slot} controller={controller} />
+          <SiteDifferencesSummary slot={slot} />
           <div className="comparison-analysis">
             <label className="comparison-ligand">
               Ligand
