@@ -74,6 +74,14 @@ export function validateRequest(
       throw new Error("Geometry settings are outside their supported ranges.");
   if (p.waterLegMin > p.waterLegMax || p.waterAngleMin > p.waterAngleMax)
     throw new Error("Water bridge minimums must not exceed their maximums.");
+  if (!["element_specific", "uniform"].includes(p.metalDistancePolicy))
+    throw new Error("Unknown metal distance policy.");
+  if (
+    !Number.isFinite(p.metalTolerance) ||
+    p.metalTolerance < 0.1 ||
+    p.metalTolerance > 1
+  )
+    throw new Error("Metal distance tolerance must be between 0.1 and 1 Å.");
   if (
     !Number.isFinite(p.minimumOccupancy) ||
     p.minimumOccupancy < 0 ||

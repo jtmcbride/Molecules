@@ -27,9 +27,9 @@
     "referenceOnly": 2
    },
    "metal_coordination": {
-    "shared": 6,
+    "shared": 7,
     "appOnly": 0,
-    "referenceOnly": 25
+    "referenceOnly": 24
    },
    "halogen_bond": {
     "shared": 0,
@@ -70,7 +70,7 @@
    },
    "metal_coordination": {
     "shared": 3,
-    "appOnly": 3,
+    "appOnly": 4,
     "referenceOnly": 0
    },
    "halogen_bond": {
@@ -988,11 +988,11 @@
    "app": "ok",
    "plip": {
     "shared": [
+     "metal_coordination:GLY:C:77",
      "metal_coordination:TYR:C:78"
     ],
     "appOnly": [],
     "referenceOnly": [
-     "metal_coordination:GLY:C:77",
      "metal_coordination:THR:C:75",
      "metal_coordination:VAL:C:76"
     ]
@@ -1000,6 +1000,7 @@
    "prolif": {
     "shared": [],
     "appOnly": [
+     "metal_coordination:GLY:C:77",
      "metal_coordination:TYR:C:78"
     ],
     "referenceOnly": []

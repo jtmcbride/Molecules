@@ -155,6 +155,22 @@ Each Phase 2.x milestone regenerates the engine goldens and the reference-set ag
   - ProLIF: app-only H-bonds 34 → 29. One previously shared H-bond (1OQ5 His94) is now ProLIF-only. That is a ProLIF preparation artifact: its receptor excludes the zinc, so Open Babel protonates the coordinating nitrogen.
   - Across the set, labels appear in 1ATP, 1EVE, 1HQ2, 1NAV, 1OQ5, 1OWE, 1P62 and 1R55. The 1V48 His86 salt bridge is now pH-dependent.
 
+### R3 — element-specific metal coordination distances
+
+- **Rules:**
+  - Metal–donor pairs are accepted within a target distance plus a tolerance (default 0.5 Å), by metal and donor element.
+  - Targets (`src/analysis/metalDistances.ts`, table `bazayeva-2024-v1`) are the distribution peaks reported for high-resolution (<1.5 Å) mononuclear sites by Bazayeva, Andreini & Rosato, Acta Cryst. D80, 362–376 (2024; CC BY 4.0): Fig. 6 for Mn/Fe/Ni/Cu/Zn, Fig. 3 and Section 3.1 for Na/K/Mg/Ca. Each entry records the residue peaks it represents, for example Zn–N 2.04 Å (His Nδ1 2.05, Nε2 2.03) and K–O 2.70 Å.
+  - The tolerance is this application's policy, not part of the source. It keeps the K–O window (3.2 Å) while rejecting second-shell zinc partners.
+  - Pairs without a target (for example Co) fall back to the uniform cutoff with a note. The `uniform` policy reproduces the previous behavior.
+  - Metal-coordinating His/Cys detection (R2) uses the same limits. Harding's 2006 tables were the planned source but could not be retrieved from the IUCr site; the 2024 database study is newer and open access, and it compares itself with Harding.
+- **Evidence:**
+  - The synthetic zinc moved to 2.8 Å above His ND1 is rejected by default and accepted under `uniform`. A 0.1 Å tolerance rejects the original 2.2 Å pair.
+  - 1K4C K⁺ 3001 keeps both S1-site carbonyl partners, Gly77 and Tyr78.
+- **Golden changes:** text, version and the new metal geometry fields (limit, target, source); counts are identical.
+- **Reference agreement:**
+  - PLIP metal coordination: shared 6 → 7 (1K4C Gly77).
+  - The remaining PLIP-only K⁺ contacts (Thr75, Val76) belong to K⁺ 3002–3004, which PLIP merges with 3001 into one composite site. PLIP also builds composite sites in 1HQ2, 1R55, 1OQ5, 1ATP and the 4KZN glycan, so those comparisons are not like-for-like until R6.
+
 ## Scale and browser verification
 
 A local Node 24 run on 2026-10-09 built the 100,000-atom grid in approximately 34 ms, with five queries plus independent brute-force validation taking approximately 83 ms. The coordinate buffer alone occupies 1.2 MB. These are observations from this environment, not browser speed promises or whole-engine memory measurements. Reproduce with `RECORD_REFERENCE=1 npm test`; diagnostic JSON is written under `/tmp`. Normal tests assert correctness rather than a machine-specific timing threshold.

@@ -23,7 +23,9 @@ export function cutoffMargin(
     case "salt_bridge":
       return p.saltBridgeCutoff - i.distanceAngstrom;
     case "metal_coordination":
-      return p.metalCutoff - i.distanceAngstrom;
+      return (
+        (i.geometry?.metalLimitAngstrom ?? p.metalCutoff) - i.distanceAngstrom
+      );
     case "pi_stacking":
       return i.geometry?.centroidDistanceAngstrom === undefined
         ? undefined

@@ -1,3 +1,4 @@
+import { DEFAULT_PARAMETERS } from "../domain/analysis";
 import { BiologyController } from "../biology/controller";
 import { AnalysisClient } from "../analysis/client";
 import { analysisKey } from "../analysis/engine";
@@ -148,7 +149,11 @@ export class ExplorerController {
               analysis: run,
               analysisPhase: "ready",
               analysisCached: true,
-              analysisParameters: run.request.parameters,
+              // Fields added by later rulesets take current defaults for new runs.
+              analysisParameters: {
+                ...DEFAULT_PARAMETERS,
+                ...run.request.parameters,
+              },
               targetLigandId: run.request.ligandResidueId,
               receptorChainIds: run.request.receptorChainIds,
             });

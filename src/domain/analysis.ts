@@ -22,6 +22,7 @@ export const REJECTION_REASONS = [
   "uncharged_nitrogen_negative", // nitrogen-only negative feature without an explicit negative formal charge
   "unsupported_type", // a Mol* interaction type outside this ruleset
   "metal_bound_residue", // His/Cys coordinating a metal: no salt bridge; that atom has no H-bond
+  "metal_distance", // beyond the element-specific metal–donor target plus tolerance
 ] as const;
 export type RejectionReason = (typeof REJECTION_REASONS)[number];
 export type ConformerPolicy = "exclude_disordered" | "preferred_residue";
@@ -34,7 +35,11 @@ export interface AnalysisParameters {
   piOffsetMax: number;
   piAngleDeviation: number;
   cationPiCutoff: number;
+  /** Uniform metal–donor cutoff; also the fallback for pairs without a target distance. */
   metalCutoff: number;
+  /** element_specific: per metal/donor target + tolerance (ruleset ligand-3); uniform: metalCutoff. */
+  metalDistancePolicy: "element_specific" | "uniform";
+  metalTolerance: number;
   waterLegMin: number;
   waterLegMax: number;
   waterAngleMin: number;
@@ -55,6 +60,8 @@ export const DEFAULT_PARAMETERS: AnalysisParameters = {
   piAngleDeviation: 30,
   cationPiCutoff: 6,
   metalCutoff: 3,
+  metalDistancePolicy: "element_specific",
+  metalTolerance: 0.5,
   waterLegMin: 2.5,
   waterLegMax: 4.1,
   waterAngleMin: 71,
@@ -149,6 +156,10 @@ export interface MolecularInteraction {
     overlapAngstrom?: number;
     vdwRadiiAngstrom?: [number, number];
     metalElement?: string;
+    /** Accepted maximum for this metal/donor pair and the target it derives from. */
+    metalLimitAngstrom?: number;
+    metalTargetAngstrom?: number;
+    metalLimitSource?: "element_specific" | "uniform" | "uniform_fallback";
     selectedReceptorPartnerCount?: number;
     selectedReceptorAnglesDegrees?: number[];
   };

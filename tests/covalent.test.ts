@@ -229,3 +229,50 @@ describe("R2 on deposited structures", () => {
     expect(his.ambiguities).toEqual(["his_protonation"]);
   });
 });
+
+describe("R3 on deposited structures", () => {
+  it("1K4C: K+ 3001 keeps both S1-site carbonyl partners (Gly77, Tyr78) within the K–O target plus tolerance", async () => {
+    const p = await load(
+      new Uint8Array(
+        gunzipSync(await readFile("tests/fixtures/reference-set/1K4C.cif.gz")),
+      ),
+      "1K4C",
+    );
+    const k = p.snapshot.ligands.find(
+      (l) =>
+        l.componentId === "K" &&
+        p.snapshot.residues.find((r) => r.id === l.residueId)!.authSeqId ===
+          "3001",
+    )!;
+    const r = await analyze(
+      p.structure,
+      p.snapshot,
+      p.selectionIndex,
+      {
+        ligandResidueId: k.residueId,
+        receptorChainIds: p.snapshot.chains
+          .filter((c) => c.type === "polymer")
+          .map((c) => c.id),
+        parameters: { ...DEFAULT_PARAMETERS },
+      },
+      [],
+    );
+    const partners = r.interactions
+      .filter((i) => i.type === "metal_coordination")
+      .map(
+        (i) =>
+          p.snapshot.residues[
+            p.snapshot.atomBuffer.residueIndices[i.receptor.atomIndices[0]]
+          ].authSeqId,
+      );
+    expect(new Set(partners)).toEqual(new Set(["77", "78"]));
+    for (const i of r.interactions.filter(
+      (x) => x.type === "metal_coordination",
+    ))
+      expect(i.geometry).toMatchObject({
+        metalElement: "K",
+        metalTargetAngstrom: 2.7,
+        metalLimitSource: "element_specific",
+      });
+  });
+});

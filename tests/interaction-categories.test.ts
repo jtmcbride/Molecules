@@ -35,7 +35,10 @@ describe('additional interaction categories',()=>{
     const {run}=await runFixture('metal-coordination');const metal=run.interactions.find(i=>i.type==='metal_coordination');
     expect(metal).toBeDefined();expect(metal!.distanceAngstrom).toBeCloseTo(2.2,5);expect(metal!.geometry!.metalElement).toBe('ZN');
     expect(metal!.geometry!.selectedReceptorPartnerCount).toBeGreaterThan(0);expect(run.interactions.filter(i=>i.type==='steric_clash')).toHaveLength(0);
-    expect((await runFixture('metal-coordination',{metalCutoff:2.1})).run.interactions.filter(i=>i.type==='metal_coordination')).toHaveLength(0);
+    expect((await runFixture('metal-coordination',{metalDistancePolicy:'uniform',metalCutoff:2.1})).run.interactions.filter(i=>i.type==='metal_coordination')).toHaveLength(0);
+    // Element-specific default: Zn–N target 2.04 Å; tolerance 0.1 Å rejects the 2.2 Å pair, the default 0.5 Å accepts it.
+    expect(metal!.geometry).toMatchObject({metalTargetAngstrom:2.04,metalLimitSource:'element_specific'});expect(metal!.geometry!.metalLimitAngstrom).toBeCloseTo(2.54,10);
+    expect((await runFixture('metal-coordination',{metalTolerance:0.1})).run.interactions.filter(i=>i.type==='metal_coordination')).toHaveLength(0);
     expect((await runFixture('metal-coordination',{classifyChemistry:false})).run.evaluation.metal_coordination.status).toBe('not_evaluated');
   });
   it('records two deposited-water legs, mediator identity and graph adjacency, with independent enablement',async()=>{
@@ -94,5 +97,23 @@ describe('incomplete and unsupported input',()=>{
     expect(run.chemistrySources.find(c=>c.componentId==='ACM')!.source).toBe('embedded');
     expect(run.qualityFlags.some(f=>f.includes('Rejected optional chemistry ACM'))).toBe(true);
     expect(run.interactions.some(i=>i.type==='hydrogen_bond')).toBe(true);
+  });
+});
+describe('element-specific metal distances (R3)',()=>{
+  it('derives limits from the Bazayeva et al. 2024 targets plus tolerance, with a uniform fallback',async()=>{
+    const {metalDistanceLimit,metalSearchDistance}=await import('../src/analysis/metalDistances');
+    const p={...DEFAULT_PARAMETERS};
+    expect(metalDistanceLimit('ZN','N',p)).toEqual({limit:2.54,target:2.04,source:'element_specific'});
+    expect(metalDistanceLimit('K','O',p).limit).toBeCloseTo(3.2,10);
+    expect(metalDistanceLimit('ZN','S',p).limit).toBeCloseTo(2.82,10);
+    expect(metalDistanceLimit('CO','N',p)).toEqual({limit:3,source:'uniform_fallback'});
+    expect(metalDistanceLimit('ZN','N',{...p,metalDistancePolicy:'uniform'})).toEqual({limit:3,source:'uniform'});
+    expect(metalSearchDistance(p)).toBeCloseTo(3.2,10);
+  });
+  it('rejects a second-shell zinc partner that the uniform cutoff accepted',async()=>{
+    // Artificial: zinc moved along z from 2.2 Å to 2.8 Å above His ND1 (NE2 then 3.49 Å).
+    const far=(s:string)=>s.split('\n').map(line=>{if(!line.startsWith('HETATM'))return line;const a=line.split(/\s+/);a[12]=String(Number(a[12])+0.6);return a.join(' ');}).join('\n');
+    expect((await runFixture('metal-coordination',{},far)).run.interactions.filter(i=>i.type==='metal_coordination')).toHaveLength(0);
+    expect((await runFixture('metal-coordination',{metalDistancePolicy:'uniform'},far)).run.interactions.filter(i=>i.type==='metal_coordination').length).toBeGreaterThan(0);
   });
 });

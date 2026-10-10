@@ -199,7 +199,7 @@ export function AnalysisPanel({
                   ["saltBridgeCutoff", "Salt-bridge cutoff"],
                   ["piStackingCutoff", "π-stacking cutoff"],
                   ["cationPiCutoff", "Cation–π cutoff"],
-                  ["metalCutoff", "Metal cutoff"],
+                  ["metalCutoff", "Metal uniform/fallback cutoff"],
                   ["waterLegMin", "Water leg minimum"],
                   ["waterLegMax", "Water leg maximum"],
                 ] as const
@@ -228,6 +228,7 @@ export function AnalysisPanel({
                   ["waterAngleMin", "Water angle minimum", 0, 180, "°"],
                   ["waterAngleMax", "Water angle maximum", 0, 180, "°"],
                   ["clashOverlapMin", "Clash overlap minimum", 0.1, 2, "Å"],
+                  ["metalTolerance", "Metal target tolerance", 0.1, 1, "Å"],
                 ] as const
               ).map(([key, name, min, max, unit]) => (
                 <label key={key}>
@@ -247,6 +248,24 @@ export function AnalysisPanel({
                   />
                 </label>
               ))}
+              <label>
+                Metal distances
+                <select
+                  aria-label="Metal distance policy"
+                  value={s.analysisParameters.metalDistancePolicy}
+                  onChange={(e) =>
+                    controller?.setAnalysisParameters({
+                      metalDistancePolicy: e.target.value as
+                        "element_specific" | "uniform",
+                    })
+                  }
+                >
+                  <option value="element_specific">
+                    Element-specific targets (Bazayeva et al. 2024)
+                  </option>
+                  <option value="uniform">Uniform cutoff</option>
+                </select>
+              </label>
               <label>
                 Minimum occupancy
                 <input

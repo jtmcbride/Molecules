@@ -2,7 +2,13 @@ import {
   FeatureTypes,
   InteractionType as MolType,
 } from "molstar/lib/mol-model-props/computed/interactions/common";
-import type { Ambiguity, MolecularInteraction } from "../domain/analysis";
+import {
+  DEFAULT_PARAMETERS,
+  type Ambiguity,
+  type AnalysisParameters,
+  type MolecularInteraction,
+} from "../domain/analysis";
+import { metalDistanceLimit } from "./metalDistances";
 import type { ResidueRecord, StructureSnapshot } from "../domain/types";
 import { isHydrogenElement } from "../domain/elements";
 import { reject, type InteractionDraft, type Rejection } from "./collector";
@@ -23,6 +29,8 @@ export interface ClassificationContext {
   incomplete: Map<string, string[]>;
   /** Nonmetal chemical classification is enabled for this target. */
   chemicalEnabled: boolean;
+  /** Request parameters (metal distance policy). Absent only in isolated classifier tests. */
+  parameters?: AnalysisParameters;
   /** Receptor His/Cys side-chain atoms (and their residues) coordinating a metal ion. */
   metalSites?: { atoms: Set<number>; residues: Set<string> };
 }
@@ -155,17 +163,38 @@ export function classifyRing(
 export function classifyMetal(
   ctx: ClassificationContext,
   e: Endpoints,
-): InteractionDraft {
-  const metal =
-    e.base.ligand.role === "metal"
-      ? e.base.closestAtomPair[0]
-      : e.base.closestAtomPair[1];
+): InteractionDraft | Rejection {
+  const [l, r] = e.base.closestAtomPair;
+  const metal = e.base.ligand.role === "metal" ? l : r,
+    donor = metal === l ? r : l;
+  const metalElement = ctx.snapshot.atoms[metal].element,
+    donorElement = ctx.snapshot.atoms[donor].element;
+  const limit = metalDistanceLimit(
+    metalElement,
+    donorElement,
+    ctx.parameters ?? DEFAULT_PARAMETERS,
+  );
+  if (e.base.distanceAngstrom > limit.limit) return reject("metal_distance");
   return {
     ...e.base,
     type: "metal_coordination",
-    geometry: { metalElement: ctx.snapshot.atoms[metal].element },
+    geometry: {
+      metalElement,
+      metalLimitAngstrom: limit.limit,
+      ...(limit.target !== undefined
+        ? { metalTargetAngstrom: limit.target }
+        : {}),
+      metalLimitSource: limit.source,
+    },
     classification: "candidate",
-    notes: [METAL_NOTE],
+    notes: [
+      METAL_NOTE,
+      limit.source === "element_specific"
+        ? `Accepted within ${limit.limit.toFixed(2)} Å: target ${limit.target!.toFixed(2)} Å for ${metalElement}–${donorElement} (Bazayeva et al. 2024) plus tolerance.`
+        : limit.source === "uniform_fallback"
+          ? `No element-specific target for ${metalElement}–${donorElement}; the uniform ${limit.limit.toFixed(2)} Å cutoff was applied.`
+          : `Uniform metal cutoff ${limit.limit.toFixed(2)} Å.`,
+    ],
   };
 }
 

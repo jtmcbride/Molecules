@@ -5,6 +5,7 @@ import {
 } from "molstar/lib/mol-model-props/computed/interactions/interactions";
 import { WaterBridgesParams } from "molstar/lib/mol-model-props/computed/interactions/water-bridges";
 import type { StructureSnapshot } from "../domain/types";
+import { metalSearchDistance } from "./metalDistances";
 import {
   ENGINE_VERSION,
   RULESET_VERSION,
@@ -68,7 +69,7 @@ export function chemicalParameters(
       "weak-hydrogen-bonds": { name: "off", params: {} },
       "metal-coordination": {
         name: "on",
-        params: { distanceMax: request.parameters.metalCutoff },
+        params: { distanceMax: metalSearchDistance(request.parameters) },
       },
     },
     bridges: {

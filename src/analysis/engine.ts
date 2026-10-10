@@ -40,6 +40,7 @@ import {
 } from "./parameters";
 import { eligibleAtoms, summarizeInteractions } from "./policy";
 import { ASSUMPTIONS, chemistrySources, qualityFlags } from "./provenance";
+import { metalSearchDistance } from "./metalDistances";
 
 /*
  * Orchestration only: eligibility → connectivity → proximity → clashes → Mol* features
@@ -151,8 +152,9 @@ export async function analyze(
         metalSites: metalCoordinatingSites(
           snapshot,
           eligible.receptor,
-          parameters.metalCutoff,
+          parameters,
         ),
+        parameters,
       };
       const edge = (
         unitA: number,
@@ -178,7 +180,7 @@ export async function analyze(
         ligandSet,
         receptorSet,
         positions,
-        parameters.metalCutoff,
+        metalSearchDistance(parameters),
       ))
         edge(
           a.unit,

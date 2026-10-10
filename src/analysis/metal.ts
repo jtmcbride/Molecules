@@ -1,6 +1,10 @@
 import type { Interactions } from "molstar/lib/mol-model-props/computed/interactions/interactions";
 import { FeatureTypes } from "molstar/lib/mol-model-props/computed/interactions/common";
-import type { MolecularInteraction } from "../domain/analysis";
+import type {
+  AnalysisParameters,
+  MolecularInteraction,
+} from "../domain/analysis";
+import { metalDistanceLimit, metalSearchDistance } from "./metalDistances";
 import type { StructureSnapshot } from "../domain/types";
 import { isMetal } from "molstar/lib/mol-model/structure/model/properties/atomic/types";
 import type { ElementSymbol } from "molstar/lib/mol-model/structure/model/types";
@@ -134,7 +138,7 @@ const COORDINATING_ATOMS: Record<string, string[]> = {
 export function metalCoordinatingSites(
   snapshot: StructureSnapshot,
   receptorAtoms: number[],
-  cutoff: number,
+  parameters: AnalysisParameters,
 ): { atoms: Set<number>; residues: Set<string> } {
   const { positions, occupancies, residueIndices } = snapshot.atomBuffer;
   const metals: number[] = [];
@@ -150,7 +154,8 @@ export function metalCoordinatingSites(
   });
   const sites = { atoms: new Set<number>(), residues: new Set<string>() };
   if (!metals.length) return sites;
-  const grid = new SpatialGrid(positions, metals, cutoff);
+  const search = metalSearchDistance(parameters);
+  const grid = new SpatialGrid(positions, metals, search);
   for (const atom of receptorAtoms) {
     const residue = snapshot.residues[residueIndices[atom]];
     if (
@@ -159,7 +164,18 @@ export function metalCoordinatingSites(
       )
     )
       continue;
-    if (grid.neighbors(atom, cutoff).length) {
+    const coordinated = grid
+      .neighbors(atom, search)
+      .some(
+        (n) =>
+          n.distance <=
+          metalDistanceLimit(
+            snapshot.atoms[n.index].element,
+            snapshot.atoms[atom].element,
+            parameters,
+          ).limit,
+      );
+    if (coordinated) {
       sites.atoms.add(atom);
       sites.residues.add(residue.id);
     }
