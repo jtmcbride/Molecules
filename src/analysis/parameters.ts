@@ -65,7 +65,13 @@ export function chemicalParameters(
           offsetMax: request.parameters.piOffsetMax,
         },
       },
-      "halogen-bonds": { name: "off", params: {} },
+      "halogen-bonds": {
+        name: "on",
+        params: {
+          distanceMax: request.parameters.halogenBondCutoff,
+          angleMax: request.parameters.halogenAngleDeviation,
+        },
+      },
       "weak-hydrogen-bonds": { name: "off", params: {} },
       "metal-coordination": {
         name: "on",

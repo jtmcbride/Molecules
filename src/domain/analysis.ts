@@ -9,7 +9,8 @@ export type InteractionType =
   | "cation_pi"
   | "metal_coordination"
   | "water_bridge"
-  | "steric_clash";
+  | "steric_clash"
+  | "halogen_bond";
 /** Why a Mol* candidate edge did not become an interaction. Counted in AnalysisRun.stats.rejections. */
 export const REJECTION_REASONS = [
   "mol_refinement_filtered", // Mol* refinement marked the edge redundant (e.g. H-bond overlapping an ionic contact)
@@ -35,6 +36,9 @@ export interface AnalysisParameters {
   piOffsetMax: number;
   piAngleDeviation: number;
   cationPiCutoff: number;
+  /** Halogen-bond X···A distance and allowed deviation from linear C–X···A (Mol* rule). */
+  halogenBondCutoff: number;
+  halogenAngleDeviation: number;
   /** Uniform metal–donor cutoff; also the fallback for pairs without a target distance. */
   metalCutoff: number;
   /** element_specific: per metal/donor target + tolerance (ruleset ligand-3); uniform: metalCutoff. */
@@ -59,6 +63,8 @@ export const DEFAULT_PARAMETERS: AnalysisParameters = {
   piOffsetMax: 2,
   piAngleDeviation: 30,
   cationPiCutoff: 6,
+  halogenBondCutoff: 4,
+  halogenAngleDeviation: 30,
   metalCutoff: 3,
   metalDistancePolicy: "element_specific",
   metalTolerance: 0.5,
@@ -82,6 +88,7 @@ export const INTERACTION_LABELS: Record<InteractionType, string> = {
   metal_coordination: "Metal candidate",
   water_bridge: "Water-bridge candidate",
   steric_clash: "Clash candidate",
+  halogen_bond: "Halogen bond",
 };
 export const INTERACTION_COLORS: Record<InteractionType, string> = {
   pi_stacking: "#e29bb2",
@@ -93,6 +100,7 @@ export const INTERACTION_COLORS: Record<InteractionType, string> = {
   hydrogen_bond: "#76c9d5",
   hydrophobic_contact: "#d3c077",
   salt_bridge: "#cb9de6",
+  halogen_bond: "#9fd36f",
 };
 export interface ChemicalDefinition {
   componentId: string;
@@ -119,6 +127,8 @@ export interface Participant {
     | "aromatic_ring"
     | "metal"
     | "coordinator"
+    | "halogen_donor"
+    | "halogen_acceptor"
     | "water";
 }
 /**
@@ -156,6 +166,8 @@ export interface MolecularInteraction {
     overlapAngstrom?: number;
     vdwRadiiAngstrom?: [number, number];
     metalElement?: string;
+    /** C–X···A angle of a halogen bond (180° is linear). */
+    halogenAngleDegrees?: number;
     /** Accepted maximum for this metal/donor pair and the target it derives from. */
     metalLimitAngstrom?: number;
     metalTargetAngstrom?: number;
@@ -222,6 +234,8 @@ export interface AnalysisRun {
       saltBridge: number;
       piStacking: number;
       cationPi: number;
+      halogenBond?: number; // ruleset ligand-3
+
       metal: number;
       waterLegMax: number;
       clashOverlapMin: number;

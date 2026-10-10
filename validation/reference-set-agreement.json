@@ -32,9 +32,9 @@
     "referenceOnly": 24
    },
    "halogen_bond": {
-    "shared": 0,
+    "shared": 2,
     "appOnly": 0,
-    "referenceOnly": 4
+    "referenceOnly": 2
    },
    "water_bridge": {
     "shared": 32,
@@ -75,7 +75,7 @@
    },
    "halogen_bond": {
     "shared": 0,
-    "appOnly": 0,
+    "appOnly": 2,
     "referenceOnly": 1
    },
    "water_bridge": {
@@ -375,6 +375,7 @@
    "app": "ok",
    "plip": {
     "shared": [
+     "halogen_bond:PHE:A:218",
      "hydrogen_bond:HIS:A:381",
      "hydrogen_bond:SER:A:277",
      "hydrophobic_contact:ALA:A:225",
@@ -394,7 +395,6 @@
      "water_bridge:ARG:A:262"
     ],
     "referenceOnly": [
-     "halogen_bond:PHE:A:218",
      "salt_bridge:ARG:A:228",
      "water_bridge:ALA:A:225"
     ]
@@ -410,6 +410,7 @@
      "hydrophobic_contact:PHE:A:401"
     ],
     "appOnly": [
+     "halogen_bond:PHE:A:218",
      "hydrogen_bond:ARG:A:228",
      "hydrogen_bond:HIS:A:381",
      "hydrophobic_contact:ALA:A:225",
@@ -927,6 +928,7 @@
    "app": "ok",
    "plip": {
     "shared": [
+     "halogen_bond:LEU:A:788",
      "hydrogen_bond:MET:A:793",
      "hydrophobic_contact:LEU:A:844",
      "hydrophobic_contact:LYS:A:745",
@@ -936,7 +938,6 @@
      "hydrophobic_contact:LEU:A:788"
     ],
     "referenceOnly": [
-     "halogen_bond:LEU:A:788",
      "hydrogen_bond:CYS:A:797",
      "hydrogen_bond:LYS:A:728",
      "hydrogen_bond:PRO:A:794",
@@ -949,6 +950,7 @@
      "hydrophobic_contact:LYS:A:745"
     ],
     "appOnly": [
+     "halogen_bond:LEU:A:788",
      "hydrophobic_contact:LEU:A:788",
      "hydrophobic_contact:LEU:A:844",
      "hydrophobic_contact:THR:A:790"

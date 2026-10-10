@@ -199,6 +199,7 @@ export function AnalysisPanel({
                   ["saltBridgeCutoff", "Salt-bridge cutoff"],
                   ["piStackingCutoff", "π-stacking cutoff"],
                   ["cationPiCutoff", "Cation–π cutoff"],
+                  ["halogenBondCutoff", "Halogen-bond cutoff"],
                   ["metalCutoff", "Metal uniform/fallback cutoff"],
                   ["waterLegMin", "Water leg minimum"],
                   ["waterLegMax", "Water leg maximum"],
@@ -225,6 +226,13 @@ export function AnalysisPanel({
                 [
                   ["piOffsetMax", "Ring offset maximum", 0, 4, "Å"],
                   ["piAngleDeviation", "Ring angle deviation", 0, 45, "°"],
+                  [
+                    "halogenAngleDeviation",
+                    "Halogen angle deviation",
+                    0,
+                    60,
+                    "°",
+                  ],
                   ["waterAngleMin", "Water angle minimum", 0, 180, "°"],
                   ["waterAngleMax", "Water angle maximum", 0, 180, "°"],
                   ["clashOverlapMin", "Clash overlap minimum", 0.1, 2, "Å"],

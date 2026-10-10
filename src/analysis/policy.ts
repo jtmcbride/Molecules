@@ -57,6 +57,7 @@ export function validateRequest(
     p.saltBridgeCutoff,
     p.piStackingCutoff,
     p.cationPiCutoff,
+    p.halogenBondCutoff,
     p.metalCutoff,
     p.waterLegMin,
     p.waterLegMax,
@@ -66,6 +67,7 @@ export function validateRequest(
   for (const [value, min, max] of [
     [p.piOffsetMax, 0, 4],
     [p.piAngleDeviation, 0, 45],
+    [p.halogenAngleDeviation, 0, 60],
     [p.waterAngleMin, 0, 180],
     [p.waterAngleMax, 0, 180],
     [p.clashOverlapMin, 0.1, 2],

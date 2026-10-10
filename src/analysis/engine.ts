@@ -312,6 +312,7 @@ export async function analyze(
         saltBridge: parameters.saltBridgeCutoff,
         piStacking: parameters.piStackingCutoff,
         cationPi: parameters.cationPiCutoff,
+        halogenBond: parameters.halogenBondCutoff,
         metal: parameters.metalCutoff,
         waterLegMax: parameters.waterLegMax,
         clashOverlapMin: parameters.clashOverlapMin,

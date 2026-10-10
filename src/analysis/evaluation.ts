@@ -25,6 +25,7 @@ const ORDER: InteractionType[] = [
   "salt_bridge",
   "pi_stacking",
   "cation_pi",
+  "halogen_bond",
   "metal_coordination",
   "water_bridge",
   "steric_clash",
@@ -35,6 +36,7 @@ const NONMETAL_CHEMISTRY: InteractionType[] = [
   "salt_bridge",
   "pi_stacking",
   "cation_pi",
+  "halogen_bond",
   "water_bridge",
 ];
 

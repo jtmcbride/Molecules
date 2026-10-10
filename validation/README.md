@@ -171,6 +171,21 @@ Each Phase 2.x milestone regenerates the engine goldens and the reference-set ag
   - PLIP metal coordination: shared 6 → 7 (1K4C Gly77).
   - The remaining PLIP-only K⁺ contacts (Thr75, Val76) belong to K⁺ 3002–3004, which PLIP merges with 3001 into one composite site. PLIP also builds composite sites in 1HQ2, 1R55, 1OQ5, 1ATP and the 4KZN glycan, so those comparisons are not like-for-like until R6.
 
+### R4 — halogen bonds
+
+- **Rules:**
+  - Mol*'s halogen-bond provider is enabled, creating a new `halogen_bond` type with `halogen_donor`/`halogen_acceptor` roles.
+  - Mol*'s rule: Cl/Br/I donor; N/O/S acceptor bonded to C, N, P or S; X···A within the cutoff (default 4.0 Å); C–X···A within the angle deviation (default 30°) of linear; every X···A–Y angle at least 90°.
+  - The C–X···A angle is recorded. Disordered endpoints are candidates; others are geometry-supported.
+  - Halogen bonds are evaluated (not "not evaluated") for ligands without halogens.
+- **Evidence:** in a synthetic C–Br···O=C fixture, the linear contact at 3.0 Å is detected. Bending C–Br···O to 155° keeps it; 140° rejects it, as do a 2.9 Å cutoff and a 20° tolerance at 155°.
+- **Golden changes:** no golden case contains Cl/Br/I. Hashes change through the new evaluation key, parameters and text; interaction counts are identical.
+- **Reference agreement:**
+  - PLIP halogen bonds: shared 0 → 2 (1NAV Phe218, 4G5J Leu788).
+  - The two remaining PLIP-only observations are C–F donors (1P62 gemcitabine, 1Z95 bicalutamide). PLIP counts fluorine; Mol* does not. That matches the consensus that fluorine rarely forms halogen bonds, so it is kept as a definitional difference.
+  - ProLIF's only halogen bond (2BSM Phe138) is not found by PLIP or the app.
+  - 1J91 (tetrabromobenzotriazole) has no halogen bond in any tool. Its closest geometric candidate, BR13···Arg47 NE (2.99 Å, 165°), involves a protonated guanidinium nitrogen with no available lone pair, and Val45 O is 3.99 Å away at 120°. The case is kept as a negative control.
+
 ## Scale and browser verification
 
 A local Node 24 run on 2026-10-09 built the 100,000-atom grid in approximately 34 ms, with five queries plus independent brute-force validation taking approximately 83 ms. The coordinate buffer alone occupies 1.2 MB. These are observations from this environment, not browser speed promises or whole-engine memory measurements. Reproduce with `RECORD_REFERENCE=1 npm test`; diagnostic JSON is written under `/tmp`. Normal tests assert correctness rather than a machine-specific timing threshold.

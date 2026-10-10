@@ -59,6 +59,10 @@ export function participantRole(
     case FeatureTypes.DativeBondPartner:
     case FeatureTypes.IonicTypePartner:
       return "coordinator";
+    case FeatureTypes.HalogenDonor:
+      return "halogen_donor";
+    case FeatureTypes.HalogenAcceptor:
+      return "halogen_acceptor";
     case FeatureTypes.HydrogenDonor:
       return "donor";
     case FeatureTypes.HydrogenAcceptor:

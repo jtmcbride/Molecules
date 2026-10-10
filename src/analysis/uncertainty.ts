@@ -20,6 +20,8 @@ export function cutoffMargin(
       return p.hydrogenBondCutoff - i.distanceAngstrom;
     case "hydrophobic_contact":
       return p.hydrophobicCutoff - i.distanceAngstrom;
+    case "halogen_bond":
+      return p.halogenBondCutoff - i.distanceAngstrom;
     case "salt_bridge":
       return p.saltBridgeCutoff - i.distanceAngstrom;
     case "metal_coordination":

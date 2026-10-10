@@ -418,7 +418,7 @@ describe("ring and metal contacts", () => {
       geometry: { metalElement: "ZN" },
     });
   });
-  it("rejects interaction types outside the ruleset", () => {
+  it("rejects interaction types outside the ruleset (weak C–H···O hydrogen bonds are off)", () => {
     const w = world([
       { residue: "LIG:1", element: "CL", at: [0, 0, 0] },
       { residue: "SER:2", element: "O", at: [3, 0, 0] },
@@ -426,9 +426,9 @@ describe("ring and metal contacts", () => {
     expect(
       classifyContact(
         context(w),
-        group([0], FeatureTypes.HalogenDonor),
-        group([1], FeatureTypes.HalogenAcceptor),
-        MolType.HalogenBond,
+        group([0], FeatureTypes.HydrogenDonor),
+        group([1], FeatureTypes.HydrogenAcceptor),
+        MolType.WeakHydrogenBond,
       ),
     ).toEqual({ rejected: "unsupported_type" });
   });

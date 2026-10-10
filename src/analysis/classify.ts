@@ -291,6 +291,40 @@ export function classifyHydrogenBond(
   };
 }
 
+const HALOGEN_NOTE =
+  "Halogen and acceptor pass the Mol* distance, C–X···A linearity and X···A–Y angle rules. σ-hole strength and energy are not estimated.";
+
+/** C–X···A halogen bond; the angle is measured from the halogen's covalently bonded heavy atom. */
+export function classifyHalogenBond(
+  ctx: ClassificationContext,
+  e: Endpoints,
+): InteractionDraft {
+  const [l, r] = e.base.closestAtomPair;
+  const halogen = e.base.ligand.role === "halogen_donor" ? l : r,
+    acceptor = halogen === l ? r : l;
+  const anchor = [...ctx.connectivity.neighbors(halogen)].find(
+    (n) => !isHydrogenElement(ctx.snapshot.atoms[n].element),
+  );
+  const positions = ctx.snapshot.atomBuffer.positions;
+  return {
+    ...e.base,
+    type: "halogen_bond",
+    geometry:
+      anchor === undefined
+        ? undefined
+        : {
+            halogenAngleDegrees: angleDegrees(
+              positions,
+              anchor,
+              halogen,
+              acceptor,
+            ),
+          },
+    classification: e.disordered ? "candidate" : "geometry_supported",
+    notes: [HALOGEN_NOTE],
+  };
+}
+
 /** Dispatches an oriented Mol* contact to its type rule after the shared endpoint checks. */
 export function classifyContact(
   ctx: ClassificationContext,
@@ -312,6 +346,8 @@ export function classifyContact(
       return classifyHydrophobic(ctx, e);
     case MolType.HydrogenBond:
       return classifyHydrogenBond(ctx, e);
+    case MolType.HalogenBond:
+      return classifyHalogenBond(ctx, e);
     default:
       return reject("unsupported_type");
   }

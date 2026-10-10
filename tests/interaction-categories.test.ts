@@ -117,3 +117,23 @@ describe('element-specific metal distances (R3)',()=>{
     expect((await runFixture('metal-coordination',{metalDistancePolicy:'uniform'},far)).run.interactions.filter(i=>i.type==='metal_coordination').length).toBeGreaterThan(0);
   });
 });
+describe('halogen bonds (R4)',()=>{
+  // Artificial fixture: C1–Br···O=C with Br···O 3.0 Å, C–Br···O 180°, Br···O=C 120°.
+  const bend=(degrees:number)=>(s:string)=>s.split('\n').map(line=>{if(!line.startsWith('HETATM')||!line.includes(' C1 '))return line;const a=line.split(/\s+/);const t=(180-degrees)*Math.PI/180;a[10]=(-1.94*Math.cos(t)).toFixed(3);a[11]=(1.94*Math.sin(t)).toFixed(3);return a.join(' ');}).join('\n');
+  it('detects a linear C–Br···O=C contact and records its angle',async()=>{
+    const {run}=await runFixture('halogen-bond');const x=run.interactions.filter(i=>i.type==='halogen_bond');
+    expect(x).toHaveLength(1);expect(x[0].distanceAngstrom).toBeCloseTo(3.0,5);expect(x[0].geometry!.halogenAngleDegrees).toBeCloseTo(180,4);
+    expect(x[0].ligand.role).toBe('halogen_donor');expect(x[0].receptor.role).toBe('halogen_acceptor');expect(x[0].classification).toBe('geometry_supported');
+    expect(run.evaluation.halogen_bond.status).toBe('evaluated');
+  });
+  it('rejects bent and distant contacts at the Mol* angle and distance limits',async()=>{
+    expect((await runFixture('halogen-bond',{},bend(140))).run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(0);
+    expect((await runFixture('halogen-bond',{},bend(155))).run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(1);
+    expect((await runFixture('halogen-bond',{halogenBondCutoff:2.9})).run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(0);
+    expect((await runFixture('halogen-bond',{halogenAngleDeviation:20},bend(155))).run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(0);
+  });
+  it('reports halogen bonds as evaluated with no result for ligands without halogens',async()=>{
+    const {run}=await runFixture('hydrogen-geometry');
+    expect(run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(0);expect(run.evaluation.halogen_bond.status).toBe('evaluated');
+  });
+});
