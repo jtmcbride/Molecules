@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "selectedOn": "2026-10-10",
+  "criteria": {
+    "astexSubset": "The 15 Astex Diverse Set complexes with the fewest deposited atoms",
+    "altloc": "Smallest Astex complex with alternate conformers on >=2 polymer residues within 5 \u00c5 of the ligand's first instance, >=1 polar",
+    "glycan": "Smallest X-ray entry (<=1.8 \u00c5, <=5000 atoms) with an N-linked branched glycan (>=3 sugars, covalent link to Asn ND2) contacting >=3 protein residues within 4 \u00c5",
+    "targeted": "Entries verified in docs/PHASE_2X_PLAN.md and the existing PLIP reference cases",
+    "ligandInstance": "First instance of the component in model 1 unless stated"
+  },
+  "cases": [
+    {
+      "accession": "1TOW",
+      "component": "CRZ",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (1215 atoms)",
+      "authChain": "A",
+      "authNumber": "501",
+      "atoms": 1215,
+      "resolution": 2.0
+    },
+    {
+      "accession": "1S3V",
+      "component": "TQD",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (1651 atoms)",
+      "authChain": "A",
+      "authNumber": "187",
+      "atoms": 1651,
+      "resolution": 1.8
+    },
+    {
+      "accession": "1HQ2",
+      "component": "PH2",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (1684 atoms)",
+      "authChain": "A",
+      "authNumber": "181",
+      "atoms": 1684,
+      "resolution": 1.25
+    },
+    {
+      "accession": "1R55",
+      "component": "097",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (1838 atoms)",
+      "authChain": "A",
+      "authNumber": "518",
+      "atoms": 1838,
+      "resolution": 1.58
+    },
+    {
+      "accession": "1KZK",
+      "component": "JE2",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (1843 atoms)",
+      "authChain": "A",
+      "authNumber": "701",
+      "atoms": 1843,
+      "resolution": 1.09
+    },
+    {
+      "accession": "2BSM",
+      "component": "BSM",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (1902 atoms)",
+      "authChain": "A",
+      "authNumber": "1224",
+      "atoms": 1902,
+      "resolution": 2.05
+    },
+    {
+      "accession": "1NAV",
+      "component": "IH5",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2040 atoms)",
+      "authChain": "A",
+      "authNumber": "600",
+      "atoms": 2040,
+      "resolution": 2.5
+    },
+    {
+      "accession": "1P62",
+      "component": "GEO",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2082 atoms)",
+      "authChain": "B",
+      "authNumber": "302",
+      "atoms": 2082,
+      "resolution": 1.9
+    },
+    {
+      "accession": "1Z95",
+      "component": "198",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2114 atoms)",
+      "authChain": "A",
+      "authNumber": "501",
+      "atoms": 2114,
+      "resolution": 1.8
+    },
+    {
+      "accession": "1SJ0",
+      "component": "E4D",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2119 atoms)",
+      "authChain": "A",
+      "authNumber": "600",
+      "atoms": 2119,
+      "resolution": 1.9
+    },
+    {
+      "accession": "1OWE",
+      "component": "675",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2194 atoms)",
+      "authChain": "A",
+      "authNumber": "1001",
+      "atoms": 2194,
+      "resolution": 1.6
+    },
+    {
+      "accession": "1S19",
+      "component": "MC9",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2226 atoms)",
+      "authChain": "A",
+      "authNumber": "500",
+      "atoms": 2226,
+      "resolution": 2.1
+    },
+    {
+      "accession": "1V48",
+      "component": "HA1",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2237 atoms)",
+      "authChain": "A",
+      "authNumber": "290",
+      "atoms": 2237,
+      "resolution": 2.2
+    },
+    {
+      "accession": "1OQ5",
+      "component": "CEL",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2304 atoms)",
+      "authChain": "A",
+      "authNumber": "701",
+      "atoms": 2304,
+      "resolution": 1.5
+    },
+    {
+      "accession": "1Y6B",
+      "component": "AAX",
+      "tags": [
+        "astex"
+      ],
+      "reason": "Astex Diverse Set; 15 smallest by deposited atom count (2320 atoms)",
+      "authChain": "A",
+      "authNumber": "201",
+      "atoms": 2320,
+      "resolution": 2.1
+    },
+    {
+      "accession": "1T46",
+      "component": "STI",
+      "tags": [
+        "astex",
+        "altloc"
+      ],
+      "reason": "Smallest Astex complex with alternate conformers on >=2 residues within 5 \u00c5 of the ligand, >=1 polar: ASP A:677, CYS A:788, VAL A:654",
+      "authChain": "A",
+      "authNumber": "3",
+      "atoms": 2696,
+      "resolution": 1.6
+    },
+    {
+      "accession": "4KZN",
+      "component": "NAG",
+      "authChain": "B",
+      "authNumber": "1",
+      "tags": [
+        "glycan"
+      ],
+      "glycan": [
+        "NAG",
+        "NAG",
+        "BMA",
+        "MAN",
+        "MAN",
+        "FUC"
+      ],
+      "reason": "Smallest X-ray entry (<=1.8 \u00c5, <=5000 atoms) with an N-linked branched glycan of >=3 residues contacting >=3 protein residues; 6 sugars, 6 contacting residues. Until R6, the app analyzes the anchor residue only.",
+      "atoms": 927,
+      "resolution": 1.7114
+    },
+    {
+      "accession": "5P9J",
+      "component": "8E8",
+      "tags": [
+        "covalent"
+      ],
+      "reason": "Ibrutinib\u2013BTK, Cys481 covalent link recorded in struct_conn",
+      "authChain": "A",
+      "authNumber": "701",
+      "atoms": 2369,
+      "resolution": 1.08
+    },
+    {
+      "accession": "4G5J",
+      "component": "0WN",
+      "tags": [
+        "covalent",
+        "halogen"
+      ],
+      "reason": "Afatinib\u2013EGFR, Cys797 covalent link recorded in struct_conn",
+      "authChain": "A",
+      "authNumber": "1101",
+      "atoms": 2608,
+      "resolution": 2.8
+    },
+    {
+      "accession": "1J91",
+      "component": "TBS",
+      "tags": [
+        "halogen"
+      ],
+      "reason": "Tetrabromobenzotriazole\u2013CK2\u03b1",
+      "authChain": "A",
+      "authNumber": "338",
+      "atoms": 5707,
+      "resolution": 2.22
+    },
+    {
+      "accession": "1K4C",
+      "component": "K",
+      "tags": [
+        "metal"
+      ],
+      "reason": "KcsA potassium sites",
+      "authChain": "C",
+      "authNumber": "3001",
+      "atoms": 4534,
+      "resolution": 2.0
+    },
+    {
+      "accession": "1ATP",
+      "component": "ATP",
+      "tags": [
+        "cofactor_metal"
+      ],
+      "reason": "ATP with Mn2+ coordinated by phosphates",
+      "authChain": "E",
+      "authNumber": "355",
+      "atoms": 3070,
+      "resolution": 2.2
+    },
+    {
+      "accession": "1ATP",
+      "component": "MN",
+      "tags": [
+        "metal"
+      ],
+      "reason": "Mn2+ site",
+      "authChain": "E",
+      "authNumber": "351",
+      "atoms": 3070,
+      "resolution": 2.2
+    },
+    {
+      "accession": "3PTB",
+      "component": "BEN",
+      "tags": [
+        "existing"
+      ],
+      "reason": "Existing PLIP reference",
+      "authChain": "A",
+      "authNumber": "1",
+      "atoms": 1701,
+      "resolution": 1.7
+    },
+    {
+      "accession": "1EVE",
+      "component": "E20",
+      "tags": [
+        "existing",
+        "aromatic"
+      ],
+      "reason": "Existing PLIP reference",
+      "authChain": "A",
+      "authNumber": "2001",
+      "atoms": 4748,
+      "resolution": 2.5
+    },
+    {
+      "accession": "1RMD",
+      "component": "ZN",
+      "tags": [
+        "existing",
+        "metal"
+      ],
+      "reason": "Existing PLIP reference",
+      "authChain": "A",
+      "authNumber": "117",
+      "atoms": 967,
+      "resolution": 2.1
+    }
+  ]
+}

@@ -89,6 +89,13 @@ export interface StructureQuality {
   coordinateErrorAngstrom?: number;
   coordinateErrorSource?: "deposited_esu_r_free" | "computed_dpi_free";
 }
+/** Residues analyzed together as one ligand (glycan, BIRD molecule or covalently linked ligand residues). */
+export interface LigandGroup {
+  id: string;
+  kind: "branched" | "bird" | "covalent";
+  residueIds: string[];
+  label: string;
+}
 export interface StructureSnapshot {
   id: string;
   sourceId: string;
@@ -102,6 +109,7 @@ export interface StructureSnapshot {
   atomBuffer: AtomBuffer;
   componentParentIds?: Record<string, string>;
   quality?: StructureQuality;
+  ligandGroups?: LigandGroup[];
   chemistry: {
     embeddedBondComponentIds: string[];
     expectedHeavyAtomNames?: Record<string, string[]>;

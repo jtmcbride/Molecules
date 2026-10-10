@@ -8,7 +8,13 @@ import {
   X,
 } from "lucide-react";
 import { useExplorer } from "../state/explorer";
-import { INTERACTION_LABELS, type InteractionType } from "../domain/analysis";
+import {
+  AMBIGUITY_LABELS,
+  INTERACTION_LABELS,
+  type ConformerPolicy,
+  type InteractionType,
+} from "../domain/analysis";
+import { atomLabel } from "../analysis/provenance";
 import {
   cutoffMargin,
   distanceUncertainty,
@@ -26,6 +32,31 @@ export function AnalysisPanel({
     snapshot = s.snapshot,
     run = s.analysis,
     sigma = distanceUncertainty(snapshot?.quality);
+  // Non-polymer residues within 8 Å of the target that can be added as receptor components.
+  const nearbyComponents = (() => {
+    if (!snapshot || !s.targetLigandId) return [];
+    const group = snapshot.ligandGroups?.find((g) => g.id === s.ligandGroupId);
+    const target = new Set(group?.residueIds ?? [s.targetLigandId]);
+    const residues = new Map(snapshot.residues.map((r) => [r.id, r]));
+    const p = snapshot.atomBuffer.positions;
+    const targetAtoms = [...target].flatMap(
+      (id) => residues.get(id)?.atomIndices ?? [],
+    );
+    const near = (a: number) =>
+      targetAtoms.some(
+        (b) =>
+          Math.hypot(
+            p[a * 3] - p[b * 3],
+            p[a * 3 + 1] - p[b * 3 + 1],
+            p[a * 3 + 2] - p[b * 3 + 2],
+          ) <= 8,
+      );
+    return snapshot.ligands
+      .map((l) => l.residueId)
+      .filter(
+        (id) => !target.has(id) && residues.get(id)!.atomIndices.some(near),
+      );
+  })();
   const [type, setType] = useState<InteractionType | "chemical" | "all">(
     "chemical",
   );
@@ -100,7 +131,11 @@ export function AnalysisPanel({
             Target ligand
             <select
               aria-label="Analysis target ligand"
-              value={s.targetLigandId ?? ""}
+              value={
+                s.ligandGroupId
+                  ? `group:${s.ligandGroupId}`
+                  : (s.targetLigandId ?? "")
+              }
               disabled={!ready}
               onChange={(e) => controller?.setAnalysisTarget(e.target.value)}
             >
@@ -112,6 +147,20 @@ export function AnalysisPanel({
                   {label(l.residueId)}
                 </option>
               ))}
+              {!!snapshot.ligandGroups?.length && (
+                <optgroup label="Multi-residue ligands">
+                  {snapshot.ligandGroups.map((g) => (
+                    <option key={g.id} value={`group:${g.id}`}>
+                      {g.kind === "branched"
+                        ? "Glycan"
+                        : g.kind === "bird"
+                          ? "BIRD molecule"
+                          : "Linked ligand"}{" "}
+                      {g.label}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </label>
           <label>
@@ -176,6 +225,32 @@ export function AnalysisPanel({
               {s.assemblyId && ` · ${c.operatorId}`}
             </label>
           ))}
+          {nearbyComponents.length > 0 && (
+            <div
+              className="receptor-components"
+              data-testid="receptor-components"
+            >
+              <span className="field-label">
+                COFACTORS &amp; IONS AS RECEPTOR
+              </span>
+              {nearbyComponents.map((id) => (
+                <label key={id}>
+                  <input
+                    type="checkbox"
+                    checked={s.receptorComponentIds.includes(id)}
+                    onChange={(e) =>
+                      controller?.setReceptorComponents(
+                        e.target.checked
+                          ? [...s.receptorComponentIds, id]
+                          : s.receptorComponentIds.filter((x) => x !== id),
+                      )
+                    }
+                  />{" "}
+                  {label(id)}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
         <button
           className="analysis-settings-toggle"
@@ -194,7 +269,8 @@ export function AnalysisPanel({
                   ["saltBridgeCutoff", "Salt-bridge cutoff"],
                   ["piStackingCutoff", "π-stacking cutoff"],
                   ["cationPiCutoff", "Cation–π cutoff"],
-                  ["metalCutoff", "Metal cutoff"],
+                  ["halogenBondCutoff", "Halogen-bond cutoff"],
+                  ["metalCutoff", "Metal uniform/fallback cutoff"],
                   ["waterLegMin", "Water leg minimum"],
                   ["waterLegMax", "Water leg maximum"],
                 ] as const
@@ -220,9 +296,17 @@ export function AnalysisPanel({
                 [
                   ["piOffsetMax", "Ring offset maximum", 0, 4, "Å"],
                   ["piAngleDeviation", "Ring angle deviation", 0, 45, "°"],
+                  [
+                    "halogenAngleDeviation",
+                    "Halogen angle deviation",
+                    0,
+                    60,
+                    "°",
+                  ],
                   ["waterAngleMin", "Water angle minimum", 0, 180, "°"],
                   ["waterAngleMax", "Water angle maximum", 0, 180, "°"],
                   ["clashOverlapMin", "Clash overlap minimum", 0.1, 2, "Å"],
+                  ["metalTolerance", "Metal target tolerance", 0.1, 1, "Å"],
                 ] as const
               ).map(([key, name, min, max, unit]) => (
                 <label key={key}>
@@ -242,6 +326,24 @@ export function AnalysisPanel({
                   />
                 </label>
               ))}
+              <label>
+                Metal distances
+                <select
+                  aria-label="Metal distance policy"
+                  value={s.analysisParameters.metalDistancePolicy}
+                  onChange={(e) =>
+                    controller?.setAnalysisParameters({
+                      metalDistancePolicy: e.target.value as
+                        "element_specific" | "uniform",
+                    })
+                  }
+                >
+                  <option value="element_specific">
+                    Element-specific targets (Bazayeva et al. 2024)
+                  </option>
+                  <option value="uniform">Uniform cutoff</option>
+                </select>
+              </label>
               <label>
                 Minimum occupancy
                 <input
@@ -266,11 +368,13 @@ export function AnalysisPanel({
                 value={s.analysisParameters.conformerPolicy}
                 onChange={(e) =>
                   controller?.setAnalysisParameters({
-                    conformerPolicy: e.target.value as
-                      "exclude_disordered" | "preferred_residue",
+                    conformerPolicy: e.target.value as ConformerPolicy,
                   })
                 }
               >
+                <option value="ensemble">
+                  Per-conformer ensemble (default)
+                </option>
                 <option value="exclude_disordered">
                   Exclude disordered residues
                 </option>
@@ -375,6 +479,21 @@ export function AnalysisPanel({
               <span>·</span> {(run.stats.elapsedMilliseconds / 1000).toFixed(2)}{" "}
               s
             </div>
+            {run.covalentAttachments?.map((link) => (
+              <p
+                className="covalent-attachment"
+                data-testid="covalent-attachment"
+                key={`${link.ligandAtom}:${link.receptorAtom}`}
+              >
+                Covalently attached: {atomLabel(snapshot, link.ligandAtom)} –{" "}
+                {atomLabel(snapshot, link.receptorAtom)} (
+                {link.provenance === "geometry_inferred"
+                  ? "geometry-inferred bond"
+                  : "deposited bond"}
+                ). Pairs up to three bonds apart across the link are not
+                reported as contacts.
+              </p>
+            ))}
             <div className="interaction-counts">
               {(Object.keys(INTERACTION_LABELS) as InteractionType[]).map(
                 (t) => (
@@ -456,6 +575,17 @@ export function AnalysisPanel({
                     ` · ${selected.hydrogenMode} hydrogens`}
                   {selected.donorHydrogenAcceptorAngle !== undefined &&
                     ` · D–H–A ${selected.donorHydrogenAcceptorAngle.toFixed(1)}°`}
+                  {selected.conformers?.length
+                    ? ` · ${selected.conformerPresence === "all" ? "all conformers" : "conformers"} ${selected.conformers
+                        .map(
+                          (c) =>
+                            `${c.altId}${c.occupancy !== undefined ? ` (${c.occupancy.toFixed(2)})` : ""}`,
+                        )
+                        .join(", ")}`
+                    : ""}
+                  {selected.ambiguities?.length
+                    ? ` · ${selected.ambiguities.map((a) => AMBIGUITY_LABELS[a]).join(", ")}`
+                    : ""}
                 </p>
                 {sigma !== undefined &&
                   cutoffMargin(selected, run.request.parameters) !==
@@ -563,7 +693,28 @@ export function AnalysisPanel({
                             .join("/")}
                         </small>
                       </th>
-                      <td>{INTERACTION_LABELS[i.type]}</td>
+                      <td>
+                        {INTERACTION_LABELS[i.type]}
+                        {i.conformerPresence === "partial" && (
+                          <span
+                            className="conformer-presence"
+                            title={i.conformers
+                              ?.map(
+                                (c) =>
+                                  `${c.altId}${c.occupancy !== undefined ? ` (occupancy ${c.occupancy.toFixed(2)})` : ""}`,
+                              )
+                              .join(", ")}
+                          >
+                            conformer{" "}
+                            {i.conformers?.map((c) => c.altId).join("/")} only
+                          </span>
+                        )}
+                        {i.ambiguities?.map((a) => (
+                          <span className="ambiguity" key={a}>
+                            {AMBIGUITY_LABELS[a]}
+                          </span>
+                        ))}
+                      </td>
                       <td>
                         {i.distanceAngstrom.toFixed(2)} Å
                         {isBorderline(i, run.request.parameters, sigma) && (

@@ -59,6 +59,10 @@ export function participantRole(
     case FeatureTypes.DativeBondPartner:
     case FeatureTypes.IonicTypePartner:
       return "coordinator";
+    case FeatureTypes.HalogenDonor:
+      return "halogen_donor";
+    case FeatureTypes.HalogenAcceptor:
+      return "halogen_acceptor";
     case FeatureTypes.HydrogenDonor:
       return "donor";
     case FeatureTypes.HydrogenAcceptor:
@@ -69,5 +73,30 @@ export function participantRole(
       return "negative_group";
     default:
       return fallback;
+  }
+}
+
+/** Single-atom hydrogen-bond donor and acceptor features, in domain atom indices. */
+export function polarTyping(
+  computed: Interactions,
+  read: FeatureReader,
+  donors: Set<number>,
+  acceptors: Set<number>,
+) {
+  for (const unit of computed.unitsFeatures.keys()) {
+    const f = computed.unitsFeatures.get(unit)!;
+    for (let i = 0; i < f.count; i++) {
+      const type = Number(f.types[i]);
+      if (
+        type !== Number(FeatureTypes.HydrogenDonor) &&
+        type !== Number(FeatureTypes.HydrogenAcceptor)
+      )
+        continue;
+      const { atoms } = read(unit, i);
+      if (atoms.length !== 1) continue;
+      (type === Number(FeatureTypes.HydrogenDonor) ? donors : acceptors).add(
+        atoms[0],
+      );
+    }
   }
 }

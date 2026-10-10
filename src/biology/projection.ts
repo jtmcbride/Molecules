@@ -128,7 +128,11 @@ export function summarizeBindingSite(
     throw Error(
       "Interpretation and analysis belong to different coordinate snapshots.",
     );
-  const contacts = new Set(run.residues.map((r) => r.residueId));
+  // Polymer denominators only: cofactor/ion receptor components are reported separately.
+  const components = new Set(run.request.receptorComponentResidueIds ?? []);
+  const contacts = new Set(
+    run.residues.map((r) => r.residueId).filter((id) => !components.has(id)),
+  );
   const exact = interpretation.mappings.filter(
     (m) => m.residueId && m.status === "exact",
   );
@@ -240,6 +244,9 @@ export function summarizeBindingSite(
           a.type.localeCompare(b.type),
       ),
     ligandSites: [...ligandSites.values()],
+    cofactorContactIds: run.residues
+      .map((r) => r.residueId)
+      .filter((id) => components.has(id)),
     analyzedLigand: { componentId: ligandComponentId, chebiIds: analyzedChebi },
   };
 }

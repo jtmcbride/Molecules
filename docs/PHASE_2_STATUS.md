@@ -1,6 +1,6 @@
 # Phase 2 implementation status
 
-Updated 2026-10-10. Engine `contacts-2.0.0`, ruleset `molstar-5.13.1-ligand-2`.
+Updated 2026-10-10. Engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-3` (Phase 2.x complete; see [PHASE_2X_PLAN.md](PHASE_2X_PLAN.md)).
 
 ## Implemented
 
@@ -19,21 +19,25 @@ Updated 2026-10-10. Engine `contacts-2.0.0`, ruleset `molstar-5.13.1-ligand-2`.
 - JSON (schema 2) with full provenance, atom identities and coordinates; unfiltered CSV interactions.
 - Recorded comparison against separately executed PLIP 3.0.0 on 3PTB, 1EVE and 1RMD ([validation/README.md](../validation/README.md)).
 
+## Ruleset ligand-3 additions (Phase 2.x)
+
+- Reference validation set (26 cases) against PLIP 3.0.0 and ProLIF 2.2.2 with pinned per-category agreement.
+- Covalent attachments recorded; ligand–receptor pairs up to three bonds apart across them excluded; unrecorded close pairs flagged; typed donor–acceptor overlaps reported as short H-bonds, not clashes.
+- His salt bridges pH-dependent; Asn/Gln amide and His ring H-bonds flip/tautomer-labeled; metal-coordinating His/Cys excluded as ionic and hydrogen-bond partners.
+- Element-specific metal–donor distances (Bazayeva et al. 2024) plus tolerance.
+- Halogen bonds.
+- Per-conformer ensemble analysis as the default.
+- Multi-residue ligand groups and cofactor/ion receptor components.
+
 ## Scope and next useful changes
 
-Ruleset revisions are planned after the engine restructuring in Phase 3 milestone 3H. See "Deferred: Phase 2.x ruleset revisions" in [PHASE_3_PLAN.md](PHASE_3_PLAN.md):
-
-- Per-altloc ensemble analysis instead of whole-residue exclusion by default.
-- Halogen bonds, element-specific metal distances, His pH-dependent tier and amide/His flip flags.
-- Covalent-ligand detection with exclusion of pairs three bonds apart across the link.
-- Multi-residue ligands and non-polymer receptor components.
-- Broader curated validation, explicit protonation preparation, large-assembly memory budgets, cache eviction and interaction fingerprints.
-- Protein–protein interfaces remain Phase 5.
+- Explicit protonation preparation, broader curated validation, large-assembly memory budgets, cache eviction and interaction fingerprints.
+- Protein–protein interfaces remain Phase 5; structural comparison is Phase 4.
 
 See README.md for exact definitions, defaults, uncertainty policy and export semantics.
 
 ## Verification
 
-- 31 Phase 1–2 deterministic scientific tests cover structural identity, geometry, eligibility, chemical dictionaries, completeness, each interaction category, graph consistency, spatial-index brute-force agreement (including a 100,000-atom lattice) and the PLIP reference comparison.
-- 13 Phase 1–2 production-browser workflows cover exploration and analysis. Software-WebGL tests run serially to avoid competing CI renderers.
+- Deterministic scientific tests cover structural identity, geometry, eligibility, chemical dictionaries, completeness, each interaction category and classifier, golden engine output, graph consistency, spatial-index brute-force agreement (including a 100,000-atom lattice) and both reference comparisons.
+- Production-browser workflows cover exploration and analysis, including covalent, halogen, ambiguity, ensemble, glycan and cofactor workflows (`tests/e2e/ruleset.spec.ts`). Software-WebGL tests run serially to avoid competing CI renderers.
 - Live Pages checks pass for 3PTB, its biological assembly, and the 4HHB biological assembly, including contact selection and JSON export.

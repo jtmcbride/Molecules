@@ -5,9 +5,11 @@ import {
 } from "molstar/lib/mol-model-props/computed/interactions/interactions";
 import { WaterBridgesParams } from "molstar/lib/mol-model-props/computed/interactions/water-bridges";
 import type { StructureSnapshot } from "../domain/types";
+import { metalSearchDistance } from "./metalDistances";
 import {
   ENGINE_VERSION,
   RULESET_VERSION,
+  ligandResidueIds as ligandResidueIdsOf,
   type AnalysisRequest,
   type ChemicalDefinition,
 } from "../domain/analysis";
@@ -64,11 +66,17 @@ export function chemicalParameters(
           offsetMax: request.parameters.piOffsetMax,
         },
       },
-      "halogen-bonds": { name: "off", params: {} },
+      "halogen-bonds": {
+        name: "on",
+        params: {
+          distanceMax: request.parameters.halogenBondCutoff,
+          angleMax: request.parameters.halogenAngleDeviation,
+        },
+      },
       "weak-hydrogen-bonds": { name: "off", params: {} },
       "metal-coordination": {
         name: "on",
-        params: { distanceMax: request.parameters.metalCutoff },
+        params: { distanceMax: metalSearchDistance(request.parameters) },
       },
     },
     bridges: {
@@ -99,6 +107,8 @@ export function analysisKey(
     snapshot.provenance.parser,
     snapshot.id,
     request.ligandResidueId,
+    [...ligandResidueIdsOf(request)].sort(),
+    [...(request.receptorComponentResidueIds ?? [])].sort(),
     [...new Set(request.receptorChainIds)].sort(),
     Object.entries(request.parameters).sort(([a], [b]) => a.localeCompare(b)),
     chemicalParameters(request),

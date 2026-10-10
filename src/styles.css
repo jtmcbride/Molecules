@@ -2238,3 +2238,37 @@ select {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+.covalent-attachment {
+  font-size: 11px;
+  color: var(--accent);
+  margin: 6px 0 0;
+}
+.ambiguity {
+  margin-left: 6px;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  color: #b9a7e8;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+.conformer-presence {
+  margin-left: 6px;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  color: #e8b779;
+  border: 1px dashed currentColor;
+  border-radius: 999px;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+.receptor-components {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  width: 100%;
+  margin-top: 6px;
+}

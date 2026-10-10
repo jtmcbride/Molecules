@@ -20,10 +20,14 @@ export function cutoffMargin(
       return p.hydrogenBondCutoff - i.distanceAngstrom;
     case "hydrophobic_contact":
       return p.hydrophobicCutoff - i.distanceAngstrom;
+    case "halogen_bond":
+      return p.halogenBondCutoff - i.distanceAngstrom;
     case "salt_bridge":
       return p.saltBridgeCutoff - i.distanceAngstrom;
     case "metal_coordination":
-      return p.metalCutoff - i.distanceAngstrom;
+      return (
+        (i.geometry?.metalLimitAngstrom ?? p.metalCutoff) - i.distanceAngstrom
+      );
     case "pi_stacking":
       return i.geometry?.centroidDistanceAngstrom === undefined
         ? undefined

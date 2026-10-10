@@ -1,8 +1,9 @@
 import { SpatialGrid } from "./spatial";
-import type {
-  AnalysisRequest,
-  MolecularInteraction,
-  ResidueInteractionSummary,
+import {
+  ligandResidueIds,
+  type AnalysisRequest,
+  type MolecularInteraction,
+  type ResidueInteractionSummary,
 } from "../domain/analysis";
 import type { StructureSnapshot } from "../domain/types";
 import { isHydrogenElement } from "../domain/elements";
@@ -40,8 +41,18 @@ export function validateRequest(
   snapshot: StructureSnapshot,
   request: AnalysisRequest,
 ) {
-  if (!snapshot.ligands.some((l) => l.residueId === request.ligandResidueId))
+  const ligandIds = new Set(snapshot.ligands.map((l) => l.residueId));
+  const group = ligandResidueIds(request);
+  if (
+    !group.includes(request.ligandResidueId) ||
+    group.some((id) => !ligandIds.has(id))
+  )
     throw new Error("Select a ligand instance from this structure.");
+  for (const id of request.receptorComponentResidueIds ?? [])
+    if (!ligandIds.has(id) || group.includes(id))
+      throw new Error(
+        "Receptor components must be other ligands, cofactors or ions in this structure.",
+      );
   if (
     !request.receptorChainIds.length ||
     request.receptorChainIds.some(
@@ -57,6 +68,7 @@ export function validateRequest(
     p.saltBridgeCutoff,
     p.piStackingCutoff,
     p.cationPiCutoff,
+    p.halogenBondCutoff,
     p.metalCutoff,
     p.waterLegMin,
     p.waterLegMax,
@@ -66,6 +78,7 @@ export function validateRequest(
   for (const [value, min, max] of [
     [p.piOffsetMax, 0, 4],
     [p.piAngleDeviation, 0, 45],
+    [p.halogenAngleDeviation, 0, 60],
     [p.waterAngleMin, 0, 180],
     [p.waterAngleMax, 0, 180],
     [p.clashOverlapMin, 0.1, 2],
@@ -74,21 +87,39 @@ export function validateRequest(
       throw new Error("Geometry settings are outside their supported ranges.");
   if (p.waterLegMin > p.waterLegMax || p.waterAngleMin > p.waterAngleMax)
     throw new Error("Water bridge minimums must not exceed their maximums.");
+  if (!["element_specific", "uniform"].includes(p.metalDistancePolicy))
+    throw new Error("Unknown metal distance policy.");
+  if (
+    !Number.isFinite(p.metalTolerance) ||
+    p.metalTolerance < 0.1 ||
+    p.metalTolerance > 1
+  )
+    throw new Error("Metal distance tolerance must be between 0.1 and 1 Å.");
   if (
     !Number.isFinite(p.minimumOccupancy) ||
     p.minimumOccupancy < 0 ||
     p.minimumOccupancy > 1
   )
     throw new Error("Minimum occupancy must be between 0 and 1.");
-  if (!["exclude_disordered", "preferred_residue"].includes(p.conformerPolicy))
+  if (
+    !["ensemble", "exclude_disordered", "preferred_residue"].includes(
+      p.conformerPolicy,
+    )
+  )
     throw new Error("Unknown alternate-conformer policy.");
 }
+/**
+ * Atoms eligible as endpoints or context. `selection` (ensemble mode) supplies one
+ * conformer's atoms; otherwise each residue's recorded preferred conformer is used.
+ */
 export function eligibleAtoms(
   snapshot: StructureSnapshot,
   request: AnalysisRequest,
+  selection?: Set<number>,
 ) {
   validateRequest(snapshot, request);
-  const preferred = new Set(snapshot.atomBuffer.preferredAtomIndices);
+  const preferred =
+    selection ?? new Set(snapshot.atomBuffer.preferredAtomIndices);
   const receptorChains = new Set(request.receptorChainIds);
   const context: number[] = [],
     ligand: number[] = [],
@@ -96,10 +127,13 @@ export function eligibleAtoms(
     waters: number[] = [];
   let excludedDisorderedResidues = 0,
     excludedOccupancyAtoms = 0;
+  const target = new Set(ligandResidueIds(request)),
+    components = new Set(request.receptorComponentResidueIds ?? []);
   for (const residue of snapshot.residues) {
-    const isTarget = residue.id === request.ligandResidueId;
+    const isTarget = target.has(residue.id);
     const isReceptor =
-      residue.kind === "polymer" && receptorChains.has(residue.chainId);
+      (residue.kind === "polymer" && receptorChains.has(residue.chainId)) ||
+      components.has(residue.id);
     const isWater =
       residue.kind === "water" &&
       request.parameters.includeWaters &&
@@ -114,7 +148,7 @@ export function eligibleAtoms(
     ) {
       if (isTarget)
         throw new Error(
-          "This ligand has alternate conformers. Choose “Preferred per residue” for an exploratory analysis.",
+          "This ligand has alternate conformers. Choose the per-conformer ensemble or “Preferred per residue”.",
         );
       excludedDisorderedResidues++;
       continue;

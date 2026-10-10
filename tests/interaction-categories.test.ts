@@ -35,7 +35,10 @@ describe('additional interaction categories',()=>{
     const {run}=await runFixture('metal-coordination');const metal=run.interactions.find(i=>i.type==='metal_coordination');
     expect(metal).toBeDefined();expect(metal!.distanceAngstrom).toBeCloseTo(2.2,5);expect(metal!.geometry!.metalElement).toBe('ZN');
     expect(metal!.geometry!.selectedReceptorPartnerCount).toBeGreaterThan(0);expect(run.interactions.filter(i=>i.type==='steric_clash')).toHaveLength(0);
-    expect((await runFixture('metal-coordination',{metalCutoff:2.1})).run.interactions.filter(i=>i.type==='metal_coordination')).toHaveLength(0);
+    expect((await runFixture('metal-coordination',{metalDistancePolicy:'uniform',metalCutoff:2.1})).run.interactions.filter(i=>i.type==='metal_coordination')).toHaveLength(0);
+    // Element-specific default: Zn–N target 2.04 Å; tolerance 0.1 Å rejects the 2.2 Å pair, the default 0.5 Å accepts it.
+    expect(metal!.geometry).toMatchObject({metalTargetAngstrom:2.04,metalLimitSource:'element_specific'});expect(metal!.geometry!.metalLimitAngstrom).toBeCloseTo(2.54,10);
+    expect((await runFixture('metal-coordination',{metalTolerance:0.1})).run.interactions.filter(i=>i.type==='metal_coordination')).toHaveLength(0);
     expect((await runFixture('metal-coordination',{classifyChemistry:false})).run.evaluation.metal_coordination.status).toBe('not_evaluated');
   });
   it('records two deposited-water legs, mediator identity and graph adjacency, with independent enablement',async()=>{
@@ -46,7 +49,7 @@ describe('additional interaction categories',()=>{
     const disabled=(await runFixture('water-bridge',{includeWaters:false})).run;expect(disabled.interactions.filter(i=>i.type==='water_bridge')).toHaveLength(0);expect(disabled.evaluation.water_bridge.status).toBe('not_evaluated');
     expect((await runFixture('water-bridge',{waterAngleMin:100})).run.interactions.filter(i=>i.type==='water_bridge')).toHaveLength(0);
     expect((await runFixture('water-bridge',{waterLegMax:2.6})).run.interactions.filter(i=>i.type==='water_bridge')).toHaveLength(0);
-    expect(JSON.parse(analysisJson(run,snapshot,source)).schemaVersion).toBe(2);expect(analysisCsv(run,snapshot)).toContain('water_legs_angstrom');expect(analysisCsv(run,snapshot)).toContain(bridge.mediator!.residueId.replaceAll('"','""'));
+    expect(JSON.parse(analysisJson(run,snapshot,source)).schemaVersion).toBe(3);expect(analysisCsv(run,snapshot)).toContain('water_legs_angstrom');expect(analysisCsv(run,snapshot)).toContain(bridge.mediator!.residueId.replaceAll('"','""'));
   });
   it('calculates clash overlap independently of the proximity cutoff and does not infer unknown radii',async()=>{
     const {run}=await runFixture('hydrogen-geometry',{proximityCutoff:1,classifyChemistry:false,clashOverlapMin:0.1});
@@ -94,5 +97,43 @@ describe('incomplete and unsupported input',()=>{
     expect(run.chemistrySources.find(c=>c.componentId==='ACM')!.source).toBe('embedded');
     expect(run.qualityFlags.some(f=>f.includes('Rejected optional chemistry ACM'))).toBe(true);
     expect(run.interactions.some(i=>i.type==='hydrogen_bond')).toBe(true);
+  });
+});
+describe('element-specific metal distances (R3)',()=>{
+  it('derives limits from the Bazayeva et al. 2024 targets plus tolerance, with a uniform fallback',async()=>{
+    const {metalDistanceLimit,metalSearchDistance}=await import('../src/analysis/metalDistances');
+    const p={...DEFAULT_PARAMETERS};
+    expect(metalDistanceLimit('ZN','N',p)).toEqual({limit:2.54,target:2.04,source:'element_specific'});
+    expect(metalDistanceLimit('K','O',p).limit).toBeCloseTo(3.2,10);
+    expect(metalDistanceLimit('ZN','S',p).limit).toBeCloseTo(2.82,10);
+    expect(metalDistanceLimit('CO','N',p)).toEqual({limit:3,source:'uniform_fallback'});
+    expect(metalDistanceLimit('ZN','N',{...p,metalDistancePolicy:'uniform'})).toEqual({limit:3,source:'uniform'});
+    expect(metalSearchDistance(p)).toBeCloseTo(3.2,10);
+  });
+  it('rejects a second-shell zinc partner that the uniform cutoff accepted',async()=>{
+    // Artificial: zinc moved along z from 2.2 Å to 2.8 Å above His ND1 (NE2 then 3.49 Å).
+    const far=(s:string)=>s.split('\n').map(line=>{if(!line.startsWith('HETATM'))return line;const a=line.split(/\s+/);a[12]=String(Number(a[12])+0.6);return a.join(' ');}).join('\n');
+    expect((await runFixture('metal-coordination',{},far)).run.interactions.filter(i=>i.type==='metal_coordination')).toHaveLength(0);
+    expect((await runFixture('metal-coordination',{metalDistancePolicy:'uniform'},far)).run.interactions.filter(i=>i.type==='metal_coordination').length).toBeGreaterThan(0);
+  });
+});
+describe('halogen bonds (R4)',()=>{
+  // Artificial fixture: C1–Br···O=C with Br···O 3.0 Å, C–Br···O 180°, Br···O=C 120°.
+  const bend=(degrees:number)=>(s:string)=>s.split('\n').map(line=>{if(!line.startsWith('HETATM')||!line.includes(' C1 '))return line;const a=line.split(/\s+/);const t=(180-degrees)*Math.PI/180;a[10]=(-1.94*Math.cos(t)).toFixed(3);a[11]=(1.94*Math.sin(t)).toFixed(3);return a.join(' ');}).join('\n');
+  it('detects a linear C–Br···O=C contact and records its angle',async()=>{
+    const {run}=await runFixture('halogen-bond');const x=run.interactions.filter(i=>i.type==='halogen_bond');
+    expect(x).toHaveLength(1);expect(x[0].distanceAngstrom).toBeCloseTo(3.0,5);expect(x[0].geometry!.halogenAngleDegrees).toBeCloseTo(180,4);
+    expect(x[0].ligand.role).toBe('halogen_donor');expect(x[0].receptor.role).toBe('halogen_acceptor');expect(x[0].classification).toBe('geometry_supported');
+    expect(run.evaluation.halogen_bond.status).toBe('evaluated');
+  });
+  it('rejects bent and distant contacts at the Mol* angle and distance limits',async()=>{
+    expect((await runFixture('halogen-bond',{},bend(140))).run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(0);
+    expect((await runFixture('halogen-bond',{},bend(155))).run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(1);
+    expect((await runFixture('halogen-bond',{halogenBondCutoff:2.9})).run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(0);
+    expect((await runFixture('halogen-bond',{halogenAngleDeviation:20},bend(155))).run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(0);
+  });
+  it('reports halogen bonds as evaluated with no result for ligands without halogens',async()=>{
+    const {run}=await runFixture('hydrogen-geometry');
+    expect(run.interactions.filter(i=>i.type==='halogen_bond')).toHaveLength(0);expect(run.evaluation.halogen_bond.status).toBe('evaluated');
   });
 });

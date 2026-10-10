@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J. Phase 4 (structural comparison) and Phase 5 (mutations, protein–protein interfaces) are pending.
+Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, and the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`). Phase 4 (structural comparison) and Phase 5 (mutations, protein–protein interfaces) are pending.
 
-Scientific policy, defaults and limits live in `README.md`. Validation evidence lives in `validation/README.md` (Phase 2, PLIP comparison) and `validation/BIOLOGY.md` (Phase 3). Design contracts and follow-up milestones live in `docs/PHASE_3_PLAN.md`; phase status records are in `docs/PHASE_*_STATUS.md`. `tests/contracts.test.ts` fails if the plan's contract excerpt drifts from `src/domain/biology.ts`. Update those docs whenever behavior, defaults or limits change. They are the project's scientific record, not marketing.
+Scientific policy, defaults and limits live in `README.md`. Validation evidence lives in `validation/README.md` (Phase 2, PLIP comparison) and `validation/BIOLOGY.md` (Phase 3). Design contracts and follow-up milestones live in `docs/PHASE_3_PLAN.md`; phase status records are in `docs/PHASE_*_STATUS.md`. `docs/PHASE_2X_PLAN.md` records the ligand-3 ruleset revision; Phase 4 (structural comparison) is next. `tests/contracts.test.ts` fails if the plan's contract excerpt drifts from `src/domain/biology.ts`. Update those docs whenever behavior, defaults or limits change. They are the project's scientific record, not marketing.
 
 ## Commands
 
@@ -21,6 +21,7 @@ npx vitest run tests/biology.test.ts   # single file
 
 - E2E runs one worker with software WebGL (SwiftShader). Don't parallelize it. Set `PLAYWRIGHT_CHROMIUM_PATH` to use a system Chromium.
 - `RECORD_REFERENCE=1 npm test` writes diagnostic timing JSON under `/tmp`.
+- `tests/reference-set.test.ts` compares engine output with pinned PLIP 3.0.0 and ProLIF 2.2.2 observations on 26 cases (`validation/reference-set*.json`, fixtures in `tests/fixtures/reference-set/`). A rule change re-pins it with `RECORD_REFERENCE_SET=1 npm test`, and every agreement change is explained in the `validation/README.md` change log. Regenerating reference observations needs the Python environment described there (`scripts/reference-set*.py`).
 - `tests/engine-golden.test.ts` pins SHA-256 hashes of engine output for 13 cases. Any engine change must keep them unless the ruleset changes on purpose: then `UPDATE_ENGINE_GOLDEN=1 npm test`, bump `RULESET_VERSION`, and document why in `validation/README.md`. Use `DUMP_ENGINE_GOLDEN=<dir>` to diff full output.
 - Regenerate PLIP reference observations with `scripts/plip-reference.py` (see `validation/README.md`). Normal CI doesn't run it.
 - CI (`.github/workflows/ci.yml`) runs format:check → test → build → e2e. `pages.yml` deploys `main` with `VITE_BASE_PATH=/<repo>/`. Asset URLs must respect the Vite base path.
@@ -39,6 +40,7 @@ src/
     adapter.ts     Mol* plugin lifecycle, scene, bidirectional domain↔Mol* selection
     extract.ts     Builds StructureSnapshot (assembly-space Float32Array coords) + SelectionIndex
     quality.ts     Refinement statistics from mmCIF; Cruickshank DPI coordinate error
+    ligandGroups.ts  Multi-residue ligand groups (branched, BIRD, covalently linked)
     controller.ts  Serialized scene updates, stale-request rejection
   analysis/    Phase 2 engine (runs in a Web Worker)
     worker.ts, client.ts   Worker entry + cancellable client
@@ -49,6 +51,8 @@ src/
     collector.ts   Dedup, 1M guard, stats.rejections counts
     evaluation.ts, provenance.ts  Evaluation matrix; assumptions/quality flags/chemistry sources (text changes = ruleset change)
     uncertainty.ts Cutoff margins and borderline flags (display/export only; never reclassifies)
+    ensemble.ts    Per-alternate-conformer runs and merge (default conformer policy)
+    metalDistances.ts  Element-specific metal–donor targets (Bazayeva et al. 2024) + tolerance
     policy.ts      Request validation, atom eligibility (occupancy, altloc, H exclusion), residue summaries
     completeness.ts  Expected heavy-atom check (standard amino acids + supplied CCD dictionaries)
     geometry.ts, spatial.ts  Ring centroid/normal, VdW radii, uniform grid, distances/angles
@@ -90,7 +94,7 @@ public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ## Conventions
 
 - `src/` is Prettier-formatted (defaults, double quotes) and CI enforces it. Older test files keep their dense single-quoted style; new test files use Prettier. ESLint isn't set up because `typescript-eslint` doesn't support TypeScript 7 yet.
-- Version bumps: `ENGINE_VERSION` for output-shape changes, `RULESET_VERSION` for rule/assumption changes, `BIOLOGY_VERSION` for interpretation semantics. Interpretation JSON is schema 2.
+- Version bumps: `ENGINE_VERSION` for output-shape changes, `RULESET_VERSION` for rule/assumption changes, `BIOLOGY_VERSION` for interpretation semantics. Analysis JSON is schema 3; interpretation JSON is schema 2. New request/parameter fields must be optional, and restored parameters merge over `DEFAULT_PARAMETERS`.
 - Dependencies are pinned exactly. The Mol* version is part of the ruleset version, so upgrading Mol* means bumping `RULESET_VERSION` and re-reviewing the PLIP reference comparison.
 - Tests use frozen fixtures, never live APIs. A source hash change means re-retrieving and reviewing inputs, not editing assertions. Label synthetic fixtures and in-memory modifications as artificial.
 - Treat discrepancies against external tools (PLIP) as investigated, documented differences in `validation/README.md`. Don't hide them behind count tolerances.

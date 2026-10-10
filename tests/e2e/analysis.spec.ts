@@ -98,6 +98,9 @@ for(const scenario of [
   if(scenario.type==='steric_clash') {
     await page.getByRole('button',{name:/Show calculation settings/}).click();
     await page.getByRole('spinbutton',{name:'Clash overlap minimum'}).fill('0.1');
+    // The fixture's only overlap is a typed SER OG···O1 donor–acceptor pair, which ruleset ligand-3
+    // reports as a short hydrogen bond; without chemical typing it remains a clash candidate.
+    await page.getByRole('checkbox',{name:'Classify supported chemical interactions'}).uncheck();
   }
   await page.getByRole('button',{name:'Run analysis',exact:true}).click();
   await expect(page.locator('.analysis-summary')).toBeVisible();
@@ -107,7 +110,7 @@ for(const scenario of [
   await page.locator('canvas').screenshot();
   const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'JSON + provenance'}).click();
   const json=JSON.parse(await readFile((await (await downloaded).path())!,'utf8'));
-  expect(json.schemaVersion).toBe(2);expect(json.analysis.interactions.some((i:{type:string})=>i.type===scenario.type)).toBe(true);
+  expect(json.schemaVersion).toBe(3);expect(json.analysis.interactions.some((i:{type:string})=>i.type===scenario.type)).toBe(true);
   if(scenario.type==='water_bridge'){
     expect(json.analysis.interactions.find((i:{type:string})=>i.type==='water_bridge').mediator.atomIndices).toHaveLength(1);
     await page.getByRole('button',{name:/Show calculation settings/}).click();

@@ -6,6 +6,7 @@ import { InteractionType as MolType } from "molstar/lib/mol-model-props/computed
 import type { StructureSnapshot } from "../domain/types";
 import {
   ENGINE_VERSION,
+  ligandResidueIds,
   RULESET_VERSION,
   type AnalysisRequest,
   type AnalysisRun,
@@ -20,17 +21,33 @@ import {
 import { InteractionCollector } from "./collector";
 import { incompleteResidues } from "./completeness";
 import { atomLocations, buildConnectivity, selectAtoms } from "./connectivity";
-import { proximityContacts, stericClashes } from "./contacts";
+import {
+  exemptPolarClashes,
+  proximityContacts,
+  stericClashes,
+  unrecordedCovalentContacts,
+} from "./contacts";
 import { evaluationStatus } from "./evaluation";
-import { featureReader, orient } from "./features";
-import { annotateMetalGroups, metalFeaturePairs } from "./metal";
+import { featureReader, orient, polarTyping } from "./features";
+import {
+  annotateMetalGroups,
+  metalCoordinatingSites,
+  metalFeaturePairs,
+} from "./metal";
 import {
   analysisKey,
   chemicalParameters,
   effectiveParameters,
 } from "./parameters";
 import { eligibleAtoms, summarizeInteractions } from "./policy";
+import {
+  conformerLabels,
+  conformerSelection,
+  MAX_CONFORMER_LABELS,
+  mergeEnsemble,
+} from "./ensemble";
 import { ASSUMPTIONS, chemistrySources, qualityFlags } from "./provenance";
+import { metalSearchDistance } from "./metalDistances";
 
 /*
  * Orchestration only: eligibility → connectivity → proximity → clashes → Mol* features
@@ -42,6 +59,10 @@ export { analysisKey, chemicalParameters } from "./parameters";
 /** Mol* edge flag bit 1: the refinement step marked this contact redundant. */
 const FILTERED = 1;
 
+/**
+ * Entry point. Ensemble mode runs the pipeline once per alternate-conformer label and merges
+ * the results; structures without alternate conformers take the single-pass path.
+ */
 export async function analyze(
   structure: Structure,
   snapshot: StructureSnapshot,
@@ -50,9 +71,72 @@ export async function analyze(
   definitions: ChemicalDefinition[],
   progress: (message: string) => void = () => {},
 ): Promise<AnalysisRun> {
+  if (request.parameters.conformerPolicy !== "ensemble")
+    return analyzeSelection(
+      structure,
+      snapshot,
+      index,
+      request,
+      definitions,
+      progress,
+    );
+  const labels = conformerLabels(snapshot, request);
+  if (!labels.length)
+    return analyzeSelection(
+      structure,
+      snapshot,
+      index,
+      request,
+      definitions,
+      progress,
+    );
+  if (labels.length > MAX_CONFORMER_LABELS) {
+    const run = await analyzeSelection(
+      structure,
+      snapshot,
+      index,
+      request,
+      definitions,
+      progress,
+    );
+    run.qualityFlags.push(
+      `${labels.length} alternate-conformer labels exceed the ensemble limit of ${MAX_CONFORMER_LABELS}; the preferred conformer per residue was analyzed instead.`,
+    );
+    return run;
+  }
+  const runs = [];
+  for (const label of labels) {
+    progress(`Analyzing conformer ${label}`);
+    const { atoms, assumed } = conformerSelection(snapshot, label);
+    runs.push({
+      label,
+      assumed,
+      run: await analyzeSelection(
+        structure,
+        snapshot,
+        index,
+        request,
+        definitions,
+        progress,
+        atoms,
+      ),
+    });
+  }
+  return mergeEnsemble(runs, snapshot);
+}
+
+async function analyzeSelection(
+  structure: Structure,
+  snapshot: StructureSnapshot,
+  index: SelectionIndex,
+  request: AnalysisRequest,
+  definitions: ChemicalDefinition[],
+  progress: (message: string) => void = () => {},
+  selection?: Set<number>,
+): Promise<AnalysisRun> {
   const started = performance.now();
   const parameters = request.parameters;
-  const eligible = eligibleAtoms(snapshot, request);
+  const eligible = eligibleAtoms(snapshot, request, selection);
   const incomplete = incompleteResidues(snapshot, eligible.context);
   const ligandSet = new Set(eligible.ligand),
     receptorSet = new Set(eligible.receptor);
@@ -70,7 +154,6 @@ export async function analyze(
   const collector = new InteractionCollector();
   const contactContext = {
     snapshot,
-    ligandResidueId: request.ligandResidueId,
     ligand: eligible.ligand,
     receptor: eligible.receptor,
     connectivity,
@@ -90,13 +173,19 @@ export async function analyze(
   const sources = chemistrySources(snapshot, components, definitions);
   const known = new Set(sources.map((s) => s.componentId));
   const unknown = [...components].filter((c) => !known.has(c));
-  const isIon =
-    snapshot.ligands.find((l) => l.residueId === target.id)?.kind === "ion";
+  // Group ligands: chemistry is evaluated when every member is typed and complete.
+  const members = ligandResidueIds(request).map((id) =>
+    snapshot.residues.find((r) => r.id === id)!,
+  );
+  // Ion members (e.g. a zinc bound by the ligand) need no chemical definition; they take
+  // part through metal coordination. Nonmetal chemistry needs every other member typed.
+  const typedMembers = members.filter((m) => m.kind !== "ion");
+  const isIon = typedMembers.length === 0;
   const chemicalEnabled =
     parameters.classifyChemistry &&
-    known.has(target.componentId) &&
+    typedMembers.every((m) => known.has(m.componentId)) &&
     !isIon &&
-    !incomplete.has(target.id);
+    !members.some((m) => incomplete.has(m.id));
   const metalEnabled = parameters.classifyChemistry;
   const effectiveParams = effectiveParameters(
     chemicalParameters(request),
@@ -104,6 +193,8 @@ export async function analyze(
     metalEnabled,
   );
 
+  const donors = new Set<number>(),
+    acceptors = new Set<number>();
   if (chemicalEnabled || metalEnabled) {
     progress("Classifying geometry and chemical features");
     const assets = new AssetManager();
@@ -128,6 +219,7 @@ export async function analyze(
         },
       );
       const read = featureReader(computed, selected, locations);
+      if (chemicalEnabled) polarTyping(computed, read, donors, acceptors);
       const ctx: ClassificationContext = {
         snapshot,
         target,
@@ -136,6 +228,12 @@ export async function analyze(
         knownComponents: known,
         incomplete,
         chemicalEnabled,
+        metalSites: metalCoordinatingSites(
+          snapshot,
+          eligible.receptor,
+          parameters,
+        ),
+        parameters,
       };
       const edge = (
         unitA: number,
@@ -161,7 +259,7 @@ export async function analyze(
         ligandSet,
         receptorSet,
         positions,
-        parameters.metalCutoff,
+        metalSearchDistance(parameters),
       ))
         edge(
           a.unit,
@@ -218,6 +316,21 @@ export async function analyze(
   }
 
   const interactions = collector.interactions;
+  // Typed donor–acceptor overlaps are strong hydrogen bonds, not clashes (requires typing).
+  const exemptedClashes = chemicalEnabled
+    ? exemptPolarClashes(interactions, donors, acceptors)
+    : 0;
+  const covalentAttachments = connectivity
+    .crossLinks(ligandSet, receptorSet)
+    .map((b) => {
+      const ligandAtom = ligandSet.has(b.atomA) ? b.atomA : b.atomB;
+      return {
+        ligandAtom,
+        receptorAtom: ligandAtom === b.atomA ? b.atomB : b.atomA,
+        provenance: b.provenance,
+      };
+    });
+  const unrecordedCovalent = unrecordedCovalentContacts(interactions, snapshot);
   interactions.sort(
     (a, b) =>
       a.distanceAngstrom - b.distanceAngstrom || a.id.localeCompare(b.id),
@@ -228,8 +341,8 @@ export async function analyze(
     includeWaters: parameters.includeWaters,
     chemicalEnabled,
     metalEnabled,
-    targetIncomplete: incomplete.has(target.id),
-    targetComponentId: target.componentId,
+    targetIncomplete: members.some((m) => incomplete.has(m.id)),
+    targetComponentIds: members.map((m) => m.componentId),
     unknownComponents: unknown,
     incompleteResidueCount: incomplete.size,
     ligandAtoms: eligible.ligand.length,
@@ -262,6 +375,9 @@ export async function analyze(
       unknownComponents: unknown,
       excludedDisorderedResidues: eligible.excludedDisorderedResidues,
       excludedOccupancyAtoms: eligible.excludedOccupancyAtoms,
+      covalentAttachments,
+      unrecordedCovalent,
+      exemptedClashes,
     }),
     evaluation,
     bindingSite: {
@@ -275,6 +391,7 @@ export async function analyze(
         saltBridge: parameters.saltBridgeCutoff,
         piStacking: parameters.piStackingCutoff,
         cationPi: parameters.cationPiCutoff,
+        halogenBond: parameters.halogenBondCutoff,
         metal: parameters.metalCutoff,
         waterLegMax: parameters.waterLegMax,
         clashOverlapMin: parameters.clashOverlapMin,
@@ -290,6 +407,7 @@ export async function analyze(
       elapsedMilliseconds: performance.now() - started,
       rejections: collector.rejections,
     },
+    covalentAttachments,
     interactions,
     ...summary,
     bonds: connectivity.bonds,

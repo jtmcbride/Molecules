@@ -33,6 +33,7 @@ export function analysisCsv(run: AnalysisRun, snapshot: StructureSnapshot) {
       "selected_protein_partners",
       "selected_partner_angles_degrees",
       "notes",
+      "ambiguities",
     ],
   ];
   for (const i of run.interactions)
@@ -66,6 +67,7 @@ export function analysisCsv(run: AnalysisRun, snapshot: StructureSnapshot) {
       i.geometry?.selectedReceptorPartnerCount,
       i.geometry?.selectedReceptorAnglesDegrees?.join(";"),
       i.notes.join("; "),
+      i.ambiguities?.join(";"),
     ]);
   return rows.map((row) => row.map(csv).join(",")).join("\r\n");
 }
@@ -76,7 +78,9 @@ export function analysisJson(
 ) {
   return JSON.stringify(
     {
-      schemaVersion: 2,
+      // Schema 3 (ruleset ligand-3): covalent attachments, ambiguities, conformers,
+      // halogen bonds, metal limits, ligand groups and receptor components.
+      schemaVersion: 3,
       analysis: run,
       source: {
         id: source.id,
