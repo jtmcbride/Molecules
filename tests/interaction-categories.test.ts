@@ -49,7 +49,7 @@ describe('additional interaction categories',()=>{
     const disabled=(await runFixture('water-bridge',{includeWaters:false})).run;expect(disabled.interactions.filter(i=>i.type==='water_bridge')).toHaveLength(0);expect(disabled.evaluation.water_bridge.status).toBe('not_evaluated');
     expect((await runFixture('water-bridge',{waterAngleMin:100})).run.interactions.filter(i=>i.type==='water_bridge')).toHaveLength(0);
     expect((await runFixture('water-bridge',{waterLegMax:2.6})).run.interactions.filter(i=>i.type==='water_bridge')).toHaveLength(0);
-    expect(JSON.parse(analysisJson(run,snapshot,source)).schemaVersion).toBe(2);expect(analysisCsv(run,snapshot)).toContain('water_legs_angstrom');expect(analysisCsv(run,snapshot)).toContain(bridge.mediator!.residueId.replaceAll('"','""'));
+    expect(JSON.parse(analysisJson(run,snapshot,source)).schemaVersion).toBe(3);expect(analysisCsv(run,snapshot)).toContain('water_legs_angstrom');expect(analysisCsv(run,snapshot)).toContain(bridge.mediator!.residueId.replaceAll('"','""'));
   });
   it('calculates clash overlap independently of the proximity cutoff and does not infer unknown radii',async()=>{
     const {run}=await runFixture('hydrogen-geometry',{proximityCutoff:1,classifyChemistry:false,clashOverlapMin:0.1});

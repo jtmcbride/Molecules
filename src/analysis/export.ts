@@ -78,7 +78,9 @@ export function analysisJson(
 ) {
   return JSON.stringify(
     {
-      schemaVersion: 2,
+      // Schema 3 (ruleset ligand-3): covalent attachments, ambiguities, conformers,
+      // halogen bonds, metal limits, ligand groups and receptor components.
+      schemaVersion: 3,
       analysis: run,
       source: {
         id: source.id,

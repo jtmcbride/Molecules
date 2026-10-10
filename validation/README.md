@@ -221,17 +221,37 @@ Each Phase 2.x milestone regenerates the engine goldens and the reference-set ag
   - PLIP H-bonds: shared 64 → 78, PLIP-only 36 → 22. Metal coordination: shared 7 → 18, PLIP-only 24 → 13 (zinc–His in 1R55 and 1OQ5, Thr75/Val76 K⁺ in 1K4C, Asp184 Mn in 1ATP). Water bridges: shared 32 → 39, PLIP-only 19 → 12. Salt bridges: shared 4 → 6.
   - App-only counts also rise (H-bonds 23 → 31), because each group adds contacts PLIP does not report, for example Asn171 coordinating Mn in 1ATP, a known Mn ligand of protein kinase A.
 
+### Ligand-3 release summary
+
+Per-category agreement of the released ruleset against the V0 baseline: shared / app-only / reference-only. From R6 on, PLIP composite sites are compared with the same residues grouped in the app; earlier rows used the single residue.
+
+| Category | PLIP V0 → ligand-3 | ProLIF V0 → ligand-3 |
+| --- | --- | --- |
+| Hydrogen bond | 64/28/36 → 78/31/22 | 58/34/2 → 58/29/2 |
+| Hydrophobic | 83/21/1 → 84/22/0 | 53/51/32 → 54/52/31 |
+| Salt bridge | 4/4/9 → 6/8/7 | 0/8/2 → 0/8/2 |
+| π-stacking | 6/5/1 → 6/5/1 | 5/6/1 → 5/6/1 |
+| Cation–π | 5/0/2 → 5/0/2 | 2/3/0 → 2/3/0 |
+| Metal coordination | 6/0/25 → 18/2/13 | 3/3/0 → 3/4/0 |
+| Halogen bond | 0/0/4 → 2/0/2 | 0/0/1 → 0/2/1 |
+| Water bridge | 32/35/19 → 39/39/12 | not compared |
+
+- **Recall against PLIP:** improves in every category it changed: H-bonds 0.64 → 0.78, salt bridges 0.31 → 0.46, metals 0.19 → 0.58, halogen bonds 0 → 0.50, water bridges 0.63 → 0.76.
+- **App-only observations:** remain, and each category's are explained above.
+- **Not claimed:** none of this is PLIP or ProLIF equivalence or general detection accuracy. The tools differ by design in fluorine donors, ProLIF's methyl exclusion, charge perception and preparation.
+
 ## Scale and browser verification
 
 A local Node 24 run on 2026-10-09 built the 100,000-atom grid in approximately 34 ms, with five queries plus independent brute-force validation taking approximately 83 ms. The coordinate buffer alone occupies 1.2 MB. These are observations from this environment, not browser speed promises or whole-engine memory measurements. Reproduce with `RECORD_REFERENCE=1 npm test`; diagnostic JSON is written under `/tmp`. Normal tests assert correctness rather than a machine-specific timing threshold.
 
 Production Playwright tests cover every added category's inspector/3D selection/export, two-leg water presentation, settings invalidation, cached dictionaries/results, cancellation and error recovery, as well as Phase 1 workflows. One software-WebGL browser runs at a time. The application caps input at 40 MB/250,000 selected atoms and results at one million interactions. Large assemblies may still be expensive during parsing, rendering and chemistry feature construction; the grid benchmark is not a full assembly benchmark.
 
-## Scientific limits retained after Phase 2
+## Scientific limits retained after Phase 2.x
 
 - Hydrogen/protonation/tautomer preparation, missing-atom rebuilding and energetic modeling are absent.
 - Completeness checks cover standard amino-acid heavy atoms and supplied component atom dictionaries; unsupported dictionaries and nucleic components may have unverified completeness.
-- Preferred alternate conformers remain exploratory; cross-residue disorder compatibility is not established.
+- Ensemble analysis assumes alternate-conformer labels are consistent across residues; residues lacking a label contribute their preferred conformer (flagged).
 - Metal coordination and water bridges are candidates with explicitly limited interpretation.
 - Heavy-atom overlap is a geometric candidate, not a validated all-atom clash score.
+- Protonation, amide flips and His tautomers are labeled, not resolved.
 - Workflows are ligand-centered. Protein–protein interfaces and structural comparison belong to later phases.

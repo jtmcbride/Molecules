@@ -1,6 +1,6 @@
 # Phase 2.x implementation plan: interaction ruleset revision
 
-Status: planned, 2026-10-10. Not started. Baseline: `main` after the Phase 3 follow-up milestones (engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-2`, `biology-1.1.0`). This revision comes before Phase 4, because comparing interactions across structures is only meaningful once the rules behind them are right.
+Status: implemented 2026-10-10 (V0 and R1–R6) on the `phase-2x-ruleset` branch as ruleset `molstar-5.13.1-ligand-3`. See the [implementation record](#implementation-record) and the per-milestone [validation change log](../validation/README.md#ruleset-molstar-5131-ligand-3-change-log). Baseline: `main` after the Phase 3 follow-up milestones (engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-2`, `biology-1.1.0`). This revision comes before Phase 4, because comparing interactions across structures is only meaningful once the rules behind them are right.
 
 ## Outcome and boundaries
 
@@ -149,6 +149,22 @@ Acceptance: the script-selected glycan is analyzed as one group with no intra-gl
 2. **Second reference tool:** ProLIF (recommended, also gives Phase 4 fingerprints) or Arpeggio.
 3. **Altloc default:** make `ensemble` the default in this release (recommended), or ship it as an option first.
 4. **Protonation preparation stays out of scope**, with R2 labeling ambiguity rather than resolving it. Confirm.
+
+## Implementation record
+
+Decisions confirmed before starting: V0 first; ProLIF as the second tool; ensemble as the default; protonation preparation out of scope.
+
+- **V0.** The case set was selected by script: the 15 smallest Astex complexes, 1T46 (altloc), 4KZN (N-glycan) and the verified entries. A first glycan criterion picked a cyclodextrin crystallization additive (6XX3); it was rejected and the criterion now requires an Asn-linked glycan.
+  - ProLIF preparation needed three harness fixes before pinning: Open Babel appends hydrogens after all heavy atoms, its residue numbers/names are wrong for some files, and distance-based bond guessing over-bonds placed hydrogens. Without these, ProLIF agreement looked about ten times worse than it is.
+- **R1.** As planned. `RULESET_VERSION` was bumped at R1, not at release, so caches never mix rulesets during development. Synthetic probes pin Mol*'s own geometry-inferred bonds (≤1.5 Å for O···O) against the new unrecorded-attachment flag (1.6–1.7 Å).
+- **R2.** As planned, plus one extension found by the reference survey. Ligand "hydrogen bonds" to zinc-coordinating His nitrogens (1OQ5, 1R55) were coordination geometry, so the coordinating atom is also excluded as an H-bond and water-bridge partner.
+- **R3.** Deviation: Harding's 2006 tables could not be retrieved, so targets come from Bazayeva, Andreini & Rosato, Acta Cryst. D80, 362 (2024; open access, more than 115,000 sites, compared with Harding). The 0.5 Å tolerance is an application policy.
+- **R4.** As planned. 1J91 turned out to have no canonical halogen bond in any tool (its closest Br contact is a protonated Arg NE), so it serves as a negative control. Remaining PLIP-only halogen bonds are C–F donors, which Mol* excludes by design.
+- **R5.** As planned, with `ensemble` as the default. No golden structure has altlocs, and all keep identical interactions.
+- **R6.** As planned, plus a fix found by the reference comparison: ion members of a group must not disable nonmetal chemistry.
+  - The reference comparison was made like-for-like at this point: PLIP composite sites are analyzed as app groups, and ProLIF's glycan as a group.
+- **Release.** Analysis JSON schema 3. New browser workflows in `tests/e2e/ruleset.spec.ts`. Two existing browser checks updated (schema version; the steric-clash scenario now disables chemical typing, because its only overlap is a typed donor–acceptor pair).
+- **Results.** Against the V0 baseline, PLIP recall improves for H-bonds (0.64 → 0.78), salt bridges (0.31 → 0.46), metal coordination (0.19 → 0.58), halogen bonds (0 → 0.50) and water bridges (0.63 → 0.76). The full table is in `validation/README.md`.
 
 ## Phase 4 prerequisites this revision does not cover
 
