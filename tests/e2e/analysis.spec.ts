@@ -123,3 +123,23 @@ for(const scenario of [
   }
   expect(errors).toEqual([]);
 });
+
+test('restores a session analysis saved under an older ruleset that lacks newer interaction types',async({page})=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Run analysis',exact:true}).click();
+  await expect(page.locator('.analysis-summary')).toContainText('Fresh result');
+  await page.getByRole('button',{name:'Save session',exact:true}).click();
+  await expect(page.getByText(/Session saved in this browser/)).toBeVisible();
+  // Artificial in-browser modification: rewrite the stored run into the ligand-2 shape (no halogen_bond evaluation).
+  await page.evaluate(()=>new Promise<void>((resolve,reject)=>{
+    const open=indexedDB.open('molecular-explorer');open.onerror=()=>reject(open.error);
+    open.onsuccess=()=>{const tx=open.result.transaction('analyses','readwrite');const store=tx.objectStore('analyses');
+      const all=store.getAll();all.onsuccess=()=>{for(const run of all.result){delete run.evaluation.halogen_bond;delete run.bindingSite.cutoffsAngstrom.halogenBond;run.ruleSetVersion='molstar-5.13.1-ligand-2';store.put(run);}};
+      tx.oncomplete=()=>{open.result.close();resolve();};tx.onerror=()=>reject(tx.error);};
+  }));
+  await page.reload();
+  await expect(page.locator('.analysis-summary')).toContainText('Cached result');
+  await expect(page.locator('.quality-note').filter({hasText:'Halogen bond'})).toContainText('molstar-5.13.1-ligand-2');
+  expect(errors).toEqual([]);
+});

@@ -11,6 +11,7 @@ import { useExplorer } from "../state/explorer";
 import {
   AMBIGUITY_LABELS,
   INTERACTION_LABELS,
+  evaluationOf,
   type ConformerPolicy,
   type InteractionType,
 } from "../domain/analysis";
@@ -99,7 +100,8 @@ export function AnalysisPanel({
     { types: InteractionType[]; status: string; reason?: string }
   >();
   if (run)
-    for (const [type, evaluation] of Object.entries(run.evaluation))
+    for (const type of Object.keys(INTERACTION_LABELS) as InteractionType[]) {
+      const evaluation = evaluationOf(run, type);
       if (evaluation.status !== "evaluated") {
         const key = JSON.stringify([evaluation.status, evaluation.reason]);
         const group = evaluationNotes.get(key) ?? {
@@ -107,9 +109,10 @@ export function AnalysisPanel({
           status: evaluation.status,
           reason: evaluation.reason,
         };
-        group.types.push(type as InteractionType);
+        group.types.push(type);
         evaluationNotes.set(key, group);
       }
+    }
   return (
     <div className="analysis-panel panel">
       <div className="panel-heading">
@@ -500,12 +503,12 @@ export function AnalysisPanel({
                   <button
                     key={t}
                     className={type === t ? "active" : ""}
-                    title={`${INTERACTION_LABELS[t]}: ${run.evaluation[t].status.replaceAll("_", " ")}`}
+                    title={`${INTERACTION_LABELS[t]}: ${evaluationOf(run, t).status.replaceAll("_", " ")}`}
                     onClick={() => setType(t)}
                   >
                     <span>{INTERACTION_LABELS[t]}</span>
                     <strong>
-                      {run.evaluation[t].status === "not_evaluated"
+                      {evaluationOf(run, t).status === "not_evaluated"
                         ? "—"
                         : run.interactions.filter((i) => i.type === t).length}
                     </strong>

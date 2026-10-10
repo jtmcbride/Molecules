@@ -131,6 +131,21 @@ export function ligandResidueIds(request: AnalysisRequest): string[] {
     ? request.ligandResidueIds
     : [request.ligandResidueId];
 }
+/**
+ * Evaluation status of one interaction type. Runs restored from an older ruleset have no
+ * entry for types added later; those types were not evaluated by that run.
+ */
+export function evaluationOf(
+  run: Pick<AnalysisRun, "evaluation" | "ruleSetVersion">,
+  type: InteractionType,
+): AnalysisRun["evaluation"][InteractionType] {
+  return (
+    run.evaluation[type] ?? {
+      status: "not_evaluated",
+      reason: `Not part of ruleset ${run.ruleSetVersion}, which produced this saved result. Run the analysis again to evaluate it.`,
+    }
+  );
+}
 export interface Participant {
   residueId: string;
   atomIndices: number[];
