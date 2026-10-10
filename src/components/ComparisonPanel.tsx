@@ -6,6 +6,7 @@ import { MAX_COMPARISON_STRUCTURES } from "../domain/comparison";
 import type { StructureSnapshot } from "../domain/types";
 import type { ExplorerController } from "../structure/controller";
 import { CorrespondenceSummary } from "./CorrespondenceSummary";
+import { SuperpositionSummary } from "./SuperpositionSummary";
 
 function ligandLabel(snapshot: StructureSnapshot, residueId: string) {
   const residue = snapshot.residues.find((r) => r.id === residueId);
@@ -95,6 +96,7 @@ function SlotRow({
             </dd>
           </dl>
           <CorrespondenceSummary slot={slot} controller={controller} />
+          <SuperpositionSummary slot={slot} controller={controller} />
           <div className="comparison-analysis">
             <label className="comparison-ligand">
               Ligand

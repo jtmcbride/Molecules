@@ -4,6 +4,8 @@ import type { InterpretationSnapshot } from "../domain/biology";
 import type {
   ChainPairingOverride,
   RigidTransform,
+  SuperpositionResult,
+  SuperpositionScope,
 } from "../domain/comparison";
 import type { StructureSnapshot, StructureSource } from "../domain/types";
 
@@ -37,6 +39,11 @@ export interface ComparisonSlot {
   ligandGroupId: string | null;
   transform: RigidTransform | null;
   pairingOverrides: ChainPairingOverride[];
+  superpositionScope: SuperpositionScope;
+  superposition: SuperpositionResult | null;
+  superpositionError: string | null;
+  /** Inputs of the current superposition; a change triggers a refit. */
+  superpositionKey: string | null;
 }
 
 interface ComparisonState {

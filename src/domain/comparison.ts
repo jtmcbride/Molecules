@@ -24,6 +24,7 @@ export interface ComparisonMemberDescriptor {
   visible: boolean;
   transform?: RigidTransform;
   pairingOverrides?: ChainPairingOverride[];
+  superpositionScope?: SuperpositionScope;
 }
 
 /**
@@ -76,4 +77,28 @@ export interface Correspondence {
   unpairedComparisonChains: { chainId: string; accessions: string[] }[];
   pairs: ResiduePair[];
   counts: Record<CorrespondenceStatus, number>;
+}
+
+export type SuperpositionScope = "global" | "binding_site" | "none";
+/**
+ * Rigid fit of a comparison structure onto the reference by SIFTS-paired Cα atoms. The
+ * transform maps comparison coordinates into the reference frame and is applied only to the
+ * display and to comparison measurements, never to a snapshot.
+ */
+export interface SuperpositionResult {
+  scope: Exclude<SuperpositionScope, "none">;
+  method: string;
+  atoms: "CA";
+  transform: RigidTransform;
+  /** RMSD over the atoms kept by outlier rejection (Å). */
+  rmsdCore: number;
+  /** RMSD over every paired atom under the final transform (Å). */
+  rmsdAll: number;
+  fitted: number;
+  total: number;
+  cycles: number;
+  /** Rejected pairs as JSON [reference chain ID, UniProt position]. */
+  rejected: string[];
+  siteRadiusAngstrom?: number;
+  referenceLigandIds?: string[];
 }

@@ -2447,3 +2447,8 @@ select {
   text-decoration: underline;
   cursor: pointer;
 }
+.comparison-superposition {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

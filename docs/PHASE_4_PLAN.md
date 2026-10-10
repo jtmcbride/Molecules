@@ -144,3 +144,9 @@ Acceptance: all gates above pass in CI; the release records the comparison versi
   - **Receptor chains.** A comparison analysis uses the comparison chains paired with the reference's receptor chains, or every polymer chain while no correspondence exists. The run records the choice.
   - **Finding.** Author numbering differs at every one of the 223 trypsin positions: 3PTB uses chymotrypsinogen numbering (16…), 1S0R starts at 1 and 1S0Q at 660. SIFTS pairs all 223 exactly. Pairing by author numbering would have been wrong throughout.
   - **4HHB↔1HHO.** Pairs A↔A and B↔B (287 residues); 4HHB chains C and D stay unpaired, because 1HHO deposits one αβ dimer.
+- **4C.** As planned, with two deviations.
+  - **Binding-site scope.** It means reference residues within 8 Å of the reference target ligand, not the analysis binding site. It needs no completed analysis, and an 8 Å pocket gives enough atoms for a fit (32 Cα for benzamidine against roughly 12 contact residues).
+  - **Acceptance wording.** The 4HHB↔1HHO tetramer is fitted from assembly 1 of both entries. The quaternary change shows as a core RMSD of 2.24 Å against 0.62 Å for the αβ dimer; rejection removes only 11 atoms, because deviations spread over whole subunits.
+  - **Validation.** All six fixture fits match numpy SVD exactly (`validation/COMPARISON.md`).
+  - **Behavior.** The fit runs automatically once both residue mappings exist, and again whenever pairings, scope or the reference ligand change. The scope is saved in the session, and the stored transform is shown until the fit is recomputed.
+

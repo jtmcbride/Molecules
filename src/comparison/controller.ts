@@ -15,6 +15,7 @@ import {
   type ChainPairingOverride,
   type ComparisonMemberDescriptor,
   type RigidTransform,
+  type SuperpositionScope,
 } from "../domain/comparison";
 import type { StructureSnapshot, StructureSource } from "../domain/types";
 import { getSlot, patchSlot, useComparison } from "../state/comparison";
@@ -22,6 +23,7 @@ import type { ComparisonSlot } from "../state/comparison";
 import { useExplorer } from "../state/explorer";
 import type { MolecularViewer } from "../structure/adapter";
 import { slotCorrespondence } from "./derived";
+import { superpose } from "./superposition";
 
 const COLORS = [
   "#f2a65a",
@@ -109,6 +111,7 @@ export class ComparisonController {
               ...(s.pairingOverrides.length
                 ? { pairingOverrides: s.pairingOverrides }
                 : {}),
+              superpositionScope: s.superpositionScope,
             },
           ]
         : [],
@@ -214,6 +217,10 @@ export class ComparisonController {
       ligandGroupId: null,
       transform: restore?.transform ?? null,
       pairingOverrides: restore?.pairingOverrides ?? [],
+      superpositionScope: restore?.superpositionScope ?? "global",
+      superposition: null,
+      superpositionError: null,
+      superpositionKey: null,
     };
     useComparison.setState((s) => ({
       slots: [...s.slots, slot],
@@ -305,6 +312,69 @@ export class ComparisonController {
   setTransform(id: string, transform: RigidTransform | null) {
     patchSlot(id, { transform });
     void this.enqueue(() => this.viewer.setMemberTransform(id, transform));
+  }
+  setSuperpositionScope(id: string, scope: SuperpositionScope) {
+    patchSlot(id, { superpositionScope: scope });
+    this.ensureSuperposition(id);
+  }
+  /**
+   * Fits the slot onto the reference when the inputs (correspondence, scope, reference
+   * ligand) changed since the last fit. Without a correspondence the display keeps the
+   * saved transform, or the deposited coordinates.
+   */
+  ensureSuperposition(id: string) {
+    const slot = getSlot(id);
+    if (!slot || slot.phase !== "ready" || !slot.snapshot) return;
+    const reference = useExplorer.getState();
+    const corr = slotCorrespondence(reference, slot);
+    if (!corr || !reference.snapshot) return;
+    const group = reference.snapshot.ligandGroups?.find(
+      (g) => g.id === reference.ligandGroupId,
+    );
+    const ligands =
+      group?.residueIds ??
+      (reference.targetLigandId ? [reference.targetLigandId] : []);
+    const key = JSON.stringify([
+      reference.snapshot.id,
+      reference.interpretation?.id,
+      slot.interpretation?.id,
+      slot.pairingOverrides,
+      slot.superpositionScope,
+      slot.superpositionScope === "binding_site" ? ligands : null,
+    ]);
+    if (key === slot.superpositionKey) return;
+    if (slot.superpositionScope === "none") {
+      patchSlot(id, {
+        superposition: null,
+        superpositionError: null,
+        superpositionKey: key,
+      });
+      this.setTransform(id, null);
+      return;
+    }
+    try {
+      const result = superpose(
+        corr,
+        reference.snapshot,
+        slot.snapshot,
+        slot.superpositionScope,
+        ligands,
+      );
+      patchSlot(id, {
+        superposition: result,
+        superpositionError: null,
+        superpositionKey: key,
+      });
+      this.setTransform(id, result.transform);
+    } catch (error) {
+      patchSlot(id, {
+        superposition: null,
+        superpositionError:
+          error instanceof Error ? error.message : String(error),
+        superpositionKey: key,
+      });
+      this.setTransform(id, null);
+    }
   }
   /** Overrides the comparison partner of one reference chain (null: leave it unpaired). */
   setPairing(id: string, override: ChainPairingOverride) {

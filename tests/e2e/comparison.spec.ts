@@ -98,6 +98,15 @@ test("a comparison structure has its own mapping and analysis, and restores with
   await expect(slot.getByTestId("comparison-mapping")).toContainText(
     "P00760 · 223/223 residues exactly mapped",
   );
+  // Superposed automatically once both residue mappings exist (values match numpy; see
+  // validation/comparison.json).
+  await expect(slot.getByTestId("comparison-fit")).toHaveText(
+    /^Core RMSD 0\.17 Å over 213 of 223 Cα \(2 rejection cycles\) · all pairs 0\.29 Å/,
+  );
+  await slot.getByLabel("Superposition of 1S0R").selectOption("binding_site");
+  await expect(slot.getByTestId("comparison-fit")).toContainText(
+    "over 31 of 32 Cα",
+  );
   // The reference target is benzamidine, so the same component is the default.
   await expect(
     page.getByLabel("Comparison ligand for 1S0R").locator("option:checked"),
@@ -118,6 +127,12 @@ test("a comparison structure has its own mapping and analysis, and restores with
   await expect(slot).toHaveAttribute("data-phase", "ready");
   await expect(slot.getByTestId("comparison-mapping")).toContainText("pinned");
   await expect(slot.getByRole("status")).toContainText("cached");
+  await expect(slot.getByLabel("Superposition of 1S0R")).toHaveValue(
+    "binding_site",
+  );
+  await expect(slot.getByTestId("comparison-fit")).toContainText(
+    "over 31 of 32 Cα",
+  );
   await page.getByRole("button", { name: "Source" }).click();
   await expect(page.getByTestId("cache-usage")).toContainText("2 structures");
   expect(errors).toEqual([]);
