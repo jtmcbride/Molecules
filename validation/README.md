@@ -70,6 +70,60 @@ npm test
 
 Review any regenerated differences before updating scientific expectations. Source hash changes require retrieving and reviewing matching mmCIF/PDB inputs, not merely changing assertions.
 
+## Reference validation set (Phase 2.x V0)
+
+`tests/reference-set.test.ts` compares the engine's default output with two independent tools on 26 cases (25 entries), selected by `scripts/reference-set-select.py` from written criteria (`validation/reference-set-cases.json`):
+- **Astex subset:** the 15 smallest Astex Diverse Set complexes by deposited atom count (Hartshorn et al., J. Med. Chem. 2007; membership as listed by the BioinfoMachineLearning/astex_diverse_set dataset).
+- **Altloc case:** 1T46 imatinib–KIT, the smallest Astex complex with alternate conformers on two or more ligand-contacting residues (ASP677, CYS788, VAL654).
+- **N-glycan case:** 4KZN, VEGF-A with an asparagine-linked NAG–NAG–BMA–MAN–MAN/FUC glycan, the smallest X-ray entry meeting the glycan criteria. A first criterion without the asparagine link picked a methyl-β-cyclodextrin crystallization additive (6XX3) and was rejected.
+- **Targeted entries:** 5P9J and 4G5J (covalent), 1J91 (halogen), 1K4C (K⁺), 1ATP (ATP and Mn²⁺), plus the existing 3PTB, 1EVE and 1RMD.
+
+`scripts/reference-set.py` generated `validation/reference-set.json` on 2026-10-10 with PLIP 3.0.0 (same commit and flags as above) and ProLIF 2.2.2 (RDKit 2026.03.6, Open Babel wheel 3.1.1.23). ProLIF preparation:
+- **Receptor:** the polymer chains of the deposited PDB file, protonated by Open Babel at pH 7.4. Open Babel's bonds and charges are kept via SDF, and atom labels are taken from the deposited coordinates.
+- **Ligand:** deposited heavy atoms with bond orders from the RCSB CCD SMILES template (Open Babel perception for 3PTB, 1OWE and the glycan), plus RDKit-added hydrogens.
+- **Ions:** single charged atoms.
+- **Waters:** none, so water bridges are compared with PLIP only.
+
+Each tool runs in its own process, and a native crash is recorded as a failure. All 26 cases completed with both tools. The gzipped mmCIF inputs are pinned under `tests/fixtures/reference-set/`, with SHA-256 hashes checked by the test.
+
+Comparison key: interaction type plus receptor residue (component, author chain, author number). Agreement is pinned in `validation/reference-set-agreement.json`, per case and in total. Every ruleset change regenerates it with `RECORD_REFERENCE_SET=1 npm test` and is explained here.
+
+Regenerate (outside CI), in an isolated environment:
+
+```sh
+uv venv --python 3.12 /tmp/refenv
+VIRTUAL_ENV=/tmp/refenv uv pip install openbabel-wheel==3.1.1.23 lxml==6.1.3 numpy==2.5.3 \
+  prolif==2.2.2 rdkit==2026.3.6 MDAnalysis==2.10.0 gemmi==0.7.5
+git clone --depth 1 --branch v3.0.0 https://github.com/pharmai/plip.git /tmp/plip-source
+/tmp/refenv/bin/python -I scripts/reference-set-select.py /tmp/refset   # only to re-select cases
+PLIP_SOURCE=/tmp/plip-source /tmp/refenv/bin/python -I scripts/reference-set.py /tmp/refset
+RECORD_REFERENCE_SET=1 npm test   # re-pin agreement, then review every change
+```
+
+### V0 baseline (ruleset molstar-5.13.1-ligand-2)
+
+| Category | PLIP shared / app-only / PLIP-only | ProLIF shared / app-only / ProLIF-only |
+| --- | --- | --- |
+| Hydrogen bond | 64 / 28 / 36 | 58 / 34 / 2 |
+| Hydrophobic | 83 / 21 / 1 | 53 / 51 / 32 |
+| Salt bridge | 4 / 4 / 9 | 0 / 8 / 2 |
+| π-stacking | 6 / 5 / 1 | 5 / 6 / 1 |
+| Cation–π | 5 / 0 / 2 | 2 / 3 / 0 |
+| Metal coordination | 6 / 0 / 25 | 3 / 3 / 0 |
+| Halogen bond | 0 / 0 / 4 | 0 / 0 / 1 |
+| Water bridge | 32 / 35 / 19 | not compared |
+
+### Baseline discrepancy themes
+
+These were investigated before any rule change. Each is mapped to the milestone expected to move it.
+
+- **Metal coordination around ligand-bound metals (R6).** Most PLIP-only metal observations list the protein residues coordinating a metal that the ligand also binds: the 1R55 and 1OQ5 zinc histidines, Mg/water in 1HQ2, and ATP–Mn in 1ATP, where PLIP merges ATP and Mn into one composite site. The app excludes non-target metals from the receptor, so it cannot report these. The keys also differ by definition (PLIP names the coordinating residue; an app receptor-metal contact would name the metal), so R6 is expected to change, not simply close, this gap.
+- **K⁺ in 1K4C (R3).** PLIP finds K⁺ contacts with THR75, VAL76 and GLY77 backbone oxygens that the uniform 3.0 Å cutoff misses. ProLIF finds none (its default metal distance is 2.8 Å).
+- **His salt bridges (R2).** The app-only HIS86 salt bridge in 1V48 comes from Mol*'s always-positive His. The known 3PTB ASP189 case remains a charge-assignment difference already documented above.
+- **Halogen bonds (R4).** There are five reference halogen bonds (1NAV, 1P62, 1Z95, 4G5J; 2BSM by ProLIF) and none from the app, because the provider is off.
+- **ProLIF hydrophobic definition.** ProLIF 2.2's hydrophobic pattern excludes methyl carbons and carbons bonded to N/O/F, so methyl contacts from Ala/Val/Leu/Ile/Thr/Met appear app-only. This is a definitional difference, not an app error. The baseline was checked by geometry: ALA75 CB in 1TOW is 3.86 Å from a ligand carbon.
+- **Harness defects fixed before pinning.** Open Babel appends added hydrogens after all heavy atoms, and its residue numbering and names are wrong for some files (1R55 offset by about 207, "UNK" in 1HQ2). The harness regroups atoms by residue and labels them from the deposited coordinates. Without this, ProLIF agreement looked about ten times worse than it is.
+
 ## Scale and browser verification
 
 A local Node 24 run on 2026-10-09 built the 100,000-atom grid in approximately 34 ms, with five queries plus independent brute-force validation taking approximately 83 ms. The coordinate buffer alone occupies 1.2 MB. These are observations from this environment, not browser speed promises or whole-engine memory measurements. Reproduce with `RECORD_REFERENCE=1 npm test`; diagnostic JSON is written under `/tmp`. Normal tests assert correctness rather than a machine-specific timing threshold.

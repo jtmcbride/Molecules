@@ -1,0 +1,1218 @@
+{
+ "totals": {
+  "plip": {
+   "hydrogen_bond": {
+    "shared": 64,
+    "appOnly": 28,
+    "referenceOnly": 36
+   },
+   "hydrophobic_contact": {
+    "shared": 83,
+    "appOnly": 21,
+    "referenceOnly": 1
+   },
+   "salt_bridge": {
+    "shared": 4,
+    "appOnly": 4,
+    "referenceOnly": 9
+   },
+   "pi_stacking": {
+    "shared": 6,
+    "appOnly": 5,
+    "referenceOnly": 1
+   },
+   "cation_pi": {
+    "shared": 5,
+    "appOnly": 0,
+    "referenceOnly": 2
+   },
+   "metal_coordination": {
+    "shared": 6,
+    "appOnly": 0,
+    "referenceOnly": 25
+   },
+   "halogen_bond": {
+    "shared": 0,
+    "appOnly": 0,
+    "referenceOnly": 4
+   },
+   "water_bridge": {
+    "shared": 32,
+    "appOnly": 35,
+    "referenceOnly": 19
+   }
+  },
+  "prolif": {
+   "hydrogen_bond": {
+    "shared": 58,
+    "appOnly": 34,
+    "referenceOnly": 2
+   },
+   "hydrophobic_contact": {
+    "shared": 53,
+    "appOnly": 51,
+    "referenceOnly": 32
+   },
+   "salt_bridge": {
+    "shared": 0,
+    "appOnly": 8,
+    "referenceOnly": 2
+   },
+   "pi_stacking": {
+    "shared": 5,
+    "appOnly": 6,
+    "referenceOnly": 1
+   },
+   "cation_pi": {
+    "shared": 2,
+    "appOnly": 3,
+    "referenceOnly": 0
+   },
+   "metal_coordination": {
+    "shared": 3,
+    "appOnly": 3,
+    "referenceOnly": 0
+   },
+   "halogen_bond": {
+    "shared": 0,
+    "appOnly": 0,
+    "referenceOnly": 1
+   },
+   "water_bridge": {
+    "shared": 0,
+    "appOnly": 0,
+    "referenceOnly": 0
+   }
+  }
+ },
+ "cases": {
+  "1TOW:CRZ": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "cation_pi:ARG:A:126",
+     "hydrophobic_contact:ALA:A:75",
+     "hydrophobic_contact:ILE:A:104",
+     "hydrophobic_contact:PHE:A:16",
+     "hydrophobic_contact:PHE:A:57",
+     "hydrophobic_contact:PRO:A:38",
+     "pi_stacking:PHE:A:16",
+     "water_bridge:ARG:A:106"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ARG:A:126",
+     "hydrogen_bond:TYR:A:128",
+     "water_bridge:SER:A:53"
+    ],
+    "referenceOnly": [
+     "salt_bridge:ARG:A:126",
+     "water_bridge:TYR:A:128"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "cation_pi:ARG:A:126",
+     "hydrogen_bond:ARG:A:126",
+     "hydrophobic_contact:PHE:A:16",
+     "hydrophobic_contact:PHE:A:57",
+     "pi_stacking:PHE:A:16"
+    ],
+    "appOnly": [
+     "hydrogen_bond:TYR:A:128",
+     "hydrophobic_contact:ALA:A:75",
+     "hydrophobic_contact:ILE:A:104",
+     "hydrophobic_contact:PRO:A:38"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:ASP:A:76",
+     "hydrophobic_contact:MET:A:20"
+    ]
+   }
+  },
+  "1S3V:TQD": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ILE:A:7",
+     "hydrophobic_contact:PHE:A:31",
+     "hydrophobic_contact:PHE:A:34",
+     "salt_bridge:GLU:A:30"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLU:A:30",
+     "hydrogen_bond:VAL:A:115",
+     "pi_stacking:PHE:A:34",
+     "water_bridge:PHE:A:134"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:VAL:A:8"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:GLU:A:30",
+     "hydrogen_bond:ILE:A:7",
+     "hydrophobic_contact:PHE:A:31",
+     "hydrophobic_contact:PHE:A:34"
+    ],
+    "appOnly": [
+     "hydrogen_bond:VAL:A:115",
+     "pi_stacking:PHE:A:34",
+     "salt_bridge:GLU:A:30"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:ILE:A:60"
+    ]
+   }
+  },
+  "1HQ2:PH2": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ASN:A:55",
+     "hydrogen_bond:LEU:A:45",
+     "hydrogen_bond:THR:A:42",
+     "pi_stacking:PHE:A:123",
+     "pi_stacking:TYR:A:53",
+     "water_bridge:ARG:A:121",
+     "water_bridge:GLY:A:90",
+     "water_bridge:TRP:A:89"
+    ],
+    "appOnly": [
+     "water_bridge:ASP:A:97",
+     "water_bridge:TYR:A:53"
+    ],
+    "referenceOnly": [
+     "cation_pi:PHE:A:123",
+     "hydrogen_bond:ARG:A:92",
+     "hydrogen_bond:ASP:A:97",
+     "hydrogen_bond:GLN:A:74",
+     "hydrogen_bond:ILE:A:98",
+     "hydrogen_bond:THR:A:112",
+     "hydrogen_bond:TRP:A:89",
+     "hydrogen_bond:TYR:A:116",
+     "metal_coordination:APC:A:171",
+     "metal_coordination:ASP:A:95",
+     "metal_coordination:ASP:A:97",
+     "metal_coordination:HOH:A:201",
+     "metal_coordination:HOH:A:208",
+     "metal_coordination:HOH:A:210",
+     "pi_stacking:TRP:A:89",
+     "salt_bridge:ARG:A:121",
+     "salt_bridge:HIS:A:115",
+     "water_bridge:ARG:A:110",
+     "water_bridge:ARG:A:84",
+     "water_bridge:ARG:A:88",
+     "water_bridge:ASP:A:95",
+     "water_bridge:GLN:A:74",
+     "water_bridge:LEU:A:96"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ASN:A:55",
+     "hydrogen_bond:LEU:A:45",
+     "hydrogen_bond:THR:A:42",
+     "pi_stacking:PHE:A:123",
+     "pi_stacking:TYR:A:53"
+    ],
+    "appOnly": [],
+    "referenceOnly": [
+     "hydrogen_bond:PRO:A:43"
+    ]
+   }
+  },
+  "1R55:097": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ALA:A:309",
+     "hydrogen_bond:ALA:A:375",
+     "hydrogen_bond:GLY:A:312",
+     "hydrogen_bond:THR:A:377",
+     "hydrogen_bond:VAL:A:311",
+     "hydrophobic_contact:ALA:A:309",
+     "hydrophobic_contact:ALA:A:376",
+     "hydrophobic_contact:THR:A:342",
+     "hydrophobic_contact:VAL:A:311",
+     "water_bridge:ALA:A:314",
+     "water_bridge:THR:A:310"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLU:A:346",
+     "hydrogen_bond:HIS:A:345",
+     "hydrogen_bond:HIS:A:349",
+     "hydrogen_bond:HIS:A:355",
+     "water_bridge:ALA:A:375",
+     "water_bridge:HIS:A:349",
+     "water_bridge:HIS:A:355"
+    ],
+    "referenceOnly": [
+     "metal_coordination:HIS:A:345",
+     "metal_coordination:HIS:A:349",
+     "metal_coordination:HIS:A:355",
+     "metal_coordination:HOH:A:540"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ALA:A:309",
+     "hydrogen_bond:ALA:A:375",
+     "hydrogen_bond:GLY:A:312",
+     "hydrogen_bond:THR:A:377",
+     "hydrogen_bond:VAL:A:311"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLU:A:346",
+     "hydrogen_bond:HIS:A:345",
+     "hydrogen_bond:HIS:A:349",
+     "hydrogen_bond:HIS:A:355",
+     "hydrophobic_contact:ALA:A:309",
+     "hydrophobic_contact:ALA:A:376",
+     "hydrophobic_contact:THR:A:342",
+     "hydrophobic_contact:VAL:A:311"
+    ],
+    "referenceOnly": []
+   }
+  },
+  "1KZK:JE2": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ASP:A:25",
+     "hydrogen_bond:ASP:A:30",
+     "hydrogen_bond:ASP:B:25",
+     "hydrogen_bond:GLY:A:27",
+     "hydrophobic_contact:ALA:A:28",
+     "hydrophobic_contact:ASP:A:29",
+     "hydrophobic_contact:ASP:B:30",
+     "hydrophobic_contact:ILE:B:47",
+     "hydrophobic_contact:ILE:B:84",
+     "hydrophobic_contact:LEU:A:23",
+     "hydrophobic_contact:PRO:B:81",
+     "hydrophobic_contact:VAL:A:32",
+     "hydrophobic_contact:VAL:B:32",
+     "water_bridge:GLY:B:27",
+     "water_bridge:ILE:B:50"
+    ],
+    "appOnly": [
+     "hydrophobic_contact:ALA:B:28",
+     "hydrophobic_contact:LEU:B:23",
+     "water_bridge:ARG:A:8",
+     "water_bridge:ILE:A:50"
+    ],
+    "referenceOnly": [
+     "water_bridge:GLY:B:48"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ASP:A:30",
+     "hydrogen_bond:GLY:A:27",
+     "hydrophobic_contact:ASP:A:29",
+     "hydrophobic_contact:ASP:B:30",
+     "hydrophobic_contact:ILE:B:47",
+     "hydrophobic_contact:VAL:B:32"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ASP:A:25",
+     "hydrogen_bond:ASP:B:25",
+     "hydrophobic_contact:ALA:A:28",
+     "hydrophobic_contact:ALA:B:28",
+     "hydrophobic_contact:ILE:B:84",
+     "hydrophobic_contact:LEU:A:23",
+     "hydrophobic_contact:LEU:B:23",
+     "hydrophobic_contact:PRO:B:81",
+     "hydrophobic_contact:VAL:A:32"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:ILE:A:50",
+     "hydrophobic_contact:ILE:B:50",
+     "hydrophobic_contact:VAL:B:82"
+    ]
+   }
+  },
+  "2BSM:BSM": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "cation_pi:LYS:A:58",
+     "hydrogen_bond:GLY:A:97",
+     "hydrogen_bond:LYS:A:58",
+     "hydrogen_bond:THR:A:184",
+     "hydrophobic_contact:ALA:A:55",
+     "hydrophobic_contact:ASN:A:51",
+     "hydrophobic_contact:THR:A:184",
+     "water_bridge:ASN:A:51",
+     "water_bridge:ASP:A:93",
+     "water_bridge:GLY:A:95",
+     "water_bridge:ILE:A:110"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ASP:A:93",
+     "water_bridge:GLY:A:97",
+     "water_bridge:LEU:A:48",
+     "water_bridge:SER:A:52",
+     "water_bridge:THR:A:184"
+    ],
+    "referenceOnly": [
+     "water_bridge:LEU:A:107"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ASP:A:93",
+     "hydrogen_bond:GLY:A:97",
+     "hydrogen_bond:LYS:A:58",
+     "hydrogen_bond:THR:A:184",
+     "hydrophobic_contact:ASN:A:51"
+    ],
+    "appOnly": [
+     "cation_pi:LYS:A:58",
+     "hydrophobic_contact:ALA:A:55",
+     "hydrophobic_contact:THR:A:184"
+    ],
+    "referenceOnly": [
+     "halogen_bond:PHE:A:138",
+     "hydrophobic_contact:ASP:A:54",
+     "hydrophobic_contact:MET:A:98"
+    ]
+   }
+  },
+  "1NAV:IH5": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:HIS:A:381",
+     "hydrogen_bond:SER:A:277",
+     "hydrophobic_contact:ALA:A:225",
+     "hydrophobic_contact:ALA:A:263",
+     "hydrophobic_contact:ILE:A:222",
+     "hydrophobic_contact:LEU:A:276",
+     "hydrophobic_contact:MET:A:259",
+     "hydrophobic_contact:PHE:A:215",
+     "hydrophobic_contact:PHE:A:218",
+     "hydrophobic_contact:PHE:A:401",
+     "hydrophobic_contact:THR:A:219",
+     "water_bridge:GLY:A:278"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ARG:A:228",
+     "hydrophobic_contact:LEU:A:292",
+     "water_bridge:ARG:A:262"
+    ],
+    "referenceOnly": [
+     "halogen_bond:PHE:A:218",
+     "salt_bridge:ARG:A:228",
+     "water_bridge:ALA:A:225"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:SER:A:277",
+     "hydrophobic_contact:LEU:A:276",
+     "hydrophobic_contact:LEU:A:292",
+     "hydrophobic_contact:MET:A:259",
+     "hydrophobic_contact:PHE:A:215",
+     "hydrophobic_contact:PHE:A:218",
+     "hydrophobic_contact:PHE:A:401"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ARG:A:228",
+     "hydrogen_bond:HIS:A:381",
+     "hydrophobic_contact:ALA:A:225",
+     "hydrophobic_contact:ALA:A:263",
+     "hydrophobic_contact:ILE:A:222",
+     "hydrophobic_contact:THR:A:219"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:MET:A:256",
+     "hydrophobic_contact:MET:A:388"
+    ]
+   }
+  },
+  "1P62:GEO": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ARG:B:128",
+     "hydrogen_bond:ASP:B:133",
+     "hydrogen_bond:GLN:B:97",
+     "hydrogen_bond:GLU:B:197",
+     "hydrogen_bond:GLU:B:53",
+     "water_bridge:ALA:B:31",
+     "water_bridge:ARG:B:128",
+     "water_bridge:LYS:B:34",
+     "water_bridge:TYR:B:86"
+    ],
+    "appOnly": [
+     "hydrogen_bond:TYR:B:86",
+     "hydrophobic_contact:ILE:B:30",
+     "hydrophobic_contact:PHE:B:137",
+     "pi_stacking:PHE:B:137",
+     "water_bridge:GLN:B:97",
+     "water_bridge:GLU:B:127",
+     "water_bridge:GLU:B:197",
+     "water_bridge:TYR:B:155",
+     "water_bridge:TYR:B:204"
+    ],
+    "referenceOnly": [
+     "halogen_bond:ARG:B:128"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ARG:B:128",
+     "hydrogen_bond:ASP:B:133",
+     "hydrogen_bond:GLN:B:97",
+     "hydrophobic_contact:PHE:B:137",
+     "pi_stacking:PHE:B:137"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLU:B:197",
+     "hydrogen_bond:GLU:B:53",
+     "hydrogen_bond:TYR:B:86",
+     "hydrophobic_contact:ILE:B:30"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:TRP:B:58"
+    ]
+   }
+  },
+  "1Z95:198": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ARG:A:752",
+     "hydrogen_bond:ASN:A:705",
+     "hydrogen_bond:LEU:A:704",
+     "hydrophobic_contact:ILE:A:898",
+     "hydrophobic_contact:ILE:A:899",
+     "hydrophobic_contact:LEU:A:704",
+     "hydrophobic_contact:LEU:A:707",
+     "hydrophobic_contact:LEU:A:741",
+     "hydrophobic_contact:PHE:A:764"
+    ],
+    "appOnly": [
+     "hydrophobic_contact:LEU:A:873",
+     "hydrophobic_contact:MET:A:745",
+     "hydrophobic_contact:MET:A:749",
+     "hydrophobic_contact:VAL:A:746"
+    ],
+    "referenceOnly": [
+     "halogen_bond:MET:A:742",
+     "hydrogen_bond:GLN:A:711",
+     "hydrogen_bond:PHE:A:764",
+     "water_bridge:ARG:A:752"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:LEU:A:704",
+     "hydrophobic_contact:ILE:A:898",
+     "hydrophobic_contact:ILE:A:899",
+     "hydrophobic_contact:LEU:A:704",
+     "hydrophobic_contact:LEU:A:707",
+     "hydrophobic_contact:LEU:A:741",
+     "hydrophobic_contact:MET:A:745",
+     "hydrophobic_contact:PHE:A:764"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ARG:A:752",
+     "hydrogen_bond:ASN:A:705",
+     "hydrophobic_contact:LEU:A:873",
+     "hydrophobic_contact:MET:A:749",
+     "hydrophobic_contact:VAL:A:746"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:MET:A:742"
+    ]
+   }
+  },
+  "1SJ0:E4D": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ARG:A:394",
+     "hydrogen_bond:GLU:A:353",
+     "hydrogen_bond:GLY:A:521",
+     "hydrogen_bond:HIS:A:524",
+     "hydrogen_bond:LEU:A:387",
+     "hydrophobic_contact:ALA:A:350",
+     "hydrophobic_contact:LEU:A:354",
+     "hydrophobic_contact:LEU:A:525",
+     "hydrophobic_contact:LEU:A:536",
+     "hydrophobic_contact:PHE:A:404",
+     "hydrophobic_contact:TRP:A:383",
+     "salt_bridge:ASP:A:351",
+     "water_bridge:ARG:A:394"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ASP:A:351",
+     "water_bridge:GLU:A:353"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:LEU:A:525"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ARG:A:394",
+     "hydrogen_bond:HIS:A:524",
+     "hydrogen_bond:LEU:A:387",
+     "hydrophobic_contact:LEU:A:525",
+     "hydrophobic_contact:PHE:A:404"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ASP:A:351",
+     "hydrogen_bond:GLU:A:353",
+     "hydrogen_bond:GLY:A:521",
+     "hydrophobic_contact:ALA:A:350",
+     "hydrophobic_contact:LEU:A:354",
+     "hydrophobic_contact:LEU:A:536",
+     "hydrophobic_contact:TRP:A:383",
+     "salt_bridge:ASP:A:351"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:CYS:A:530",
+     "hydrophobic_contact:ILE:A:424",
+     "hydrophobic_contact:LEU:A:346",
+     "hydrophobic_contact:LEU:A:387",
+     "hydrophobic_contact:LEU:A:391",
+     "hydrophobic_contact:MET:A:421",
+     "pi_stacking:PHE:A:404"
+    ]
+   }
+  },
+  "1OWE:675": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ASP:A:205",
+     "hydrogen_bond:GLN:A:208",
+     "hydrogen_bond:SER:A:206",
+     "hydrophobic_contact:GLN:A:208",
+     "hydrophobic_contact:VAL:A:229",
+     "water_bridge:SER:A:230",
+     "water_bridge:TRP:A:231"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLY:A:234",
+     "pi_stacking:HIS:A:54",
+     "salt_bridge:ASP:A:205",
+     "water_bridge:ARG:A:233",
+     "water_bridge:HIS:A:106",
+     "water_bridge:LYS:A:240",
+     "water_bridge:VAL:A:243"
+    ],
+    "referenceOnly": [
+     "water_bridge:LEU:A:237"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ASP:A:205",
+     "hydrogen_bond:GLY:A:234",
+     "hydrogen_bond:SER:A:206",
+     "hydrophobic_contact:GLN:A:208"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLN:A:208",
+     "hydrophobic_contact:VAL:A:229",
+     "pi_stacking:HIS:A:54",
+     "salt_bridge:ASP:A:205"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:HIS:A:54"
+    ]
+   }
+  },
+  "1S19:MC9": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ARG:A:274",
+     "hydrogen_bond:HIS:A:305",
+     "hydrogen_bond:HIS:A:397",
+     "hydrogen_bond:SER:A:237",
+     "hydrogen_bond:TYR:A:143",
+     "hydrophobic_contact:LEU:A:227",
+     "hydrophobic_contact:LEU:A:233",
+     "hydrophobic_contact:LEU:A:309",
+     "hydrophobic_contact:LEU:A:313",
+     "hydrophobic_contact:TRP:A:286",
+     "hydrophobic_contact:TYR:A:143",
+     "hydrophobic_contact:TYR:A:295",
+     "hydrophobic_contact:VAL:A:300"
+    ],
+    "appOnly": [
+     "hydrogen_bond:SER:A:278",
+     "hydrophobic_contact:ILE:A:271",
+     "hydrophobic_contact:VAL:A:234"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:SER:A:275"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ARG:A:274",
+     "hydrogen_bond:HIS:A:397",
+     "hydrophobic_contact:LEU:A:233",
+     "hydrophobic_contact:TRP:A:286",
+     "hydrophobic_contact:VAL:A:234"
+    ],
+    "appOnly": [
+     "hydrogen_bond:HIS:A:305",
+     "hydrogen_bond:SER:A:237",
+     "hydrogen_bond:SER:A:278",
+     "hydrogen_bond:TYR:A:143",
+     "hydrophobic_contact:ILE:A:271",
+     "hydrophobic_contact:LEU:A:227",
+     "hydrophobic_contact:LEU:A:309",
+     "hydrophobic_contact:LEU:A:313",
+     "hydrophobic_contact:TYR:A:143",
+     "hydrophobic_contact:TYR:A:295",
+     "hydrophobic_contact:VAL:A:300"
+    ],
+    "referenceOnly": []
+   }
+  },
+  "1V48:HA1": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ALA:A:116",
+     "hydrogen_bond:ARG:A:84",
+     "hydrogen_bond:HIS:A:86",
+     "hydrogen_bond:SER:A:220",
+     "hydrogen_bond:SER:A:33",
+     "water_bridge:ASN:A:243",
+     "water_bridge:GLU:A:201",
+     "water_bridge:MET:A:219"
+    ],
+    "appOnly": [
+     "hydrogen_bond:ASN:A:243",
+     "hydrogen_bond:GLU:A:201",
+     "hydrophobic_contact:MET:A:219",
+     "salt_bridge:ARG:A:84",
+     "salt_bridge:HIS:A:86",
+     "water_bridge:HIS:A:86",
+     "water_bridge:SER:A:33",
+     "water_bridge:TYR:A:192"
+    ],
+    "referenceOnly": [
+     "cation_pi:PHE:A:200",
+     "hydrogen_bond:GLY:A:218",
+     "salt_bridge:GLU:A:201"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ALA:A:116",
+     "hydrogen_bond:ARG:A:84",
+     "hydrogen_bond:ASN:A:243",
+     "hydrogen_bond:GLU:A:201",
+     "hydrogen_bond:SER:A:33",
+     "hydrophobic_contact:MET:A:219"
+    ],
+    "appOnly": [
+     "hydrogen_bond:HIS:A:86",
+     "hydrogen_bond:SER:A:220",
+     "salt_bridge:ARG:A:84",
+     "salt_bridge:HIS:A:86"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:PHE:A:200"
+    ]
+   }
+  },
+  "1OQ5:CEL": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:THR:A:199",
+     "hydrophobic_contact:ASN:A:67",
+     "hydrophobic_contact:LEU:A:198",
+     "hydrophobic_contact:VAL:A:121",
+     "pi_stacking:PHE:A:131"
+    ],
+    "appOnly": [
+     "hydrogen_bond:HIS:A:119",
+     "hydrogen_bond:HIS:A:94",
+     "hydrogen_bond:HIS:A:96",
+     "hydrophobic_contact:LEU:A:204",
+     "hydrophobic_contact:PHE:A:131",
+     "hydrophobic_contact:PRO:A:202",
+     "hydrophobic_contact:VAL:A:135"
+    ],
+    "referenceOnly": [
+     "metal_coordination:HIS:A:119",
+     "metal_coordination:HIS:A:94",
+     "metal_coordination:HIS:A:96"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:HIS:A:94",
+     "hydrogen_bond:THR:A:199",
+     "hydrophobic_contact:LEU:A:198",
+     "hydrophobic_contact:PHE:A:131",
+     "pi_stacking:PHE:A:131"
+    ],
+    "appOnly": [
+     "hydrogen_bond:HIS:A:119",
+     "hydrogen_bond:HIS:A:96",
+     "hydrophobic_contact:ASN:A:67",
+     "hydrophobic_contact:LEU:A:204",
+     "hydrophobic_contact:PRO:A:202",
+     "hydrophobic_contact:VAL:A:121",
+     "hydrophobic_contact:VAL:A:135"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:GLN:A:92"
+    ]
+   }
+  },
+  "1Y6B:AAX": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ASN:A:921",
+     "hydrogen_bond:CYS:A:917",
+     "hydrophobic_contact:ALA:A:864",
+     "hydrophobic_contact:LYS:A:866",
+     "hydrophobic_contact:PHE:A:1045",
+     "hydrophobic_contact:VAL:A:846",
+     "hydrophobic_contact:VAL:A:914",
+     "water_bridge:THR:A:924"
+    ],
+    "appOnly": [
+     "water_bridge:ASN:A:921"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:GLU:A:883",
+     "hydrogen_bond:GLY:A:920",
+     "water_bridge:ARG:A:1030"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ASN:A:921",
+     "hydrogen_bond:CYS:A:917",
+     "hydrophobic_contact:LYS:A:866",
+     "hydrophobic_contact:PHE:A:1045",
+     "hydrophobic_contact:VAL:A:846",
+     "hydrophobic_contact:VAL:A:914"
+    ],
+    "appOnly": [
+     "hydrophobic_contact:ALA:A:864"
+    ],
+    "referenceOnly": []
+   }
+  },
+  "1T46:STI": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "cation_pi:HIS:A:790",
+     "cation_pi:LYS:A:623",
+     "hydrogen_bond:ASP:A:810",
+     "hydrogen_bond:CYS:A:673",
+     "hydrogen_bond:THR:A:670",
+     "hydrophobic_contact:ASP:A:810",
+     "hydrophobic_contact:GLU:A:640",
+     "hydrophobic_contact:LEU:A:595",
+     "hydrophobic_contact:LEU:A:644",
+     "hydrophobic_contact:LEU:A:799",
+     "hydrophobic_contact:LYS:A:623",
+     "hydrophobic_contact:THR:A:670",
+     "hydrophobic_contact:VAL:A:603",
+     "hydrophobic_contact:VAL:A:668",
+     "pi_stacking:PHE:A:811",
+     "water_bridge:ASP:A:810",
+     "water_bridge:LYS:A:623"
+    ],
+    "appOnly": [
+     "hydrogen_bond:HIS:A:790",
+     "hydrogen_bond:ILE:A:789",
+     "hydrophobic_contact:PHE:A:811",
+     "water_bridge:PHE:A:811"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:GLU:A:640",
+     "hydrophobic_contact:VAL:A:654",
+     "salt_bridge:ASP:A:810"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "cation_pi:LYS:A:623",
+     "hydrogen_bond:ASP:A:810",
+     "hydrogen_bond:CYS:A:673",
+     "hydrogen_bond:THR:A:670",
+     "hydrophobic_contact:ASP:A:810",
+     "hydrophobic_contact:GLU:A:640",
+     "hydrophobic_contact:LEU:A:595",
+     "hydrophobic_contact:LEU:A:644",
+     "hydrophobic_contact:LEU:A:799",
+     "hydrophobic_contact:LYS:A:623",
+     "hydrophobic_contact:PHE:A:811",
+     "hydrophobic_contact:VAL:A:603",
+     "hydrophobic_contact:VAL:A:668"
+    ],
+    "appOnly": [
+     "cation_pi:HIS:A:790",
+     "hydrogen_bond:HIS:A:790",
+     "hydrogen_bond:ILE:A:789",
+     "hydrophobic_contact:THR:A:670",
+     "pi_stacking:PHE:A:811"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:TYR:A:672"
+    ]
+   }
+  },
+  "4KZN:NAG": {
+   "app": "ok",
+   "plip": {
+    "shared": [],
+    "appOnly": [],
+    "referenceOnly": [
+     "hydrogen_bond:ASN:A:75",
+     "hydrogen_bond:SER:A:95",
+     "water_bridge:ASN:A:75"
+    ]
+   },
+   "prolif": {
+    "shared": [],
+    "appOnly": [],
+    "referenceOnly": [
+     "hydrogen_bond:SER:A:95"
+    ]
+   }
+  },
+  "5P9J:8E8": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:CYS:A:481",
+     "hydrogen_bond:GLU:A:475",
+     "hydrophobic_contact:LEU:A:542",
+     "hydrophobic_contact:LYS:A:430",
+     "hydrophobic_contact:PHE:A:540",
+     "hydrophobic_contact:VAL:A:416",
+     "water_bridge:LYS:A:430"
+    ],
+    "appOnly": [
+     "hydrogen_bond:MET:A:477",
+     "hydrogen_bond:THR:A:474",
+     "hydrophobic_contact:LEU:A:528",
+     "hydrophobic_contact:THR:A:474",
+     "pi_stacking:PHE:A:540"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:ASP:A:539"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:CYS:A:481",
+     "hydrogen_bond:GLU:A:475",
+     "hydrogen_bond:MET:A:477",
+     "hydrophobic_contact:LYS:A:430",
+     "hydrophobic_contact:PHE:A:540"
+    ],
+    "appOnly": [
+     "hydrogen_bond:THR:A:474",
+     "hydrophobic_contact:LEU:A:528",
+     "hydrophobic_contact:LEU:A:542",
+     "hydrophobic_contact:THR:A:474",
+     "hydrophobic_contact:VAL:A:416",
+     "pi_stacking:PHE:A:540"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:CYS:A:481"
+    ]
+   }
+  },
+  "4G5J:0WN": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:MET:A:793",
+     "hydrophobic_contact:LEU:A:844",
+     "hydrophobic_contact:LYS:A:745",
+     "hydrophobic_contact:THR:A:790"
+    ],
+    "appOnly": [
+     "hydrophobic_contact:LEU:A:788"
+    ],
+    "referenceOnly": [
+     "halogen_bond:LEU:A:788",
+     "hydrogen_bond:CYS:A:797",
+     "hydrogen_bond:LYS:A:728",
+     "hydrogen_bond:PRO:A:794",
+     "salt_bridge:ASP:A:800"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:MET:A:793",
+     "hydrophobic_contact:LYS:A:745"
+    ],
+    "appOnly": [
+     "hydrophobic_contact:LEU:A:788",
+     "hydrophobic_contact:LEU:A:844",
+     "hydrophobic_contact:THR:A:790"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:CYS:A:797"
+    ]
+   }
+  },
+  "1J91:TBS": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:LYS:A:68"
+    ],
+    "appOnly": [],
+    "referenceOnly": [
+     "hydrogen_bond:ASP:A:175"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:LYS:A:68"
+    ],
+    "appOnly": [],
+    "referenceOnly": [
+     "hydrophobic_contact:ARG:A:47",
+     "hydrophobic_contact:ILE:A:174",
+     "hydrophobic_contact:ILE:A:66",
+     "hydrophobic_contact:PHE:A:113",
+     "hydrophobic_contact:VAL:A:116",
+     "hydrophobic_contact:VAL:A:53"
+    ]
+   }
+  },
+  "1K4C:K": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "metal_coordination:TYR:C:78"
+    ],
+    "appOnly": [],
+    "referenceOnly": [
+     "metal_coordination:GLY:C:77",
+     "metal_coordination:THR:C:75",
+     "metal_coordination:VAL:C:76"
+    ]
+   },
+   "prolif": {
+    "shared": [],
+    "appOnly": [
+     "metal_coordination:TYR:C:78"
+    ],
+    "referenceOnly": []
+   }
+  },
+  "1ATP:ATP": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ALA:I:21",
+     "hydrogen_bond:ARG:I:18",
+     "hydrogen_bond:GLU:E:121",
+     "hydrogen_bond:GLU:E:127",
+     "hydrogen_bond:GLY:E:55",
+     "hydrogen_bond:PHE:E:54",
+     "hydrogen_bond:SER:E:53",
+     "hydrogen_bond:THR:E:183",
+     "salt_bridge:LYS:E:168",
+     "salt_bridge:LYS:E:72",
+     "water_bridge:ASN:E:171",
+     "water_bridge:ASN:I:20",
+     "water_bridge:LYS:E:168"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLU:E:170",
+     "hydrogen_bond:LYS:E:168",
+     "hydrogen_bond:LYS:E:72",
+     "hydrogen_bond:VAL:E:123",
+     "water_bridge:GLY:E:186",
+     "water_bridge:LEU:E:49",
+     "water_bridge:TYR:E:330"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:ASP:E:184",
+     "hydrogen_bond:LEU:E:49",
+     "metal_coordination:ASP:E:184",
+     "metal_coordination:ATP:E:355",
+     "metal_coordination:HOH:E:447",
+     "metal_coordination:HOH:E:477",
+     "metal_coordination:HOH:E:635"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ALA:I:21",
+     "hydrogen_bond:ARG:I:18",
+     "hydrogen_bond:GLU:E:121",
+     "hydrogen_bond:GLU:E:127",
+     "hydrogen_bond:GLY:E:55",
+     "hydrogen_bond:LYS:E:168",
+     "hydrogen_bond:LYS:E:72",
+     "hydrogen_bond:PHE:E:54",
+     "hydrogen_bond:SER:E:53",
+     "hydrogen_bond:VAL:E:123"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLU:E:170",
+     "hydrogen_bond:THR:E:183",
+     "salt_bridge:LYS:E:168",
+     "salt_bridge:LYS:E:72"
+    ],
+    "referenceOnly": []
+   }
+  },
+  "1ATP:MN": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "metal_coordination:ASP:E:184"
+    ],
+    "appOnly": [],
+    "referenceOnly": [
+     "hydrogen_bond:ALA:I:21",
+     "hydrogen_bond:ARG:I:18",
+     "hydrogen_bond:ASP:E:184",
+     "hydrogen_bond:GLU:E:121",
+     "hydrogen_bond:GLU:E:127",
+     "hydrogen_bond:GLY:E:55",
+     "hydrogen_bond:LEU:E:49",
+     "hydrogen_bond:PHE:E:54",
+     "hydrogen_bond:SER:E:53",
+     "hydrogen_bond:THR:E:183",
+     "metal_coordination:ATP:E:355",
+     "metal_coordination:HOH:E:447",
+     "metal_coordination:HOH:E:477",
+     "metal_coordination:HOH:E:635",
+     "salt_bridge:LYS:E:168",
+     "salt_bridge:LYS:E:72",
+     "water_bridge:ASN:E:171",
+     "water_bridge:ASN:I:20",
+     "water_bridge:LYS:E:168"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "metal_coordination:ASP:E:184"
+    ],
+    "appOnly": [],
+    "referenceOnly": [
+     "salt_bridge:ASP:E:166",
+     "salt_bridge:ASP:E:184"
+    ]
+   }
+  },
+  "3PTB:BEN": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "hydrogen_bond:ASP:A:189",
+     "hydrogen_bond:GLY:A:219",
+     "hydrophobic_contact:VAL:A:213"
+    ],
+    "appOnly": [
+     "hydrogen_bond:SER:A:190",
+     "salt_bridge:ASP:A:189",
+     "water_bridge:TRP:A:215",
+     "water_bridge:VAL:A:227"
+    ],
+    "referenceOnly": []
+   },
+   "prolif": {
+    "shared": [
+     "hydrogen_bond:ASP:A:189"
+    ],
+    "appOnly": [
+     "hydrogen_bond:GLY:A:219",
+     "hydrogen_bond:SER:A:190",
+     "hydrophobic_contact:VAL:A:213",
+     "salt_bridge:ASP:A:189"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:GLN:A:192"
+    ]
+   }
+  },
+  "1EVE:E20": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "cation_pi:PHE:A:330",
+     "hydrophobic_contact:PHE:A:330",
+     "hydrophobic_contact:PHE:A:331",
+     "hydrophobic_contact:TRP:A:84",
+     "hydrophobic_contact:TYR:A:334",
+     "pi_stacking:TRP:A:279",
+     "water_bridge:HIS:A:440",
+     "water_bridge:TYR:A:121"
+    ],
+    "appOnly": [
+     "hydrophobic_contact:TRP:A:279",
+     "pi_stacking:TRP:A:84",
+     "water_bridge:PHE:A:288"
+    ],
+    "referenceOnly": [
+     "hydrogen_bond:PHE:A:288",
+     "water_bridge:PHE:A:331",
+     "water_bridge:TYR:A:334"
+    ]
+   },
+   "prolif": {
+    "shared": [
+     "hydrophobic_contact:PHE:A:330",
+     "hydrophobic_contact:PHE:A:331",
+     "hydrophobic_contact:TRP:A:279",
+     "hydrophobic_contact:TRP:A:84",
+     "hydrophobic_contact:TYR:A:334"
+    ],
+    "appOnly": [
+     "cation_pi:PHE:A:330",
+     "pi_stacking:TRP:A:279",
+     "pi_stacking:TRP:A:84"
+    ],
+    "referenceOnly": [
+     "hydrophobic_contact:TYR:A:70"
+    ]
+   }
+  },
+  "1RMD:ZN": {
+   "app": "ok",
+   "plip": {
+    "shared": [
+     "metal_coordination:CYS:A:2",
+     "metal_coordination:CYS:A:29",
+     "metal_coordination:HIS:A:31",
+     "metal_coordination:HIS:A:6"
+    ],
+    "appOnly": [],
+    "referenceOnly": []
+   },
+   "prolif": {
+    "shared": [
+     "metal_coordination:HIS:A:31",
+     "metal_coordination:HIS:A:6"
+    ],
+    "appOnly": [
+     "metal_coordination:CYS:A:2",
+     "metal_coordination:CYS:A:29"
+    ],
+    "referenceOnly": []
+   }
+  }
+ }
+}
