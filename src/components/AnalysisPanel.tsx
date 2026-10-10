@@ -8,7 +8,11 @@ import {
   X,
 } from "lucide-react";
 import { useExplorer } from "../state/explorer";
-import { INTERACTION_LABELS, type InteractionType } from "../domain/analysis";
+import {
+  AMBIGUITY_LABELS,
+  INTERACTION_LABELS,
+  type InteractionType,
+} from "../domain/analysis";
 import { atomLabel } from "../analysis/provenance";
 import {
   cutoffMargin,
@@ -472,6 +476,9 @@ export function AnalysisPanel({
                     ` · ${selected.hydrogenMode} hydrogens`}
                   {selected.donorHydrogenAcceptorAngle !== undefined &&
                     ` · D–H–A ${selected.donorHydrogenAcceptorAngle.toFixed(1)}°`}
+                  {selected.ambiguities?.length
+                    ? ` · ${selected.ambiguities.map((a) => AMBIGUITY_LABELS[a]).join(", ")}`
+                    : ""}
                 </p>
                 {sigma !== undefined &&
                   cutoffMargin(selected, run.request.parameters) !==
@@ -579,7 +586,14 @@ export function AnalysisPanel({
                             .join("/")}
                         </small>
                       </th>
-                      <td>{INTERACTION_LABELS[i.type]}</td>
+                      <td>
+                        {INTERACTION_LABELS[i.type]}
+                        {i.ambiguities?.map((a) => (
+                          <span className="ambiguity" key={a}>
+                            {AMBIGUITY_LABELS[a]}
+                          </span>
+                        ))}
+                      </td>
                       <td>
                         {i.distanceAngstrom.toFixed(2)} Å
                         {isBorderline(i, run.request.parameters, sigma) && (

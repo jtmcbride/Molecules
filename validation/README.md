@@ -141,6 +141,20 @@ Each Phase 2.x milestone regenerates the engine goldens and the reference-set ag
   - A 2.40 Å typed OG–O1 pair is an H-bond with a short-distance note, not a clash. Without typing it remains a clash.
 - **Golden and reference changes:** all 13 golden hashes changed only through the assumption text and ruleset version; interaction counts are identical in every golden case. Reference-set agreement is unchanged, because the comparison covers chemical categories and R1 changes proximity and clash results.
 
+### R2 — ambiguity labels and metal-coordinating residues
+
+- **Rules:**
+  - Salt bridges to His carry `ambiguities: ["his_protonation"]` and a pH note (side-chain pKa about 6).
+  - Hydrogen bonds and water bridges to Asn OD1/ND2, Gln OE1/NE2 or His ND1/NE2 carry `amide_flip` or `his_tautomer`.
+  - Detection and distances are unchanged; labels appear in the table, inspector, JSON and an appended `ambiguities` CSV column.
+  - His/Cys side chains coordinating any metal ion in the structure (within the metal cutoff, non-target ions included as context-only atoms) are rejected as ionic partners (`metal_bound_residue`).
+- **Finding during R2:** the reference survey showed ligand "hydrogen bonds" to the zinc-coordinating His94/96/119 in 1OQ5 and His345/349/355 in 1R55. A ring nitrogen donating its lone pair to a metal cannot hydrogen-bond; the short N···N/O distances reflect coordination geometry around the zinc. The rule therefore also rejects H-bonds and water bridges whose receptor atom is the coordinating atom. Other atoms of the same residue are unaffected.
+- **Golden changes:** text and version only, except that 1EVE gains one `his_tautomer` label (His440 water bridge); interaction counts are identical.
+- **Reference agreement:**
+  - PLIP: app-only H-bonds 28 → 22 and app-only water bridges 35 → 33, all removed coordination artifacts in 1R55 and 1OQ5.
+  - ProLIF: app-only H-bonds 34 → 29. One previously shared H-bond (1OQ5 His94) is now ProLIF-only. That is a ProLIF preparation artifact: its receptor excludes the zinc, so Open Babel protonates the coordinating nitrogen.
+  - Across the set, labels appear in 1ATP, 1EVE, 1HQ2, 1NAV, 1OQ5, 1OWE, 1P62 and 1R55. The 1V48 His86 salt bridge is now pH-dependent.
+
 ## Scale and browser verification
 
 A local Node 24 run on 2026-10-09 built the 100,000-atom grid in approximately 34 ms, with five queries plus independent brute-force validation taking approximately 83 ms. The coordinate buffer alone occupies 1.2 MB. These are observations from this environment, not browser speed promises or whole-engine memory measurements. Reproduce with `RECORD_REFERENCE=1 npm test`; diagnostic JSON is written under `/tmp`. Normal tests assert correctness rather than a machine-specific timing threshold.

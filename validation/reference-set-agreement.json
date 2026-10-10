@@ -3,7 +3,7 @@
   "plip": {
    "hydrogen_bond": {
     "shared": 64,
-    "appOnly": 28,
+    "appOnly": 22,
     "referenceOnly": 36
    },
    "hydrophobic_contact": {
@@ -38,15 +38,15 @@
    },
    "water_bridge": {
     "shared": 32,
-    "appOnly": 35,
+    "appOnly": 33,
     "referenceOnly": 19
    }
   },
   "prolif": {
    "hydrogen_bond": {
-    "shared": 58,
-    "appOnly": 34,
-    "referenceOnly": 2
+    "shared": 57,
+    "appOnly": 29,
+    "referenceOnly": 3
    },
    "hydrophobic_contact": {
     "shared": 53,
@@ -240,12 +240,7 @@
     ],
     "appOnly": [
      "hydrogen_bond:GLU:A:346",
-     "hydrogen_bond:HIS:A:345",
-     "hydrogen_bond:HIS:A:349",
-     "hydrogen_bond:HIS:A:355",
-     "water_bridge:ALA:A:375",
-     "water_bridge:HIS:A:349",
-     "water_bridge:HIS:A:355"
+     "water_bridge:ALA:A:375"
     ],
     "referenceOnly": [
      "metal_coordination:HIS:A:345",
@@ -264,9 +259,6 @@
     ],
     "appOnly": [
      "hydrogen_bond:GLU:A:346",
-     "hydrogen_bond:HIS:A:345",
-     "hydrogen_bond:HIS:A:349",
-     "hydrogen_bond:HIS:A:355",
      "hydrophobic_contact:ALA:A:309",
      "hydrophobic_contact:ALA:A:376",
      "hydrophobic_contact:THR:A:342",
@@ -738,9 +730,6 @@
      "pi_stacking:PHE:A:131"
     ],
     "appOnly": [
-     "hydrogen_bond:HIS:A:119",
-     "hydrogen_bond:HIS:A:94",
-     "hydrogen_bond:HIS:A:96",
      "hydrophobic_contact:LEU:A:204",
      "hydrophobic_contact:PHE:A:131",
      "hydrophobic_contact:PRO:A:202",
@@ -754,15 +743,12 @@
    },
    "prolif": {
     "shared": [
-     "hydrogen_bond:HIS:A:94",
      "hydrogen_bond:THR:A:199",
      "hydrophobic_contact:LEU:A:198",
      "hydrophobic_contact:PHE:A:131",
      "pi_stacking:PHE:A:131"
     ],
     "appOnly": [
-     "hydrogen_bond:HIS:A:119",
-     "hydrogen_bond:HIS:A:96",
      "hydrophobic_contact:ASN:A:67",
      "hydrophobic_contact:LEU:A:204",
      "hydrophobic_contact:PRO:A:202",
@@ -770,6 +756,7 @@
      "hydrophobic_contact:VAL:A:135"
     ],
     "referenceOnly": [
+     "hydrogen_bond:HIS:A:94",
      "hydrophobic_contact:GLN:A:92"
     ]
    }

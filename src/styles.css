@@ -2243,3 +2243,14 @@ select {
   color: var(--accent);
   margin: 6px 0 0;
 }
+.ambiguity {
+  margin-left: 6px;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  color: #b9a7e8;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 5px;
+  white-space: nowrap;
+}

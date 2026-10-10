@@ -1,6 +1,9 @@
 import type { Interactions } from "molstar/lib/mol-model-props/computed/interactions/interactions";
 import { FeatureTypes } from "molstar/lib/mol-model-props/computed/interactions/common";
 import type { MolecularInteraction } from "../domain/analysis";
+import type { StructureSnapshot } from "../domain/types";
+import { isMetal } from "molstar/lib/mol-model/structure/model/properties/atomic/types";
+import type { ElementSymbol } from "molstar/lib/mol-model/structure/model/types";
 import type { FeatureReader } from "./features";
 import { angleDegrees, SpatialGrid } from "./spatial";
 
@@ -117,4 +120,49 @@ export function annotateMetalGroups(
         );
     }
   }
+}
+
+const COORDINATING_ATOMS: Record<string, string[]> = {
+  HIS: ["ND1", "NE2"],
+  CYS: ["SG"],
+};
+/**
+ * Receptor His/Cys side-chain donors within `cutoff` of any metal ion in the structure,
+ * including non-target ions. Ions are context only here: they are not interaction endpoints
+ * and are not added to the Mol* selection. Returns the coordinating atoms and their residues.
+ */
+export function metalCoordinatingSites(
+  snapshot: StructureSnapshot,
+  receptorAtoms: number[],
+  cutoff: number,
+): { atoms: Set<number>; residues: Set<string> } {
+  const { positions, occupancies, residueIndices } = snapshot.atomBuffer;
+  const metals: number[] = [];
+  snapshot.atoms.forEach((atom, i) => {
+    const residue = snapshot.residues[residueIndices[i]];
+    if (
+      residue.kind !== "polymer" &&
+      residue.kind !== "water" &&
+      isMetal(atom.element as ElementSymbol) &&
+      occupancies[i] > 0
+    )
+      metals.push(i);
+  });
+  const sites = { atoms: new Set<number>(), residues: new Set<string>() };
+  if (!metals.length) return sites;
+  const grid = new SpatialGrid(positions, metals, cutoff);
+  for (const atom of receptorAtoms) {
+    const residue = snapshot.residues[residueIndices[atom]];
+    if (
+      !COORDINATING_ATOMS[residue.componentId]?.includes(
+        snapshot.atoms[atom].name,
+      )
+    )
+      continue;
+    if (grid.neighbors(atom, cutoff).length) {
+      sites.atoms.add(atom);
+      sites.residues.add(residue.id);
+    }
+  }
+  return sites;
 }

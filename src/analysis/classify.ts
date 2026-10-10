@@ -2,7 +2,7 @@ import {
   FeatureTypes,
   InteractionType as MolType,
 } from "molstar/lib/mol-model-props/computed/interactions/common";
-import type { MolecularInteraction } from "../domain/analysis";
+import type { Ambiguity, MolecularInteraction } from "../domain/analysis";
 import type { ResidueRecord, StructureSnapshot } from "../domain/types";
 import { isHydrogenElement } from "../domain/elements";
 import { reject, type InteractionDraft, type Rejection } from "./collector";
@@ -23,6 +23,25 @@ export interface ClassificationContext {
   incomplete: Map<string, string[]>;
   /** Nonmetal chemical classification is enabled for this target. */
   chemicalEnabled: boolean;
+  /** Receptor His/Cys side-chain atoms (and their residues) coordinating a metal ion. */
+  metalSites?: { atoms: Set<number>; residues: Set<string> };
+}
+
+const AMIDE_ATOMS: Record<string, string[]> = {
+  ASN: ["OD1", "ND2"],
+  GLN: ["OE1", "NE2"],
+};
+const HIS_RING = ["ND1", "NE2"];
+/** Ambiguities of a receptor polar atom: Asn/Gln amide orientation, His ring tautomer. */
+export function polarAtomAmbiguities(
+  ctx: ClassificationContext,
+  atom: number,
+): Ambiguity[] {
+  const component = ctx.residueOf(atom).componentId,
+    name = ctx.snapshot.atoms[atom].name;
+  if (AMIDE_ATOMS[component]?.includes(name)) return ["amide_flip"];
+  if (component === "HIS" && HIS_RING.includes(name)) return ["his_tautomer"];
+  return [];
 }
 
 /** Validated ligand/receptor endpoints shared by every contact type. */
@@ -170,13 +189,26 @@ export function classifyIonic(
     );
   });
   if (unsupportedNitrogen) return reject("uncharged_nitrogen_negative");
+  const receptorResidue = ctx.residueOf(e.receptor.atoms[0]);
+  // A His or Cys side chain coordinating a metal is not available as an ionic partner.
+  if (
+    ["HIS", "CYS"].includes(receptorResidue.componentId) &&
+    ctx.metalSites?.residues.has(receptorResidue.id)
+  )
+    return reject("metal_bound_residue");
+  const his = receptorResidue.componentId === "HIS";
   return {
     ...e.base,
     type: "salt_bridge",
     classification: "candidate",
-    notes: [IONIC_NOTE],
+    ...(his ? { ambiguities: ["his_protonation"] as Ambiguity[] } : {}),
+    notes: his ? [IONIC_NOTE, HIS_NOTE] : [IONIC_NOTE],
   };
 }
+const HIS_NOTE =
+  "pH-dependent: the His side chain (pKa about 6) is mostly neutral near pH 7.4; Mol* treats it as positive.";
+const AMBIGUOUS_HBOND_NOTE =
+  "The receptor atom's identity or protonation is ambiguous in X-ray data (Asn/Gln amide flip or His tautomer); donor/acceptor roles may be reversed.";
 
 export function classifyHydrophobic(
   _ctx: ClassificationContext,
@@ -194,11 +226,15 @@ export function classifyHydrophobic(
 export function classifyHydrogenBond(
   ctx: ClassificationContext,
   e: Endpoints,
-): InteractionDraft {
+): InteractionDraft | Rejection {
   const [l, r] = e.base.closestAtomPair;
   const donor = Number(e.ligand.type) === FeatureTypes.HydrogenDonor ? l : r,
     acceptor = donor === l ? r : l;
   const positions = ctx.snapshot.atomBuffer.positions;
+  // A His/Cys atom donating its lone pair to a metal cannot also hydrogen-bond; short
+  // distances to it reflect coordination geometry around the metal.
+  if (ctx.metalSites?.atoms.has(r)) return reject("metal_bound_residue");
+  const ambiguities = polarAtomAmbiguities(ctx, r);
   const hydrogen = [...ctx.connectivity.neighbors(donor)]
     .filter((i) => isHydrogenElement(ctx.snapshot.atoms[i].element))
     .sort(
@@ -218,7 +254,11 @@ export function classifyHydrogenBond(
       hydrogen === undefined
         ? undefined
         : angleDegrees(positions, donor, hydrogen, acceptor),
-    notes: [hydrogen === undefined ? IMPLICIT_H_NOTE : EXPLICIT_H_NOTE],
+    ...(ambiguities.length ? { ambiguities } : {}),
+    notes: [
+      hydrogen === undefined ? IMPLICIT_H_NOTE : EXPLICIT_H_NOTE,
+      ...(ambiguities.length ? [AMBIGUOUS_HBOND_NOTE] : []),
+    ],
   };
 }
 
@@ -266,6 +306,7 @@ export function classifyWaterBridge(
     y = receptor.atoms[0],
     w = water.atoms[0];
   const c = ctx.connectivity;
+  if (ctx.metalSites?.atoms.has(y)) return reject("metal_bound_residue");
   if (
     c.withinTwoBonds(x, w) ||
     c.withinTwoBonds(y, w) ||
@@ -302,6 +343,9 @@ export function classifyWaterBridge(
       waterAngleDegrees: angleDegrees(positions, x, w, y),
     },
     classification: "candidate",
+    ...(polarAtomAmbiguities(ctx, y).length
+      ? { ambiguities: polarAtomAmbiguities(ctx, y) }
+      : {}),
     notes: [WATER_BRIDGE_NOTE],
   };
 }

@@ -191,3 +191,41 @@ describe("short hydrogen bonds and unrecorded attachments (synthetic)", () => {
     expect(await at(1.8)).toEqual({ attachment: [], flagged: false });
   });
 });
+
+describe("R2 on deposited structures", () => {
+  const caseRun = async (accession: string, component: string) => {
+    const p = await load(
+      new Uint8Array(
+        gunzipSync(
+          await readFile(`tests/fixtures/reference-set/${accession}.cif.gz`),
+        ),
+      ),
+      accession,
+    );
+    return { p, r: await run(p, component) };
+  };
+  const residueOf = (p: Awaited<ReturnType<typeof load>>, atom: number) =>
+    p.snapshot.residues[p.snapshot.atomBuffer.residueIndices[atom]];
+  it("1OQ5: zinc-coordinating His94/96/119 are not reported as celecoxib hydrogen-bond partners", async () => {
+    const { p, r } = await caseRun("1OQ5", "CEL");
+    const zincHis = r.interactions.filter(
+      (i) =>
+        ["hydrogen_bond", "water_bridge", "salt_bridge"].includes(i.type) &&
+        ["94", "96", "119"].includes(
+          residueOf(p, i.receptor.atomIndices[0]).authSeqId!,
+        ),
+    );
+    expect(zincHis).toEqual([]);
+    expect(r.stats.rejections?.metal_bound_residue).toBeGreaterThanOrEqual(3);
+  });
+  it("1V48: the His86 salt bridge is labeled pH-dependent", async () => {
+    const { p, r } = await caseRun("1V48", "HA1");
+    const his = r.interactions.find(
+      (i) =>
+        i.type === "salt_bridge" &&
+        residueOf(p, i.receptor.atomIndices[0]).componentId === "HIS",
+    )!;
+    expect(residueOf(p, his.receptor.atomIndices[0]).authSeqId).toBe("86");
+    expect(his.ambiguities).toEqual(["his_protonation"]);
+  });
+});

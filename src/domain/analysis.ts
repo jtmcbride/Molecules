@@ -21,6 +21,7 @@ export const REJECTION_REASONS = [
   "bonded_endpoints", // one or two covalent bonds apart
   "uncharged_nitrogen_negative", // nitrogen-only negative feature without an explicit negative formal charge
   "unsupported_type", // a Mol* interaction type outside this ruleset
+  "metal_bound_residue", // His/Cys coordinating a metal: no salt bridge; that atom has no H-bond
 ] as const;
 export type RejectionReason = (typeof REJECTION_REASONS)[number];
 export type ConformerPolicy = "exclude_disordered" | "preferred_residue";
@@ -113,6 +114,21 @@ export interface Participant {
     | "coordinator"
     | "water";
 }
+/**
+ * Chemistry X-ray coordinates rarely resolve: His protonation (side-chain pKa about 6),
+ * Asn/Gln amide orientation (O/N swap) and His tautomer/ring orientation.
+ */
+export const AMBIGUITIES = [
+  "his_protonation",
+  "amide_flip",
+  "his_tautomer",
+] as const;
+export type Ambiguity = (typeof AMBIGUITIES)[number];
+export const AMBIGUITY_LABELS: Record<Ambiguity, string> = {
+  his_protonation: "pH-dependent His",
+  amide_flip: "amide flip?",
+  his_tautomer: "His tautomer?",
+};
 export interface MolecularInteraction {
   id: string;
   type: InteractionType;
@@ -138,6 +154,8 @@ export interface MolecularInteraction {
   };
   donorHydrogenAcceptorAngle?: number;
   hydrogenMode?: "explicit" | "implicit";
+  /** Unresolved chemistry affecting this interaction (ruleset ligand-3); detection is unchanged. */
+  ambiguities?: Ambiguity[];
   classification: "measured_proximity" | "candidate" | "geometry_supported";
   notes: string[];
 }

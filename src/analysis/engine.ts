@@ -28,7 +28,11 @@ import {
 } from "./contacts";
 import { evaluationStatus } from "./evaluation";
 import { featureReader, orient, polarTyping } from "./features";
-import { annotateMetalGroups, metalFeaturePairs } from "./metal";
+import {
+  annotateMetalGroups,
+  metalCoordinatingSites,
+  metalFeaturePairs,
+} from "./metal";
 import {
   analysisKey,
   chemicalParameters,
@@ -144,6 +148,11 @@ export async function analyze(
         knownComponents: known,
         incomplete,
         chemicalEnabled,
+        metalSites: metalCoordinatingSites(
+          snapshot,
+          eligible.receptor,
+          parameters.metalCutoff,
+        ),
       };
       const edge = (
         unitA: number,

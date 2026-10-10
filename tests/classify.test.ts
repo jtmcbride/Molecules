@@ -91,6 +91,12 @@ function context(
   };
 }
 const group = (atoms: number[], type: number) => ({ atoms, type });
+function accepted<T extends object>(
+  x: T | { rejected: string },
+): Exclude<T, { rejected: string }> {
+  if ("rejected" in x) throw new Error(`Unexpected rejection ${x.rejected}`);
+  return x as Exclude<T, { rejected: string }>;
+}
 const endpoints = (
   ctx: ClassificationContext,
   l: number[],
@@ -235,15 +241,17 @@ describe("hydrogen bonds", () => {
   ]);
   it("is a candidate with implicit hydrogens", () => {
     const ctx = context(w);
-    const hb = classifyHydrogenBond(
-      ctx,
-      endpoints(
+    const hb = accepted(
+      classifyHydrogenBond(
         ctx,
-        [0],
-        FeatureTypes.HydrogenAcceptor,
-        [1],
-        FeatureTypes.HydrogenDonor,
-        MolType.HydrogenBond,
+        endpoints(
+          ctx,
+          [0],
+          FeatureTypes.HydrogenAcceptor,
+          [1],
+          FeatureTypes.HydrogenDonor,
+          MolType.HydrogenBond,
+        ),
       ),
     );
     expect(hb).toMatchObject({
@@ -256,15 +264,17 @@ describe("hydrogen bonds", () => {
   it("is geometry-supported with an explicit donor hydrogen and reports the D–H···A angle", () => {
     w.connectivity.add(1, 2, 1, 1);
     const ctx = context(w);
-    const hb = classifyHydrogenBond(
-      ctx,
-      endpoints(
+    const hb = accepted(
+      classifyHydrogenBond(
         ctx,
-        [0],
-        FeatureTypes.HydrogenAcceptor,
-        [1],
-        FeatureTypes.HydrogenDonor,
-        MolType.HydrogenBond,
+        endpoints(
+          ctx,
+          [0],
+          FeatureTypes.HydrogenAcceptor,
+          [1],
+          FeatureTypes.HydrogenDonor,
+          MolType.HydrogenBond,
+        ),
       ),
     );
     expect(hb).toMatchObject({
@@ -455,13 +465,11 @@ describe("ring and metal contacts", () => {
     expect(interactions[0].notes[0]).toContain(
       `more than ${MAX_ANGLE_PARTNERS}`,
     );
-    const three = interactions
-      .slice(0, 3)
-      .map((i) => ({
-        ...i,
-        geometry: undefined as MolecularInteraction["geometry"],
-        notes: [],
-      }));
+    const three = interactions.slice(0, 3).map((i) => ({
+      ...i,
+      geometry: undefined as MolecularInteraction["geometry"],
+      notes: [],
+    }));
     annotateMetalGroups(three, positions);
     expect(three[0].geometry!.selectedReceptorAnglesDegrees).toHaveLength(3);
   });
@@ -597,5 +605,65 @@ describe("evaluation status", () => {
       status: "not_evaluated",
       reason: "Metals and atoms without a published radius were excluded.",
     });
+  });
+});
+
+describe("ambiguity labels and metal-coordinating residues (R2)", () => {
+  const w = world([
+    { residue: "LIG:1", element: "O", at: [0, 0, 0] },
+    { residue: "HIS:2", element: "N", at: [2.9, 0, 0] },
+    { residue: "ASN:3", element: "O", at: [0, 2.9, 0] },
+    { residue: "SER:4", element: "O", at: [0, 0, 2.9] },
+  ]);
+  w.snapshot.atoms[1].name = "NE2";
+  w.snapshot.atoms[2].name = "OD1";
+  w.snapshot.atoms[3].name = "OG";
+  const hbond = (ctx: ClassificationContext, receptor: number) =>
+    classifyHydrogenBond(
+      ctx,
+      endpoints(
+        ctx,
+        [0],
+        FeatureTypes.HydrogenAcceptor,
+        [receptor],
+        FeatureTypes.HydrogenDonor,
+        MolType.HydrogenBond,
+      ),
+    );
+  it("labels His ring and Asn/Gln amide hydrogen bonds but not Ser", () => {
+    const ctx = context(w, {
+      knownComponents: new Set(["LIG", "HIS", "ASN", "SER"]),
+    });
+    expect(accepted(hbond(ctx, 1)).ambiguities).toEqual(["his_tautomer"]);
+    expect(accepted(hbond(ctx, 2)).ambiguities).toEqual(["amide_flip"]);
+    expect(accepted(hbond(ctx, 3)).ambiguities).toBeUndefined();
+  });
+  it("marks His salt bridges pH-dependent and rejects metal-coordinating His as ionic or hydrogen-bond partners", () => {
+    const ctx = context(w, {
+      knownComponents: new Set(["LIG", "HIS", "ASN", "SER"]),
+    });
+    const ionic = (c: ClassificationContext) =>
+      classifyIonic(
+        c,
+        endpoints(
+          c,
+          [0],
+          FeatureTypes.NegativeCharge,
+          [1],
+          FeatureTypes.PositiveCharge,
+          MolType.Ionic,
+        ),
+      );
+    expect(accepted(ionic(ctx))).toMatchObject({
+      type: "salt_bridge",
+      ambiguities: ["his_protonation"],
+    });
+    const bound = context(w, {
+      knownComponents: new Set(["LIG", "HIS", "ASN", "SER"]),
+      metalSites: { atoms: new Set([1]), residues: new Set(["HIS:2"]) },
+    });
+    expect(ionic(bound)).toEqual({ rejected: "metal_bound_residue" });
+    expect(hbond(bound, 1)).toEqual({ rejected: "metal_bound_residue" });
+    expect(accepted(hbond(bound, 2)).ambiguities).toEqual(["amide_flip"]);
   });
 });
