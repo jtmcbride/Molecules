@@ -2,7 +2,8 @@ import { Shape } from "molstar/lib/mol-model/shape";
 import { ShapeRepresentation } from "molstar/lib/mol-repr/shape/representation";
 import { Lines } from "molstar/lib/mol-geo/geometry/lines/lines";
 import { LinesBuilder } from "molstar/lib/mol-geo/geometry/lines/lines-builder";
-import { Vec3 } from "molstar/lib/mol-math/linear-algebra";
+import { Mat4, Vec3 } from "molstar/lib/mol-math/linear-algebra";
+import { StateTransforms } from "molstar/lib/mol-plugin-state/transforms";
 import {
   INTERACTION_COLORS,
   type MolecularInteraction,
@@ -72,6 +73,8 @@ export class MolecularViewer {
       },
     },
   };
+  /** Comparison structures: state-tree refs of their data and display-transform nodes. */
+  private members = new Map<string, { data: string; transform: string }>();
   private subscriptions: Subscription[] = [];
   private resizeObserver: ResizeObserver | null = null;
   private alive = true;
@@ -129,7 +132,8 @@ export class MolecularViewer {
   private residueForLoci(loci: unknown): string | null {
     if (!StructureElement.Loci.is(loci)) return null;
     const loc = StructureElement.Loci.getFirstLocation(loci);
-    return loc
+    // Unit IDs restart in every structure: comparison structures are display-only.
+    return loc && loc.structure.root === this.structure
       ? (this.selections?.residueByLocation.get(
           `${loc.unit.id}:${loc.element}`,
         ) ?? null)
@@ -152,6 +156,7 @@ export class MolecularViewer {
     this.water = null;
     this.polymerRepresentation = null;
     this.waterRepresentation = null;
+    this.members.clear();
     await this.plugin.clear();
     const data = await this.plugin.builders.data.rawData({
       data: source.binary
@@ -273,6 +278,152 @@ export class MolecularViewer {
       chainColors[chain.id] = Color.toHexStyle(theme.color(loc, false));
     }
     return { snapshot: extracted.snapshot, options, metadata, chainColors };
+  }
+  /**
+   * Adds a comparison structure without clearing the scene. The snapshot is extracted from
+   * the deposited coordinates; the display goes through a transform node (identity until a
+   * superposition is applied).
+   */
+  async addMember(
+    id: string,
+    source: StructureSource,
+    modelIndex: number,
+    assemblyId: string,
+    color: string,
+  ) {
+    const data = await this.plugin.builders.data.rawData({
+      data: source.binary
+        ? new Uint8Array(source.bytes)
+        : new TextDecoder().decode(source.bytes),
+      label: source.name,
+    });
+    try {
+      const trajectory = await this.plugin.builders.structure.parseTrajectory(
+        data,
+        "mmcif",
+      );
+      const frames = trajectory.obj?.data;
+      if (!frames?.frameCount)
+        throw new Error("The file does not contain any structural models.");
+      if (modelIndex < 0 || modelIndex >= frames.frameCount)
+        throw new Error("The requested structural model is unavailable.");
+      const model = await this.plugin.builders.structure.createModel(
+        trajectory,
+        { modelIndex },
+      );
+      if (!model.obj)
+        throw new Error("The structural model could not be parsed.");
+      const root = await this.plugin.builders.structure.createStructure(
+        model,
+        assemblyId
+          ? { name: "assembly", params: { id: assemblyId } }
+          : { name: "model", params: {} },
+      );
+      if (!root.obj)
+        throw new Error("The selected assembly contains no structure.");
+      const extracted = extractSnapshot(
+        root.obj.data,
+        source,
+        modelIndex,
+        assemblyId,
+      );
+      const moved = await this.plugin
+        .build()
+        .to(root)
+        .apply(StateTransforms.Model.TransformStructureConformation, {
+          transform: {
+            name: "matrix",
+            params: { data: Mat4.identity(), transpose: false },
+          },
+        })
+        .commit();
+      const uniform = { value: Color.fromHexStyle(color) };
+      const polymer =
+        await this.plugin.builders.structure.tryCreateComponentStatic(
+          moved,
+          "polymer",
+        );
+      if (polymer)
+        await this.plugin.builders.structure.representation.addRepresentation(
+          polymer,
+          {
+            type: "cartoon",
+            color: "uniform",
+            colorParams: uniform,
+            typeParams: { quality: "auto", alpha: 0.85 },
+          },
+        );
+      for (const componentType of ["ligand", "ion", "branched"] as const) {
+        const component =
+          await this.plugin.builders.structure.tryCreateComponentStatic(
+            moved,
+            componentType,
+          );
+        if (component)
+          await this.plugin.builders.structure.representation.addRepresentation(
+            component,
+            {
+              type: "ball-and-stick",
+              color: "uniform",
+              colorParams: uniform,
+            },
+          );
+      }
+      this.members.set(id, { data: data.ref, transform: moved.ref });
+      const mmcif = MmcifFormat.is(model.obj.data.sourceData)
+        ? model.obj.data.sourceData.data
+        : undefined;
+      return {
+        snapshot: extracted.snapshot,
+        title: mmcif?.db.struct.title.value(0) || model.obj.data.label,
+      };
+    } catch (error) {
+      await PluginCommands.State.RemoveObject(this.plugin, {
+        state: this.plugin.state.data,
+        ref: data.ref,
+      });
+      throw error;
+    }
+  }
+  async removeMember(id: string) {
+    const member = this.members.get(id);
+    if (!member) return;
+    this.members.delete(id);
+    await PluginCommands.State.RemoveObject(this.plugin, {
+      state: this.plugin.state.data,
+      ref: member.data,
+    });
+  }
+  async setMemberVisibility(id: string, visible: boolean) {
+    const member = this.members.get(id);
+    if (!member) return;
+    const hidden = this.plugin.state.data.cells.get(member.data)?.state
+      .isHidden;
+    if (hidden === visible)
+      await PluginCommands.State.ToggleVisibility(this.plugin, {
+        state: this.plugin.state.data,
+        ref: member.data,
+      });
+  }
+  /** Column-major 4×4 transform onto the reference frame; null restores deposited coordinates. */
+  async setMemberTransform(id: string, transform: number[] | null) {
+    const member = this.members.get(id);
+    if (!member) return;
+    await this.plugin
+      .build()
+      .to(member.transform)
+      .update(StateTransforms.Model.TransformStructureConformation, () => ({
+        transform: {
+          name: "matrix" as const,
+          params: {
+            data: transform
+              ? Mat4.fromArray(Mat4(), transform, 0)
+              : Mat4.identity(),
+            transpose: false,
+          },
+        },
+      }))
+      .commit();
   }
   private getOptions(
     model: Model,

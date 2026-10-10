@@ -1,5 +1,6 @@
 import { DEFAULT_PARAMETERS } from "../domain/analysis";
 import { BiologyController } from "../biology/controller";
+import { ComparisonController } from "../comparison/controller";
 import { AnalysisClient } from "../analysis/client";
 import { analysisKey } from "../analysis/engine";
 import { loadChemicalDefinitions } from "../data/chemistry";
@@ -17,7 +18,7 @@ import {
   loadLocalFile,
   loadPdb,
 } from "../data/provider";
-import { getLastSession, saveSession } from "../data/repository";
+import { getLastSession, saveAnalysis, saveSession } from "../data/repository";
 import type { MolecularViewer } from "./adapter";
 
 export class ExplorerController {
@@ -28,7 +29,12 @@ export class ExplorerController {
   private generation = 0;
   private abort: AbortController | null = null;
   private queue: Promise<unknown> = Promise.resolve();
-  constructor(readonly viewer: MolecularViewer) {}
+  readonly comparison: ComparisonController;
+  constructor(readonly viewer: MolecularViewer) {
+    this.comparison = new ComparisonController(viewer, (job) =>
+      this.enqueue(job),
+    );
+  }
   private enqueue<T>(job: () => Promise<T>): Promise<T> {
     const operation = this.queue.then(job);
     this.queue = operation.catch(() => {});
@@ -64,6 +70,11 @@ export class ExplorerController {
   ) {
     this.invalidateAnalysis();
     this.biology.cancel();
+    // Correspondence and transforms depend on the reference structure, model and assembly.
+    this.comparison.clear(
+      "Comparison structures were closed because the reference structure changed.",
+      false,
+    );
     const current = ++this.generation;
     this.abort?.abort();
     this.abort = new AbortController();
@@ -136,6 +147,8 @@ export class ExplorerController {
       });
       this.viewer.selectResidue(selectedResidueId);
       void this.biology.initialize(source, result.snapshot, restore);
+      if (restore?.comparison?.length)
+        this.comparison.restore(restore.comparison);
       const restoredAnalysisGeneration = this.analysisGeneration;
       if (restore?.analysisCacheKey) {
         void database.analyses
@@ -186,7 +199,7 @@ export class ExplorerController {
           })
           .catch(() => {});
       }
-      await cacheSource(source).catch(() =>
+      await cacheSource(source, this.comparison.openHashes()).catch(() =>
         useExplorer.setState({
           notice:
             "Browser storage is unavailable. Exploration still works; this session will not be cached.",
@@ -199,7 +212,9 @@ export class ExplorerController {
             if (current !== this.generation) return;
             const updated = { ...source, metadata };
             useExplorer.setState({ source: updated });
-            void cacheSource(updated).catch(() => {});
+            void cacheSource(updated, this.comparison.openHashes()).catch(
+              () => {},
+            );
           })
           .catch(() => {
             if (current === this.generation && !signal.aborted)
@@ -223,6 +238,7 @@ export class ExplorerController {
   }
   cancel() {
     this.biology.cancel();
+    this.comparison.clear(null, false);
     this.invalidateAnalysis();
     ++this.generation;
     this.abort?.abort();
@@ -362,32 +378,13 @@ export class ExplorerController {
           "Analysis coordinates do not match the displayed structure.",
         );
       if (!cached) {
-        await database
-          .transaction(
-            "rw",
-            database.analyses,
-            database.chemicalDefinitions,
-            async () => {
-              await database.analyses.put(run);
-              await database.chemicalDefinitions.bulkPut(
-                definitions.filter((d) =>
-                  run.chemistrySources.some(
-                    (c) =>
-                      c.source === "ccd" &&
-                      c.componentId === d.componentId &&
-                      c.contentHash === d.contentHash,
-                  ),
-                ),
-              );
-            },
-          )
-          .catch(() => {
-            if (current === this.analysisGeneration)
-              useExplorer.setState({
-                notice:
-                  "Analysis completed. Results could not be cached in browser storage.",
-              });
-          });
+        await saveAnalysis(run, definitions).catch(() => {
+          if (current === this.analysisGeneration)
+            useExplorer.setState({
+              notice:
+                "Analysis completed. Results could not be cached in browser storage.",
+            });
+        });
       }
       if (current !== this.analysisGeneration) return;
       useExplorer.setState({
@@ -480,9 +477,11 @@ export class ExplorerController {
     const s = useExplorer.getState();
     if (!s.snapshot || !s.source) return;
     try {
-      await cacheSource(s.source);
+      await cacheSource(s.source, this.comparison.openHashes());
+      const comparison = this.comparison.descriptors();
       await saveSession({
-        schemaVersion: 2,
+        schemaVersion: comparison.length ? 3 : 2,
+        ...(comparison.length ? { comparison } : {}),
         interpretationId: s.interpretation?.id,
         annotationCategories: s.annotationCategories,
         selectedProteinAccession: s.selectedProteinAccession,
@@ -510,6 +509,7 @@ export class ExplorerController {
   }
   dispose() {
     this.biology.cancel();
+    this.comparison.dispose();
     ++this.analysisGeneration;
     this.analysisAbort?.abort();
     this.analysisClient.cancel();

@@ -128,3 +128,14 @@ Acceptance: all gates above pass in CI; the release records the comparison versi
 - **Mol* scene with several structures.** Selection, focus and the binding-site component assume one structure. Keeping picking bound to the reference avoids a large adapter rewrite; comparison structures are display-only in 4A.
 - **Memory.** Eight large structures can exhaust browser memory. The per-structure atom limit and the seven-structure cap bound it; very large assemblies may still fail and must fail per slot.
 - **ProLIF agreement.** Per-structure agreement between the tools is already below 1 (see `validation/README.md`), so the fingerprint validation measures agreement on differences, not identity.
+
+## Implementation record
+
+- **4A.** As planned.
+  - **Viewer.** Comparison structures are display-only cartoons in one colour each, drawn through a Mol* transform node. Picking checks `loc.structure.root` against the reference structure.
+  - **Store and controller.** `src/state/comparison.ts` and `src/comparison/controller.ts`. Each slot has its own generation and abort controller, and analyses run one at a time.
+  - **Comparison analysis request.** The slot's ligand, all of its polymer chains as receptor, and the reference's current parameters. The default ligand is an instance of the reference target's component when one is present.
+  - **Sessions.** Saved as schema 3 only when the comparison has structures; otherwise schema 2, so older deployments can still read them.
+  - **Cache accounting.** Kept in a separate `sourceUsage` table, so eviction never loads coordinate bytes. Dexie version 4 fills it from existing sources on upgrade.
+  - **Local files** load as comparison structures but get no residue mapping, so they cannot be paired.
+  - **Fixtures.** 1S0R, 1S0Q and 1HHO coordinates (gzip of the downloaded bytes, with both hashes in the manifest), SIFTS and RCSB records frozen in `tests/fixtures/biology`.

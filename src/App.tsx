@@ -1,4 +1,6 @@
 import { BiologyPanel } from "./components/BiologyPanel";
+import { ComparisonPanel } from "./components/ComparisonPanel";
+import { CacheUsage } from "./components/CacheUsage";
 import { ResidueBiology } from "./components/ResidueBiology";
 import { EvidenceDrawer } from "./components/EvidenceDrawer";
 import { AnalysisPanel } from "./components/AnalysisPanel";
@@ -747,6 +749,7 @@ export default function App() {
           </div>
           <AnalysisPanel controller={controller.current} />
           <BiologyPanel controller={controller.current} />
+          <ComparisonPanel controller={controller.current} />
         </section>
 
         <aside className="inspector-panel panel">
@@ -972,6 +975,7 @@ export default function App() {
                       renderer. Sessions are stored on this device.
                     </p>
                   </div>
+                  <CacheUsage />
                   {state.source?.kind !== "local" && (
                     <a
                       className="source-link"

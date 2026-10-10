@@ -36,7 +36,7 @@ export class BiologyController {
     snapshot: StructureSnapshot,
     restore?: Partial<SessionDescriptor>,
   ) {
-    if (restore?.schemaVersion === 2) {
+    if (restore && (restore.schemaVersion ?? 1) >= 2) {
       useExplorer.setState({
         annotationCategories:
           restore.annotationCategories ??

@@ -35,6 +35,7 @@ src/
     identity.ts    identity() tuple IDs, preferred-conformer selection
     elements.ts    normalizeElement / isHydrogenElement (the only H/D/T test)
     analysis.ts    Interaction types, DEFAULT_PARAMETERS, ENGINE_VERSION/RULESET_VERSION
+    comparison.ts  COMPARISON_VERSION, comparison session descriptors, rigid transforms
     biology.ts     ProteinRecord, ResidueMapping (status + identity), FunctionalAnnotation, Evidence, LigandIdentity, LigandFit, InterpretationSnapshot, site/context feature categories
   structure/   Mol* boundary for parsing/rendering
     adapter.ts     Mol* plugin lifecycle, scene, bidirectional domain↔Mol* selection
@@ -69,9 +70,13 @@ src/
     sifts.ts, uniprot.ts, biologySchemas.ts  Zod/XML-validated adapters
     chemcomp.ts, ligandFit.ts  RCSB chemical component (ChEBI) and ligand-instance validation adapters
     biologyResources.ts  Bounded fetch, 7-day freshness, stale fallback
-    repository.ts  Dexie IndexedDB (DB version 3). Add a new version(); never edit old ones
-  state/explorer.ts  Zustand UI state
-  components/  AnalysisPanel, BiologyPanel, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
+    repository.ts  Dexie IndexedDB (DB version 4). Add a new version(); never edit old ones. Source cache budget + eviction
+    cache.ts       Pure LRU eviction planning (protected: open structures, saved session)
+  state/explorer.ts  Zustand UI state (reference structure)
+  state/comparison.ts  Comparison slots, one per comparison structure
+  comparison/  Phase 4 structural comparison
+    controller.ts  Per-slot loading, pinned restore, interpretation and queued analysis; never touches the reference
+  components/  AnalysisPanel, BiologyPanel, ComparisonPanel, CacheUsage, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
   App.tsx      Workspace layout and synchronized views
 tests/
   *.test.ts    Vitest (structure, analysis, interaction-categories, reference-comparison, scaling, biology, biologyResources, interpretation)
@@ -101,4 +106,4 @@ public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 
 ## Key limits (see README for full list)
 
-40 MB input, 250,000 selected atoms, one model at a time, mmCIF/BinaryCIF only. Biology supports four-character PDB IDs, ≤32 proteins, a 20 s timeout and 2 retries. SIFTS is bounded to 10 MB compressed, 50 MB decompressed and 500k rows, and requires `DecompressionStream`. Mol* parsing for display runs on the main thread; analysis and SIFTS parsing run in workers. No cache eviction or service worker.
+40 MB input, 250,000 selected atoms, one model at a time, mmCIF/BinaryCIF only. Biology supports four-character PDB IDs, ≤32 proteins, a 20 s timeout and 2 retries. SIFTS is bounded to 10 MB compressed, 50 MB decompressed and 500k rows, and requires `DecompressionStream`. Mol* parsing for display runs on the main thread; analysis and SIFTS parsing run in workers. Cached coordinates are evicted LRU beyond 300 MB (never open or saved-session sources). No service worker. Up to 7 comparison structures besides the reference.

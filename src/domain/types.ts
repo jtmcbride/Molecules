@@ -1,3 +1,4 @@
+import type { ComparisonMemberDescriptor } from "./comparison";
 /** Domain objects contain no rendering-library objects. Coordinates are assembly-space Å. */
 export interface StructureSource {
   id: string;
@@ -131,7 +132,8 @@ export interface StructureOptions {
 }
 export type Representation = "cartoon" | "ball-and-stick" | "molecular-surface";
 export interface SessionDescriptor {
-  schemaVersion: 1 | 2;
+  /** 3 adds the comparison structures (Phase 4). */
+  schemaVersion: 1 | 2 | 3;
   interpretationId?: string;
   annotationCategories?: string[];
   selectedProteinAccession?: string | null;
@@ -145,4 +147,5 @@ export interface SessionDescriptor {
   representation: Representation;
   showWater: boolean;
   savedAt: string;
+  comparison?: ComparisonMemberDescriptor[];
 }

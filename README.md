@@ -91,7 +91,7 @@ The summary also shows structure evidence: method, resolution and R-free from th
 
 **Interpretation JSON** (schema 2) includes protein/feature snapshots, residue correspondence and identity, projections, ligand identities and validation scores, evidence, source hashes, coordinates, structure quality, the binding-site summary (site/context overlaps with background rates and ligand relations), coordinate-uncertainty metadata with borderline interaction IDs, and the unchanged current Phase 2 analysis, when available. **Residue annotations CSV** includes every deposited polymer position, including explicit unmapped rows, as a separate correspondence/feature export. Columns appended in biology-1.1.0 are `feature_category`, `feature_ligand`, `feature_ligand_id`, `residue_identity` and `residue_change`. The Phase 2 interaction CSV remains unchanged. Raw biological response bytes are preserved locally in IndexedDB.
 
-Biological sources normally reuse cached snapshots for seven days. Expired sources are requested again, with labeled stale-cache fallback during service failure. Manual refresh creates a new interpretation revision; failure preserves the previous interpretation. Saved session schema 2 pins its interpretation and analysis, category filters and protein choice. Restoration uses those saved revisions without new biological requests; explicitly refresh and save to replace them. Schema 1 sessions remain readable.
+Biological sources normally reuse cached snapshots for seven days. Expired sources are requested again, with labeled stale-cache fallback during service failure. Manual refresh creates a new interpretation revision; failure preserves the previous interpretation. Saved session schema 2 pins its interpretation and analysis, category filters and protein choice. Schema 3 adds comparison structures, each with its own pinned interpretation, analysis, ligand choice, visibility and display transform. Restoration uses those saved revisions without new biological requests; explicitly refresh and save to replace them. Schema 1 sessions remain readable.
 
 Local files receive no automatic biological requests. Explicitly associate a PDB accession to retrieve identifiers only; every polymer chain must match the full deposited sequence and numbering (at least 10 positions). Coordinates are never uploaded. Unsupported/truncated constructs remain unannotated while exploration and interaction computation continue.
 
@@ -168,7 +168,8 @@ src/
     sifts.ts, uniprot.ts   Validated biological provider adapters
     chemcomp.ts, ligandFit.ts  RCSB chemical identity (ChEBI) and ligand validation adapters
     biologyResources.ts   Bounded acquisition, freshness and stale fallback
-    repository.ts         Versioned IndexedDB source, session, chemistry and result caches
+    repository.ts         Versioned IndexedDB source, session, chemistry and result caches; cache budget
+    cache.ts              Least-recently-used eviction planning
   state/
     explorer.ts           UI state and domain references
 tests/
@@ -198,14 +199,14 @@ Current limits:
 - One loaded structure and one structural model at a time.
 - Atomic mmCIF/BinaryCIF only; legacy PDB, compressed files, and coarse-only models are not supported.
 - Parsing and scene construction currently use Mol* on the main thread. Download cancellation aborts the request; cancellation during parsing discards its result and clears the scene once the current serialized operation finishes.
-- Cache reads reuse downloaded bytes; there is no automatic source-refresh policy or LRU eviction yet.
+- Cache reads reuse downloaded bytes; there is no automatic source-refresh policy. Cached coordinates beyond 300 MB are evicted least recently used first, with their analyses and interpretations. Open structures and the saved session's structures are never evicted. The Source tab shows cache use and clears unused entries.
 - Session restoration saves structure/context/selection/representation/water state; camera orientation is not restored.
 - Saved schema 2 sessions also reference the current analysis and interpretation; camera orientation and annotation selection are not restored.
 - Biological annotation supports four-character PDB accessions, up to 32 protein records, four concurrent protein requests, a 20-second request timeout and at most two transient retries. Extended structure IDs remain viewable without this mapping.
 - SIFTS compression requires a browser with `DecompressionStream`; inputs/output are bounded to 10/50 MB, XML to 500,000 correspondence rows, and provider JSON to 5 MB discovery / 10 MB UniProt. Decompression and XML parsing run in a dedicated module worker that is terminated on cancellation.
 - Ensemble analysis covers at most four alternate-conformer labels; beyond that the preferred conformer per residue is analyzed, with a flag.
 - Ligand chemical identities and validation scores are requested for at most 32 distinct components and 32 nonpolymer instances per structure; branched entities have no validation request. A failed ligand record is a quality flag and never blocks annotation.
-- No automatic cache eviction, inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation-effect interpretation is included.
+- No inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation-effect interpretation is included.
 
 ## Test evidence
 

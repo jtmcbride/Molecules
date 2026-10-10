@@ -1,7 +1,13 @@
 import "fake-indexeddb/auto";
 import Dexie from "dexie";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { database, getLastSession } from "../src/data/repository";
+import {
+  cacheSource,
+  database,
+  enforceCacheBudget,
+  getLastSession,
+  saveSession,
+} from "../src/data/repository";
 import {
   biologyResource,
   uniprotRequest,
@@ -65,8 +71,12 @@ test("Dexie v2 upgrades without losing coordinate sources, saved sessions or ana
   });
   legacy.close();
   await database.open();
-  expect(database.verno).toBe(3);
+  expect(database.verno).toBe(4);
   expect((await getLastSession())?.descriptor).toEqual(descriptor);
+  // Version 4 records each existing source's size for cache accounting.
+  expect(
+    (await database.sourceUsage.get(fixture.source.contentHash))?.byteLength,
+  ).toBe(fixture.source.bytes.byteLength);
   expect((await database.analyses.get("preserved"))?.interactions).toEqual([
     { id: "untouched" },
   ]);
@@ -241,4 +251,50 @@ test("pins ligand chemical identities with their source records and tolerates a 
     ),
   ).toBe(true);
   expect(partial.interpretation.proteins).toHaveLength(1);
+});
+test("cache eviction removes least-recently-used sources with their records, never protected ones", async () => {
+  const fixture = await biologyFixture();
+  // Artificial sources: the fixture bytes under distinct hashes and use times.
+  const source = (hash: string) => ({
+    ...fixture.source,
+    contentHash: hash,
+  });
+  for (const hash of ["old", "saved", "open", "recent"]) {
+    await cacheSource(source(hash));
+    await database.sourceUsage.update(hash, {
+      lastUsedAt: {
+        old: "2026-01-01T00:00:00Z",
+        saved: "2026-01-02T00:00:00Z",
+        open: "2026-01-03T00:00:00Z",
+        recent: "2026-01-04T00:00:00Z",
+      }[hash],
+    });
+    await database.analyses.put({
+      cacheKey: `run-${hash}`,
+      sourceHash: hash,
+    } as never);
+  }
+  await saveSession({
+    schemaVersion: 3,
+    sourceHash: "saved",
+    modelIndex: 0,
+    assemblyId: "",
+    selectedResidueId: null,
+    activeChainId: null,
+    representation: "cartoon",
+    showWater: false,
+    savedAt: "2026-01-05T00:00:00Z",
+    comparison: [],
+  });
+  const size = fixture.source.bytes.byteLength;
+  // Budget for one source: only the unprotected ones go, oldest first.
+  expect(await enforceCacheBudget(["open"], size)).toBe(2);
+  expect((await database.sources.toCollection().primaryKeys()).sort()).toEqual([
+    "open",
+    "saved",
+  ]);
+  expect(await database.analyses.get("run-old")).toBeUndefined();
+  expect(await database.analyses.get("run-recent")).toBeUndefined();
+  expect(await database.analyses.get("run-saved")).toBeDefined();
+  expect(await database.sourceUsage.count()).toBe(2);
 });

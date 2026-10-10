@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 import { prepareStructure } from "../../src/analysis/prepare";
 import {
   parseDiscovery,
@@ -17,8 +18,11 @@ const sha = (bytes: Uint8Array) =>
 export async function biologyFixture(id = "3PTB", assembly = "") {
   const path = existsSync(`public/structures/${id}.cif`)
       ? `public/structures/${id}.cif`
-      : `tests/fixtures/biology/${id}.cif`,
-    bytes = new Uint8Array(await readFile(path)),
+      : existsSync(`tests/fixtures/biology/${id}.cif`)
+        ? `tests/fixtures/biology/${id}.cif`
+        : `tests/fixtures/biology/${id}.cif.gz`,
+    raw = new Uint8Array(await readFile(path)),
+    bytes = path.endsWith(".gz") ? new Uint8Array(gunzipSync(raw)) : raw,
     source: StructureSource = {
       id,
       name: id,
