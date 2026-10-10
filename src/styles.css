@@ -2396,3 +2396,54 @@ select {
   font-size: 12px;
   margin-top: 8px;
 }
+.comparison-warning {
+  margin: 0;
+  font-size: 12px;
+  color: #f0c27b;
+}
+.comparison-correspondence {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.comparison-pairings {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.comparison-pairings th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 3px 6px 3px 0;
+}
+.comparison-pairings td {
+  padding: 3px 6px 3px 0;
+  border-top: 1px solid #1d2838;
+}
+.comparison-pairings select {
+  background: #101827;
+  border: 1px solid #2c394b;
+  border-radius: 6px;
+  padding: 4px 6px;
+  color: #d9e4f4;
+  font-size: 12px;
+}
+.comparison-counts {
+  margin: 0;
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}

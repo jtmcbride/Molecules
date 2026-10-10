@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import type { AnalysisRun } from "../domain/analysis";
 import type { InterpretationSnapshot } from "../domain/biology";
-import type { RigidTransform } from "../domain/comparison";
+import type {
+  ChainPairingOverride,
+  RigidTransform,
+} from "../domain/comparison";
 import type { StructureSnapshot, StructureSource } from "../domain/types";
 
 /**
@@ -33,6 +36,7 @@ export interface ComparisonSlot {
   targetLigandId: string | null;
   ligandGroupId: string | null;
   transform: RigidTransform | null;
+  pairingOverrides: ChainPairingOverride[];
 }
 
 interface ComparisonState {

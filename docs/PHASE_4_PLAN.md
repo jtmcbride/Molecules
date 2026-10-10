@@ -139,3 +139,8 @@ Acceptance: all gates above pass in CI; the release records the comparison versi
   - **Cache accounting.** Kept in a separate `sourceUsage` table, so eviction never loads coordinate bytes. Dexie version 4 fills it from existing sources on upgrade.
   - **Local files** load as comparison structures but get no residue mapping, so they cannot be paired.
   - **Fixtures.** 1S0R, 1S0Q and 1HHO coordinates (gzip of the downloaded bytes, with both hashes in the manifest), SIFTS and RCSB records frozen in `tests/fixtures/biology`.
+- **4B.** As planned.
+  - **Code.** `src/comparison/correspondence.ts` holds the pure function, memoized per slot in `src/comparison/derived.ts`. The panel shows the pairing table with a per-chain override, correspondence counts, residues that differ and unpaired chains. Overrides are saved in the session.
+  - **Receptor chains.** A comparison analysis uses the comparison chains paired with the reference's receptor chains, or every polymer chain while no correspondence exists. The run records the choice.
+  - **Finding.** Author numbering differs at every one of the 223 trypsin positions: 3PTB uses chymotrypsinogen numbering (16…), 1S0R starts at 1 and 1S0Q at 660. SIFTS pairs all 223 exactly. Pairing by author numbering would have been wrong throughout.
+  - **4HHB↔1HHO.** Pairs A↔A and B↔B (287 residues); 4HHB chains C and D stay unpaired, because 1HHO deposits one αβ dimer.

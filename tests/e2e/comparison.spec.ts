@@ -155,3 +155,51 @@ test("a failed comparison load leaves the reference analysis intact, and a new r
   );
   expect(errors).toEqual([]);
 });
+
+test("hemoglobin chains pair by author chain, can be re-paired, and the pairing restores", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await expect(
+    page.getByText("Structure ready", { exact: true }),
+  ).toBeVisible();
+  await page.locator(".example-button").nth(1).click();
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  await addComparison(page, "1HHO");
+  const slot = page.getByTestId("comparison-slot");
+  await expect(slot).toHaveAttribute("data-phase", "ready");
+  await expect(slot.getByTestId("comparison-counts")).toHaveText(
+    /^287 paired · 0 reference only · 0 comparison only · 0 not comparable/,
+  );
+  const partnerOfC = slot.getByLabel(
+    "Partner of reference chain C (P69905) in 1HHO",
+  );
+  await expect(partnerOfC).toHaveValue("");
+  // Pair 1HHO A with 4HHB C instead of 4HHB A.
+  await partnerOfC.selectOption({ label: "A" });
+  await expect(
+    slot.getByLabel("Partner of reference chain A (P69905) in 1HHO"),
+  ).toHaveValue("");
+  await expect(slot.getByTestId("comparison-counts")).toContainText(
+    "287 paired",
+  );
+  await expect(slot.locator("tr", { hasText: /^P69905C/ })).toContainText(
+    "your choice",
+  );
+  await page.getByRole("button", { name: "Save session", exact: true }).click();
+  await expect(page.getByText(/Session saved in this browser/)).toBeVisible();
+  await page.reload();
+  await expect(slot).toHaveAttribute("data-phase", "ready");
+  await expect(
+    slot.getByLabel("Partner of reference chain C (P69905) in 1HHO"),
+  ).not.toHaveValue("");
+  await slot.getByRole("button", { name: "Reset pairings" }).click();
+  await expect(
+    slot.getByLabel("Partner of reference chain C (P69905) in 1HHO"),
+  ).toHaveValue("");
+  expect(errors).toEqual([]);
+});

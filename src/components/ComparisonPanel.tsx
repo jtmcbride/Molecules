@@ -5,6 +5,7 @@ import { useComparison, type ComparisonSlot } from "../state/comparison";
 import { MAX_COMPARISON_STRUCTURES } from "../domain/comparison";
 import type { StructureSnapshot } from "../domain/types";
 import type { ExplorerController } from "../structure/controller";
+import { CorrespondenceSummary } from "./CorrespondenceSummary";
 
 function ligandLabel(snapshot: StructureSnapshot, residueId: string) {
   const residue = snapshot.residues.find((r) => r.id === residueId);
@@ -93,6 +94,7 @@ function SlotRow({
                 : slot.biologyStatus || "Not loaded"}
             </dd>
           </dl>
+          <CorrespondenceSummary slot={slot} controller={controller} />
           <div className="comparison-analysis">
             <label className="comparison-ligand">
               Ligand

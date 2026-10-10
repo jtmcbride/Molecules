@@ -12,6 +12,7 @@ import {
 import type { AnalysisRequest } from "../domain/analysis";
 import {
   MAX_COMPARISON_STRUCTURES,
+  type ChainPairingOverride,
   type ComparisonMemberDescriptor,
   type RigidTransform,
 } from "../domain/comparison";
@@ -20,6 +21,7 @@ import { getSlot, patchSlot, useComparison } from "../state/comparison";
 import type { ComparisonSlot } from "../state/comparison";
 import { useExplorer } from "../state/explorer";
 import type { MolecularViewer } from "../structure/adapter";
+import { slotCorrespondence } from "./derived";
 
 const COLORS = [
   "#f2a65a",
@@ -104,6 +106,9 @@ export class ComparisonController {
               interpretationId: s.interpretation?.id,
               visible: s.visible,
               ...(s.transform ? { transform: s.transform } : {}),
+              ...(s.pairingOverrides.length
+                ? { pairingOverrides: s.pairingOverrides }
+                : {}),
             },
           ]
         : [],
@@ -208,6 +213,7 @@ export class ComparisonController {
       targetLigandId: null,
       ligandGroupId: null,
       transform: restore?.transform ?? null,
+      pairingOverrides: restore?.pairingOverrides ?? [],
     };
     useComparison.setState((s) => ({
       slots: [...s.slots, slot],
@@ -299,6 +305,27 @@ export class ComparisonController {
   setTransform(id: string, transform: RigidTransform | null) {
     patchSlot(id, { transform });
     void this.enqueue(() => this.viewer.setMemberTransform(id, transform));
+  }
+  /** Overrides the comparison partner of one reference chain (null: leave it unpaired). */
+  setPairing(id: string, override: ChainPairingOverride) {
+    const slot = getSlot(id);
+    if (!slot) return;
+    this.invalidateAnalysis(id);
+    patchSlot(id, {
+      pairingOverrides: [
+        ...slot.pairingOverrides.filter(
+          (o) =>
+            o.accession !== override.accession ||
+            o.referenceChainId !== override.referenceChainId,
+        ),
+        override,
+      ],
+    });
+  }
+  resetPairings(id: string) {
+    if (!getSlot(id)?.pairingOverrides.length) return;
+    this.invalidateAnalysis(id);
+    patchSlot(id, { pairingOverrides: [] });
   }
   setLigand(id: string, value: string) {
     const slot = getSlot(id);
@@ -423,20 +450,34 @@ export class ComparisonController {
     });
   }
   /**
-   * The comparison request: the slot's ligand, all of its polymer chains as receptor and
-   * the reference's current parameters, so analyses are comparable like for like.
+   * The comparison request: the slot's ligand, the reference's current parameters, and as
+   * receptor the comparison chains paired with the reference's receptor chains. Without a
+   * residue correspondence every polymer chain is the receptor. The run records the choice.
    */
   request(slot: ComparisonSlot): AnalysisRequest | null {
     if (!slot.snapshot || !slot.targetLigandId) return null;
     const group = slot.snapshot.ligandGroups?.find(
       (g) => g.id === slot.ligandGroupId,
     );
+    const reference = useExplorer.getState();
+    const receptor = new Set(reference.receptorChainIds);
+    const paired = [
+      ...new Set(
+        slotCorrespondence(reference, slot)
+          ?.pairings.filter((p) => receptor.has(p.referenceChainId))
+          .map((p) => p.comparisonChainId) ?? [],
+      ),
+    ];
     return {
       ligandResidueId: slot.targetLigandId,
       ...(group ? { ligandResidueIds: [...group.residueIds] } : {}),
-      receptorChainIds: slot.snapshot.chains
-        .filter((c) => c.type === "polymer")
-        .map((c) => c.id),
+      receptorChainIds: paired.length
+        ? slot.snapshot.chains
+            .filter((c) => paired.includes(c.id))
+            .map((c) => c.id)
+        : slot.snapshot.chains
+            .filter((c) => c.type === "polymer")
+            .map((c) => c.id),
       parameters: { ...useExplorer.getState().analysisParameters },
     };
   }
