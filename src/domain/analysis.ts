@@ -26,7 +26,13 @@ export const REJECTION_REASONS = [
   "metal_distance", // beyond the element-specific metal–donor target plus tolerance
 ] as const;
 export type RejectionReason = (typeof REJECTION_REASONS)[number];
-export type ConformerPolicy = "exclude_disordered" | "preferred_residue";
+/**
+ * ensemble (default, ruleset ligand-3): analyze each alternate-conformer label and report
+ * per-conformer presence. exclude_disordered: drop residues with alternate conformers.
+ * preferred_residue: one recorded conformer per residue (exploratory).
+ */
+export type ConformerPolicy =
+  "ensemble" | "exclude_disordered" | "preferred_residue";
 export interface AnalysisParameters {
   proximityCutoff: number;
   hydrogenBondCutoff: number;
@@ -75,7 +81,7 @@ export const DEFAULT_PARAMETERS: AnalysisParameters = {
   includeWaters: true,
   clashOverlapMin: 0.6,
   minimumOccupancy: 0,
-  conformerPolicy: "exclude_disordered",
+  conformerPolicy: "ensemble",
   classifyChemistry: true,
 };
 export const INTERACTION_LABELS: Record<InteractionType, string> = {
@@ -177,6 +183,9 @@ export interface MolecularInteraction {
   };
   donorHydrogenAcceptorAngle?: number;
   hydrogenMode?: "explicit" | "implicit";
+  /** Ensemble mode: conformer labels containing this interaction, with the occupancy of its altloc-specific atoms. */
+  conformers?: { altId: string; occupancy?: number }[];
+  conformerPresence?: "all" | "partial";
   /** Unresolved chemistry affecting this interaction (ruleset ligand-3); detection is unchanged. */
   ambiguities?: Ambiguity[];
   classification: "measured_proximity" | "candidate" | "geometry_supported";
@@ -250,6 +259,8 @@ export interface AnalysisRun {
     excludedBondedPairs: number;
     elapsedMilliseconds: number;
     rejections?: Partial<Record<RejectionReason, number>>;
+    /** Ensemble mode: analyzed alternate-conformer labels. */
+    conformerLabels?: string[];
   };
   /** Ligand–receptor covalent bonds in the selected context (ruleset ligand-3). */
   covalentAttachments?: {

@@ -186,6 +186,23 @@ Each Phase 2.x milestone regenerates the engine goldens and the reference-set ag
   - ProLIF's only halogen bond (2BSM Phe138) is not found by PLIP or the app.
   - 1J91 (tetrabromobenzotriazole) has no halogen bond in any tool. Its closest geometric candidate, BR13···Arg47 NE (2.99 Å, 165°), involves a protonated guanidinium nitrogen with no available lone pair, and Val45 O is 3.99 Å away at 120°. The case is kept as a negative control.
 
+### R5 — per-conformer ensemble analysis (new default)
+
+- **Rules:**
+  - `conformerPolicy: "ensemble"` is the default.
+  - Each alternate-conformer label (at most four) in the ligand, receptor chains or waters is analyzed separately. A run uses the shared atoms plus that label's alternates; a residue lacking the label contributes its preferred conformer, and contacted residues of that kind are flagged as assumed combinations.
+  - Results are merged by type, residues and atom names. Each interaction records `conformers` (label and occupancy of its altloc-specific atoms) and `conformerPresence` (`all` or `partial`).
+  - A ligand with alternate conformers is analyzed instead of refused. Structures without alternate conformers take the single-pass path.
+  - `exclude_disordered` and `preferred_residue` remain available.
+- **Evidence:**
+  - Synthetic two-conformer serine: an OG–O1 hydrogen bond present only in conformer A (occupancy 0.6) is `partial`; contacts not involving the disordered atom are `all`. The same structure loses the serine entirely under `exclude_disordered`.
+  - A ligand with alternate conformers is analyzed.
+  - 1T46: imatinib's hydrophobic contact to the disordered Val654 is recovered (absent under `exclude_disordered`).
+- **Golden changes:** none of the 13 golden structures has alternate conformers; interactions are identical, and only the default policy value and text change hashes.
+- **Reference agreement:** contacts at previously excluded disordered residues now match references.
+  - PLIP hydrophobic: shared 83 → 84, PLIP-only 1 → 0 (1T46 Val654). PLIP H-bond app-only 22 → 23 (1HQ2 Pro43).
+  - ProLIF H-bond: shared 57 → 58 (1HQ2 Pro43). ProLIF hydrophobic: shared 53 → 54 (1KZK Val82 chain B).
+
 ## Scale and browser verification
 
 A local Node 24 run on 2026-10-09 built the 100,000-atom grid in approximately 34 ms, with five queries plus independent brute-force validation taking approximately 83 ms. The coordinate buffer alone occupies 1.2 MB. These are observations from this environment, not browser speed promises or whole-engine memory measurements. Reproduce with `RECORD_REFERENCE=1 npm test`; diagnostic JSON is written under `/tmp`. Normal tests assert correctness rather than a machine-specific timing threshold.

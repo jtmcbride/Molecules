@@ -39,6 +39,12 @@ import {
   effectiveParameters,
 } from "./parameters";
 import { eligibleAtoms, summarizeInteractions } from "./policy";
+import {
+  conformerLabels,
+  conformerSelection,
+  MAX_CONFORMER_LABELS,
+  mergeEnsemble,
+} from "./ensemble";
 import { ASSUMPTIONS, chemistrySources, qualityFlags } from "./provenance";
 import { metalSearchDistance } from "./metalDistances";
 
@@ -52,6 +58,10 @@ export { analysisKey, chemicalParameters } from "./parameters";
 /** Mol* edge flag bit 1: the refinement step marked this contact redundant. */
 const FILTERED = 1;
 
+/**
+ * Entry point. Ensemble mode runs the pipeline once per alternate-conformer label and merges
+ * the results; structures without alternate conformers take the single-pass path.
+ */
 export async function analyze(
   structure: Structure,
   snapshot: StructureSnapshot,
@@ -60,9 +70,72 @@ export async function analyze(
   definitions: ChemicalDefinition[],
   progress: (message: string) => void = () => {},
 ): Promise<AnalysisRun> {
+  if (request.parameters.conformerPolicy !== "ensemble")
+    return analyzeSelection(
+      structure,
+      snapshot,
+      index,
+      request,
+      definitions,
+      progress,
+    );
+  const labels = conformerLabels(snapshot, request);
+  if (!labels.length)
+    return analyzeSelection(
+      structure,
+      snapshot,
+      index,
+      request,
+      definitions,
+      progress,
+    );
+  if (labels.length > MAX_CONFORMER_LABELS) {
+    const run = await analyzeSelection(
+      structure,
+      snapshot,
+      index,
+      request,
+      definitions,
+      progress,
+    );
+    run.qualityFlags.push(
+      `${labels.length} alternate-conformer labels exceed the ensemble limit of ${MAX_CONFORMER_LABELS}; the preferred conformer per residue was analyzed instead.`,
+    );
+    return run;
+  }
+  const runs = [];
+  for (const label of labels) {
+    progress(`Analyzing conformer ${label}`);
+    const { atoms, assumed } = conformerSelection(snapshot, label);
+    runs.push({
+      label,
+      assumed,
+      run: await analyzeSelection(
+        structure,
+        snapshot,
+        index,
+        request,
+        definitions,
+        progress,
+        atoms,
+      ),
+    });
+  }
+  return mergeEnsemble(runs, snapshot);
+}
+
+async function analyzeSelection(
+  structure: Structure,
+  snapshot: StructureSnapshot,
+  index: SelectionIndex,
+  request: AnalysisRequest,
+  definitions: ChemicalDefinition[],
+  progress: (message: string) => void = () => {},
+  selection?: Set<number>,
+): Promise<AnalysisRun> {
   const started = performance.now();
   const parameters = request.parameters;
-  const eligible = eligibleAtoms(snapshot, request);
+  const eligible = eligibleAtoms(snapshot, request, selection);
   const incomplete = incompleteResidues(snapshot, eligible.context);
   const ligandSet = new Set(eligible.ligand),
     receptorSet = new Set(eligible.receptor);

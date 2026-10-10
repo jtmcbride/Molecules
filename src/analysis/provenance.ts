@@ -61,6 +61,7 @@ export const ASSUMPTIONS = [
   "His salt bridges are pH-dependent candidates (side-chain pKa about 6). Hydrogen bonds and water bridges to Asn/Gln amide or His ring atoms carry flip/tautomer ambiguity labels. His/Cys side chains coordinating a metal ion are not ionic partners, and the coordinating atom is not a hydrogen-bond or water-bridge partner. Protonation, flips and tautomers are labeled, not resolved.",
   "Mol* infers connectivity/valence when deposited chemistry is incomplete. Standard residue templates treat ARG/LYS/HIS as positive and ASP/GLU as negative for ionic candidates.",
   "Mol* contact refinement suppresses redundant hydrophobic contacts and hydrogen bonds overlapping ionic contacts. Negative nitrogen features require an explicit negative formal charge in this ruleset.",
+  "Ensemble mode analyzes each alternate-conformer label separately (shared atoms plus that label's alternates; residues lacking the label contribute their preferred conformer) and reports each interaction's conformers and occupancy. Alternate-conformer labels are not guaranteed to be consistent across residues.",
   "Distance measurements and chemical candidates do not estimate affinity or binding energy.",
 ];
 

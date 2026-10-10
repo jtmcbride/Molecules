@@ -11,6 +11,7 @@ import { useExplorer } from "../state/explorer";
 import {
   AMBIGUITY_LABELS,
   INTERACTION_LABELS,
+  type ConformerPolicy,
   type InteractionType,
 } from "../domain/analysis";
 import { atomLabel } from "../analysis/provenance";
@@ -298,11 +299,13 @@ export function AnalysisPanel({
                 value={s.analysisParameters.conformerPolicy}
                 onChange={(e) =>
                   controller?.setAnalysisParameters({
-                    conformerPolicy: e.target.value as
-                      "exclude_disordered" | "preferred_residue",
+                    conformerPolicy: e.target.value as ConformerPolicy,
                   })
                 }
               >
+                <option value="ensemble">
+                  Per-conformer ensemble (default)
+                </option>
                 <option value="exclude_disordered">
                   Exclude disordered residues
                 </option>
@@ -503,6 +506,14 @@ export function AnalysisPanel({
                     ` · ${selected.hydrogenMode} hydrogens`}
                   {selected.donorHydrogenAcceptorAngle !== undefined &&
                     ` · D–H–A ${selected.donorHydrogenAcceptorAngle.toFixed(1)}°`}
+                  {selected.conformers?.length
+                    ? ` · ${selected.conformerPresence === "all" ? "all conformers" : "conformers"} ${selected.conformers
+                        .map(
+                          (c) =>
+                            `${c.altId}${c.occupancy !== undefined ? ` (${c.occupancy.toFixed(2)})` : ""}`,
+                        )
+                        .join(", ")}`
+                    : ""}
                   {selected.ambiguities?.length
                     ? ` · ${selected.ambiguities.map((a) => AMBIGUITY_LABELS[a]).join(", ")}`
                     : ""}
@@ -615,6 +626,20 @@ export function AnalysisPanel({
                       </th>
                       <td>
                         {INTERACTION_LABELS[i.type]}
+                        {i.conformerPresence === "partial" && (
+                          <span
+                            className="conformer-presence"
+                            title={i.conformers
+                              ?.map(
+                                (c) =>
+                                  `${c.altId}${c.occupancy !== undefined ? ` (occupancy ${c.occupancy.toFixed(2)})` : ""}`,
+                              )
+                              .join(", ")}
+                          >
+                            conformer{" "}
+                            {i.conformers?.map((c) => c.altId).join("/")} only
+                          </span>
+                        )}
                         {i.ambiguities?.map((a) => (
                           <span className="ambiguity" key={a}>
                             {AMBIGUITY_LABELS[a]}

@@ -2254,3 +2254,14 @@ select {
   padding: 0 5px;
   white-space: nowrap;
 }
+.conformer-presence {
+  margin-left: 6px;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  color: #e8b779;
+  border: 1px dashed currentColor;
+  border-radius: 999px;
+  padding: 0 5px;
+  white-space: nowrap;
+}

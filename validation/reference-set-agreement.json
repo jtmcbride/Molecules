@@ -3,13 +3,13 @@
   "plip": {
    "hydrogen_bond": {
     "shared": 64,
-    "appOnly": 22,
+    "appOnly": 23,
     "referenceOnly": 36
    },
    "hydrophobic_contact": {
-    "shared": 83,
-    "appOnly": 21,
-    "referenceOnly": 1
+    "shared": 84,
+    "appOnly": 22,
+    "referenceOnly": 0
    },
    "salt_bridge": {
     "shared": 4,
@@ -44,14 +44,14 @@
   },
   "prolif": {
    "hydrogen_bond": {
-    "shared": 57,
+    "shared": 58,
     "appOnly": 29,
-    "referenceOnly": 3
+    "referenceOnly": 2
    },
    "hydrophobic_contact": {
-    "shared": 53,
-    "appOnly": 51,
-    "referenceOnly": 32
+    "shared": 54,
+    "appOnly": 52,
+    "referenceOnly": 31
    },
    "salt_bridge": {
     "shared": 0,
@@ -179,6 +179,7 @@
      "water_bridge:TRP:A:89"
     ],
     "appOnly": [
+     "hydrogen_bond:PRO:A:43",
      "water_bridge:ASP:A:97",
      "water_bridge:TYR:A:53"
     ],
@@ -212,14 +213,13 @@
     "shared": [
      "hydrogen_bond:ASN:A:55",
      "hydrogen_bond:LEU:A:45",
+     "hydrogen_bond:PRO:A:43",
      "hydrogen_bond:THR:A:42",
      "pi_stacking:PHE:A:123",
      "pi_stacking:TYR:A:53"
     ],
     "appOnly": [],
-    "referenceOnly": [
-     "hydrogen_bond:PRO:A:43"
-    ]
+    "referenceOnly": []
    }
   },
   "1R55:097": {
@@ -290,6 +290,7 @@
     "appOnly": [
      "hydrophobic_contact:ALA:B:28",
      "hydrophobic_contact:LEU:B:23",
+     "hydrophobic_contact:VAL:B:82",
      "water_bridge:ARG:A:8",
      "water_bridge:ILE:A:50"
     ],
@@ -304,7 +305,8 @@
      "hydrophobic_contact:ASP:A:29",
      "hydrophobic_contact:ASP:B:30",
      "hydrophobic_contact:ILE:B:47",
-     "hydrophobic_contact:VAL:B:32"
+     "hydrophobic_contact:VAL:B:32",
+     "hydrophobic_contact:VAL:B:82"
     ],
     "appOnly": [
      "hydrogen_bond:ASP:A:25",
@@ -319,8 +321,7 @@
     ],
     "referenceOnly": [
      "hydrophobic_contact:ILE:A:50",
-     "hydrophobic_contact:ILE:B:50",
-     "hydrophobic_contact:VAL:B:82"
+     "hydrophobic_contact:ILE:B:50"
     ]
    }
   },
@@ -816,6 +817,7 @@
      "hydrophobic_contact:LYS:A:623",
      "hydrophobic_contact:THR:A:670",
      "hydrophobic_contact:VAL:A:603",
+     "hydrophobic_contact:VAL:A:654",
      "hydrophobic_contact:VAL:A:668",
      "pi_stacking:PHE:A:811",
      "water_bridge:ASP:A:810",
@@ -829,7 +831,6 @@
     ],
     "referenceOnly": [
      "hydrogen_bond:GLU:A:640",
-     "hydrophobic_contact:VAL:A:654",
      "salt_bridge:ASP:A:810"
     ]
    },
@@ -854,6 +855,7 @@
      "hydrogen_bond:HIS:A:790",
      "hydrogen_bond:ILE:A:789",
      "hydrophobic_contact:THR:A:670",
+     "hydrophobic_contact:VAL:A:654",
      "pi_stacking:PHE:A:811"
     ],
     "referenceOnly": [

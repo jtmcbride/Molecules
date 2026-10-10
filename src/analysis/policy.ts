@@ -90,15 +90,25 @@ export function validateRequest(
     p.minimumOccupancy > 1
   )
     throw new Error("Minimum occupancy must be between 0 and 1.");
-  if (!["exclude_disordered", "preferred_residue"].includes(p.conformerPolicy))
+  if (
+    !["ensemble", "exclude_disordered", "preferred_residue"].includes(
+      p.conformerPolicy,
+    )
+  )
     throw new Error("Unknown alternate-conformer policy.");
 }
+/**
+ * Atoms eligible as endpoints or context. `selection` (ensemble mode) supplies one
+ * conformer's atoms; otherwise each residue's recorded preferred conformer is used.
+ */
 export function eligibleAtoms(
   snapshot: StructureSnapshot,
   request: AnalysisRequest,
+  selection?: Set<number>,
 ) {
   validateRequest(snapshot, request);
-  const preferred = new Set(snapshot.atomBuffer.preferredAtomIndices);
+  const preferred =
+    selection ?? new Set(snapshot.atomBuffer.preferredAtomIndices);
   const receptorChains = new Set(request.receptorChainIds);
   const context: number[] = [],
     ligand: number[] = [],
@@ -124,7 +134,7 @@ export function eligibleAtoms(
     ) {
       if (isTarget)
         throw new Error(
-          "This ligand has alternate conformers. Choose “Preferred per residue” for an exploratory analysis.",
+          "This ligand has alternate conformers. Choose the per-conformer ensemble or “Preferred per residue”.",
         );
       excludedDisorderedResidues++;
       continue;

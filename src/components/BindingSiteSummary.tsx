@@ -105,6 +105,23 @@ export function BindingSiteSummary() {
         Counts use polymer contact residues; waters and ligands are excluded
         from the denominator.
       </p>
+      {(() => {
+        const all = new Set<string>(),
+          partial = new Set<string>();
+        for (const i of s.analysis!.interactions)
+          if (i.conformerPresence)
+            (i.conformerPresence === "all" ? all : partial).add(
+              i.receptor.residueId,
+            );
+        const onlyPartial = [...partial].filter((id) => !all.has(id));
+        return onlyPartial.length ? (
+          <p className="small muted" data-testid="partial-conformer-residues">
+            {onlyPartial.length} contact residue
+            {onlyPartial.length === 1 ? "" : "s"} contact the ligand in only
+            some alternate conformers.
+          </p>
+        ) : null;
+      })()}
       <div className="biology-tags">
         <span>{summary.proximityResidueCount} proximity</span>
         <span>{summary.chemicalResidueCount} chemical</span>

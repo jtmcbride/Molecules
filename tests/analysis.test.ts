@@ -51,7 +51,7 @@ describe('ligand interaction engine',()=>{
     expect(again.interactions).toEqual(run.interactions);expect(again.cacheKey).toBe(run.cacheKey);
   });
   it('separates unknown chemistry from an evaluated zero and honors occupancy and conformer policies',async()=>{
-    const p=await fixture('tests/fixtures/identity-edge-cases.cif'),q=requestFor(p.snapshot);
+    const p=await fixture('tests/fixtures/identity-edge-cases.cif'),q=requestFor(p.snapshot);q.parameters.conformerPolicy='exclude_disordered';
     const atoms=eligibleAtoms(p.snapshot,q);expect(atoms.excludedDisorderedResidues).toBe(1);
     const run=await analyze(p.structure,p.snapshot,p.selectionIndex,q,[]);
     expect(run.evaluation.hydrogen_bond.status).toBe('not_evaluated');

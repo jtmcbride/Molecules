@@ -2,7 +2,7 @@
   "note": "SHA-256 of canonicalRun() per case, interaction counts and Mol* edge rejection counts; see tests/engine-golden.test.ts.",
   "cases": {
     "3PTB-BEN-default": {
-      "sha256": "b03f21a63c005d1e4e459cf2272f259ff5acd9a6f1585dd3407e2ca0f7f19234",
+      "sha256": "8057c50340c2abb9815dd0246cd4405f1a571137f2a660acdba53655892375e0",
       "counts": {
         "hydrogen_bond": 4,
         "proximity_contact": 172,
@@ -16,7 +16,7 @@
       }
     },
     "3PTB-BEN-ccd": {
-      "sha256": "0aaf4e54c78d45e56e9ff5c92dc802f2cf559d58cecc895263f14023a47ce94c",
+      "sha256": "ad10ed89308132c5536872650d7923c5cab8755f47815eb1566cb40b8591fc4b",
       "counts": {
         "hydrogen_bond": 4,
         "proximity_contact": 172,
@@ -30,7 +30,7 @@
       }
     },
     "3PTB-BEN-variant": {
-      "sha256": "a4736a19d1394800cd80a9f42dd6586a5a5728c4b9e57bebcb2fc4cfdd514619",
+      "sha256": "0546cba2db4c48bb78ef499b028c9801b70587078cf131db82e3d2acb4394d09",
       "counts": {
         "hydrogen_bond": 5,
         "proximity_contact": 172,
@@ -42,14 +42,14 @@
       }
     },
     "3PTB-BEN-no-chemistry": {
-      "sha256": "2e6ecd366839da8d244ac11a7b67378fdb87ef897bd191aa5bfd4457428ad35b",
+      "sha256": "6e0b6697df174e15d5c405b96eb0e60e103766137e10e8e01adc5a7b8235167e",
       "counts": {
         "proximity_contact": 172
       },
       "rejections": {}
     },
     "1EVE-E20-default": {
-      "sha256": "0e083def52b730db4fcdf46803eb0320b99765cd8894dba4914b56bfe30faef1",
+      "sha256": "2966e22a5298fa3348883b59e91abaae7ca6fdb88e493d37782edb9e20f2ad1d",
       "counts": {
         "proximity_contact": 315,
         "pi_stacking": 2,
@@ -63,7 +63,7 @@
       }
     },
     "1RMD-ZN-default": {
-      "sha256": "19ac1cc9159462fcc6fb8bca30f34aa015006e32de9c8a684f060053ba24e7a9",
+      "sha256": "b55fcd0c29327e093ecc51922424f05ca3554a96d735bb4fb71b6229592e5dea",
       "counts": {
         "metal_coordination": 4,
         "proximity_contact": 27
@@ -71,7 +71,7 @@
       "rejections": {}
     },
     "pi-stacking": {
-      "sha256": "daac8f0e309315f4e21bd07dc5c2e6beea89d068d95c9b519c4796ec5e137c37",
+      "sha256": "1aca9db1451c42b0da5b2e5b5607df9acdba8b4497b8187ecd850f8a2cafc15f",
       "counts": {
         "hydrophobic_contact": 6,
         "pi_stacking": 1,
@@ -82,7 +82,7 @@
       }
     },
     "cation-pi": {
-      "sha256": "7e7f33b682e9080454950e92036bcfdce4fab9f73cea8e9af0d98742efe2417e",
+      "sha256": "b5bc5ee69164a6289bfb24f66090b64cc6f1f4ad4da74228c921598a45fbfa92",
       "counts": {
         "cation_pi": 1,
         "proximity_contact": 6
@@ -90,7 +90,7 @@
       "rejections": {}
     },
     "metal-coordination": {
-      "sha256": "19e3d799fd8e241344a9183cce6195ad39529b992d444bc7af53e53a6fb40ccf",
+      "sha256": "b647d450d4aab26d9c343413d1a2dd57042baa422bb64dfa06c260d743130668",
       "counts": {
         "metal_coordination": 1,
         "proximity_contact": 8
@@ -100,7 +100,7 @@
       }
     },
     "water-bridge": {
-      "sha256": "0a40b57879fec906dcacb6eec5a6666850dccc5b1db6419125359f7760c9d72c",
+      "sha256": "75c09d6601e2ef6c586bbda6f8817133d04bedf0a17508f713d5059ec2ec1b18",
       "counts": {
         "proximity_contact": 1,
         "water_bridge": 1
@@ -108,7 +108,7 @@
       "rejections": {}
     },
     "water-bridge-narrow": {
-      "sha256": "d58d689e7371fcd5de1957abe72bfd251d0db077809106f6ec120e1d3cdba624",
+      "sha256": "167cf23b49d6dda5d9174f8a24d69ce19ca3c39a2e98f2566bbc3b028d3de208",
       "counts": {
         "proximity_contact": 1,
         "water_bridge": 1
@@ -116,7 +116,7 @@
       "rejections": {}
     },
     "hydrogen-geometry": {
-      "sha256": "930350ea79acbf771ee436204f0785c040b778ba17e15eace6bc8e76a6e6229a",
+      "sha256": "50610d00dae92d6e9c45cb07ee864af1305261b3ccf76be12189af52e23b4d7d",
       "counts": {
         "hydrogen_bond": 1,
         "proximity_contact": 7
@@ -124,7 +124,7 @@
       "rejections": {}
     },
     "hydrogen-geometry-clash": {
-      "sha256": "eb8351a7c7df0e6fe3519b54cd11871847511859ed5b7333ce04810aea81421e",
+      "sha256": "61b18c612fb2b33d50f7ae19a52eef44839b4737928030b9fd5b4a2577026f69",
       "counts": {
         "steric_clash": 1
       },
