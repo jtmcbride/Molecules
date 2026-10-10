@@ -99,6 +99,7 @@ See [biological validation evidence](validation/BIOLOGY.md) for frozen source ha
 - **Phase 1 — complete:** reliable structure exploration, identity and linked selection. [Status](docs/PHASE_1_STATUS.md).
 - **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain. [Status](docs/PHASE_2_STATUS.md).
 - **Phase 3 — complete, including follow-up milestones 3F–3J:** validated SIFTS mappings, UniProt identity/features, linked annotation tracks, residue context, site-level binding-site summaries with background rates and ligand relations, engineered-mutation projection, structure-quality and ligand-fit evidence, pinned sessions and interpretation exports. [Validation and limits](validation/BIOLOGY.md); [plan and implementation record](docs/PHASE_3_PLAN.md).
+- **Phase 2.x — planned:** interaction ruleset revision (covalent ligands, ambiguity labels, metal distances, halogen bonds, altloc ensembles, multi-residue ligands) with a reference validation harness. [Plan](docs/PHASE_2X_PLAN.md).
 - **Phases 4–5 — pending:** structural comparison, mutations, protein interfaces and advanced analyses.
 
 ## GitHub and GitHub Pages

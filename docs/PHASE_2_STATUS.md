@@ -21,7 +21,7 @@ Updated 2026-10-10. Engine `contacts-2.0.0`, ruleset `molstar-5.13.1-ligand-2`.
 
 ## Scope and next useful changes
 
-Ruleset revisions are planned after the engine restructuring in Phase 3 milestone 3H. See "Deferred: Phase 2.x ruleset revisions" in [PHASE_3_PLAN.md](PHASE_3_PLAN.md):
+Ruleset revisions are planned in [PHASE_2X_PLAN.md](PHASE_2X_PLAN.md) (validation harness V0, then R1–R6):
 
 - Per-altloc ensemble analysis instead of whole-residue exclusion by default.
 - Halogen bonds, element-specific metal distances, His pH-dependent tier and amide/His flip flags.
