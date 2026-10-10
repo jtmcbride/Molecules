@@ -1,6 +1,6 @@
 # Phase 4 implementation plan: structural comparison
 
-Status: planned 2026-10-10 on the `phase-4-comparison` branch. Baseline: `main` after the Phase 2.x ruleset release (engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-3`, `biology-1.1.0`, analysis JSON schema 3, interpretation JSON schema 2, Dexie version 3).
+Status: implemented 2026-10-10 (4A–4F) on the `phase-4-comparison` branch as `comparison-1.0.0`. See the [implementation record](#implementation-record), [status](PHASE_4_STATUS.md) and [validation](../validation/COMPARISON.md). Baseline: `main` after the Phase 2.x ruleset release (engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-3`, `biology-1.1.0`, analysis JSON schema 3, interpretation JSON schema 2, Dexie version 3).
 
 ## Outcome and boundaries
 
@@ -160,4 +160,8 @@ Acceptance: all gates above pass in CI; the release records the comparison versi
   - **Site definition.** The 4 Å binding-site union became residues within 5 Å of either structure's ligand. It works for apo comparisons and does not depend on contact rules.
   - **Significance.** "Beyond 2σ" uses the combined DPI. At atomic resolution (1S0R↔1S0Q, σ 0.031 Å), most site residues exceed it with shifts under 0.4 Å. The panel explains that DPI describes an average-B atom and leaves out fit error, and always shows the shift.
   - **Outputs.** Site differences are included in the comparison JSON.
+- **4F.** As planned.
+  - **Golden test.** `tests/comparison-golden.test.ts` pins SHA-256 hashes of the full comparison output (correspondence, superposition, fingerprint, site differences) for 3PTB↔1S0R, 1S0R↔1S0Q, 2DN2↔2DN1 and 4HHB↔1HHO, with numbers rounded to 1e-6.
+  - **Browser workflows.** `tests/e2e/comparison.spec.ts` covers the full workflow and failure isolation.
+  - **Version.** The package version moves to 0.4.0.
 

@@ -97,13 +97,45 @@ Local files receive no automatic biological requests. Explicitly associate a PDB
 
 See [biological validation evidence](validation/BIOLOGY.md) for frozen source hashes, regression cases and limitations.
 
+## Phase 4 capabilities and scientific policy
+
+Up to seven comparison structures load beside the reference structure. Each keeps its own coordinates, snapshot, SIFTS/UniProt interpretation and analysis, built by the same code and versions as the reference. Comparison structures are display-only cartoons in their own colour; picking, selection and the analysis panel stay with the reference. Loading a different reference structure, model or assembly closes the comparison. A failed or cancelled comparison structure never affects the reference or other comparison structures.
+
+**Residue correspondence** uses only the Phase 3 exact SIFTS mapping:
+- Chain instances pair per shared UniProt accession: the user's choice first, then the same author chain ID and operator, then order of appearance. The basis of each pairing is shown, and homo-oligomers pair chain by chain.
+- Residues pair when both are observed and exactly mapped to the same UniProt position. Other positions are `reference_only`, `comparison_only` or `not_comparable` (ambiguous, conflicting or mismatched mapping, with the reason).
+- Paired residues that differ, such as engineered mutations, keep both identities.
+- Author numbering is never used: across the trypsin fixtures it differs at every position.
+- Structures sharing no accession are not compared.
+
+**Superposition** is a least-squares rigid fit (Horn quaternion method) of paired Cα atoms:
+- Up to five outlier-rejection cycles at 2 × the core RMSD, never keeping fewer than half the pairs or 10 atoms.
+- Two scopes: all paired residues, or residues within 8 Å of the reference ligand.
+- Core and all-pair RMSD are both reported. The fit runs automatically and refits when pairings, scope or the reference ligand change.
+- The transform moves only the display and comparison measurements, never a snapshot.
+
+**Interaction fingerprints** have one row per reference chain, UniProt position and chemical interaction type:
+- Cells are `present`, `absent`, `not evaluated`, `not observed` or `not comparable`. Only present and absent are measurements, and only they enter the Tanimoto similarity.
+- A comparison structure is analyzed with the reference's current parameters, using as receptor its chains paired with the reference receptor. A column whose engine, ruleset or parameters differ is refused.
+- Every gained or lost cell carries its distance from the cutoff, and changes within 0.5 Å are marked ≈. Against ProLIF, fingerprint changes between structures were dominated by such contacts (see validation).
+
+**Binding-site differences** cover paired residues within 5 Å of either ligand, after superposition:
+- Cα displacement, side-chain RMSD (equivalent atoms may swap) and χ1/χ2 changes, with a rotamer change above 60°.
+- Shifts are compared with twice the combined Cruickshank coordinate error, or labeled not assessable. That error describes an average-B atom and leaves out fit error.
+- Site waters are conserved when superposed oxygens lie within 1.0 Å. Comparison waters in the reference ligand site are reported.
+
+**Comparison JSON** (schema 1, `comparison-1.0.0`) records every structure's source hash, pinned analysis and interpretation, chain pairings and residue correspondence, superposition and policy, fingerprints and binding-site differences. The **fingerprint CSV** has one line per row and structure. Saved sessions (schema 3) restore comparison structures, pairings, superposition scope and analyses without new biological requests.
+
+See [comparison validation evidence](validation/COMPARISON.md) for the numpy superposition check, the ProLIF fingerprint comparison and the documented limits.
+
 ## Phase status
 
 - **Phase 1 — complete:** reliable structure exploration, identity and linked selection. [Status](docs/PHASE_1_STATUS.md).
 - **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain. [Status](docs/PHASE_2_STATUS.md).
 - **Phase 3 — complete, including follow-up milestones 3F–3J:** validated SIFTS mappings, UniProt identity/features, linked annotation tracks, residue context, site-level binding-site summaries with background rates and ligand relations, engineered-mutation projection, structure-quality and ligand-fit evidence, pinned sessions and interpretation exports. [Validation and limits](validation/BIOLOGY.md); [plan and implementation record](docs/PHASE_3_PLAN.md).
 - **Phase 2.x — complete:** ruleset `molstar-5.13.1-ligand-3`: reference validation harness, covalent ligands, ambiguity labels, element-specific metal distances, halogen bonds, per-conformer ensembles and multi-residue ligands/receptor components. [Plan and record](docs/PHASE_2X_PLAN.md).
-- **Phases 4–5 — pending:** structural comparison, mutations, protein interfaces and advanced analyses.
+- **Phase 4 — complete:** structural comparison of up to eight structures by SIFTS residue correspondence, Cα superposition validated against numpy, interaction fingerprints keyed by UniProt position with ProLIF-checked change margins, and binding-site differences judged against coordinate error. [Validation](validation/COMPARISON.md); [plan and record](docs/PHASE_4_PLAN.md); [status](docs/PHASE_4_STATUS.md).
+- **Phase 5 — pending:** mutations, protein interfaces and advanced analyses.
 
 ## GitHub and GitHub Pages
 
@@ -136,6 +168,7 @@ src/
     elements.ts           Element-symbol normalization and hydrogen detection
     analysis.ts           Independent interactions, graph, binding site and provenance
     biology.ts            Proteins, features, mappings, evidence and interpretation snapshots
+    comparison.ts         Comparison sessions, correspondence, superposition, fingerprint and site contracts
   biology/
     mapping.ts, projection.ts  Exact correspondence, residue identity, projection and binding-site summary
     controller.ts, load.ts     Independent loading, cancellation and pinned restoration
@@ -155,8 +188,17 @@ src/
     uncertainty.ts        Cutoff margins and borderline flags from coordinate error (display only)
     spatial.ts, policy.ts  Uniform-grid search and explicit eligibility rules
     prepare.ts, export.ts  Worker parsing/CCD injection and reproducible exports
+  comparison/
+    controller.ts         Comparison slots: loading, pinned restore, interpretation, queued analysis
+    correspondence.ts     SIFTS-only chain pairing and residue correspondence
+    superposition.ts      Horn least-squares Cα fit with outlier rejection
+    fingerprint.ts        UniProt-keyed fingerprints, comparability and change margins
+    siteDifferences.ts, torsions.ts  Residue shifts, χ angles and site waters
+    derived.ts, export.ts  Memoized derived results; comparison JSON and fingerprint CSV
   components/
     AnalysisPanel.tsx      Settings, filters, contact inspection and export controls
+    ComparisonPanel.tsx    Comparison structures, pairings, superposition, site differences
+    FingerprintMatrix.tsx  Fingerprint matrix with similarity and margins
   structure/
     adapter.ts            Mol* lifecycle, scene building, and selection translation
     extract.ts            Assembly-space coordinates and normalized identities
@@ -171,13 +213,15 @@ src/
     repository.ts         Versioned IndexedDB source, session, chemistry and result caches; cache budget
     cache.ts              Least-recently-used eviction planning
   state/
-    explorer.ts           UI state and domain references
+    explorer.ts           UI state and domain references (reference structure)
+    comparison.ts         Comparison slots
 tests/
   structure.test.ts       Real and synthetic structural regression tests
   analysis.test.ts        Scientific geometry, chemistry and graph validation
   engine-golden.test.ts   Hash-pinned engine output for reference and synthetic cases
   classify.test.ts        Per-classifier positive, negative and at-cutoff cases
   contracts.test.ts       Plan contract excerpt ↔ src/domain/biology.ts drift check
+  comparison-*.test.ts    Correspondence, superposition (numpy), fingerprints (ProLIF), site differences, golden hashes
   fixtures/               Synthetic identity/model/assembly edge cases
   e2e/                    Real-browser workflow and error recovery tests
 ```
@@ -196,7 +240,7 @@ Current limits:
 
 - Coordinate file size: 40 MB.
 - Selected structure: 250,000 atomic elements, including assembly copies.
-- One loaded structure and one structural model at a time.
+- One reference structure and one structural model at a time, plus up to seven comparison structures, each within the per-structure limits. Comparison structures are display-only (no picking) and are drawn as cartoons with their ligands.
 - Atomic mmCIF/BinaryCIF only; legacy PDB, compressed files, and coarse-only models are not supported.
 - Parsing and scene construction currently use Mol* on the main thread. Download cancellation aborts the request; cancellation during parsing discards its result and clears the scene once the current serialized operation finishes.
 - Cache reads reuse downloaded bytes; there is no automatic source-refresh policy. Cached coordinates beyond 300 MB are evicted least recently used first, with their analyses and interpretations. Open structures and the saved session's structures are never evicted. The Source tab shows cache use and clears unused entries.
@@ -206,13 +250,13 @@ Current limits:
 - SIFTS compression requires a browser with `DecompressionStream`; inputs/output are bounded to 10/50 MB, XML to 500,000 correspondence rows, and provider JSON to 5 MB discovery / 10 MB UniProt. Decompression and XML parsing run in a dedicated module worker that is terminated on cancellation.
 - Ensemble analysis covers at most four alternate-conformer labels; beyond that the preferred conformer per residue is analyzed, with a flag.
 - Ligand chemical identities and validation scores are requested for at most 32 distinct components and 32 nonpolymer instances per structure; branched entities have no validation request. A failed ligand record is a quality flag and never blocks annotation.
-- No inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation-effect interpretation is included.
+- No inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation-effect interpretation is included. Comparison never pairs residues without SIFTS, never aligns different proteins and does not compute symmetry-corrected ligand pose RMSD (Phase 5).
 
 ## Test evidence
 
 Scientific fixtures verify author/label numbering, insertion codes, sequence gaps, null nonpolymer numbering, coherent alternate conformers, model isolation, deterministic identity, transformed assembly copies, real atom counts, and repeated heme instances.
 
-Browser tests run the production build and verify worker computation, contact selection, JSON/CSV exports, cache reuse/invalidation, missing-chemistry fallback, cancellation, linked selection, ligand inspection, models/assemblies, representation/water controls, IndexedDB restoration, manifest downloads, malformed-input recovery, overlapping load requests, API-independent examples, and a phone-width layout.
+Browser tests run the production build and verify worker computation, contact selection, JSON/CSV exports, cache reuse/invalidation, missing-chemistry fallback, cancellation, linked selection, ligand inspection, models/assemblies, representation/water controls, IndexedDB restoration, manifest downloads, malformed-input recovery, overlapping load requests, API-independent examples, a phone-width layout, and the comparison workflows: adding, pairing, superposing, fingerprinting, exporting, saving and restoring comparison structures, and failure isolation from the reference.
 
 ## Scientific sources and dependencies
 

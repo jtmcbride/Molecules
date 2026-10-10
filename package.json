@@ -1,6 +1,6 @@
 {
   "name": "molecular-interaction-explorer",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Browser molecular exploration, reproducible ligand analysis and protein feature interpretation.",
   "scripts": {
     "dev": "vite",
