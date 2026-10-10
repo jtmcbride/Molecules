@@ -98,14 +98,27 @@ export function mapResidues(
             snapshot.componentParentIds?.[position.componentId] ??
             position.componentId,
           code = CODES[component];
-        const sequenceAgrees =
+        const uniprotResidue = protein.sequence[row.uniprotPosition - 1];
+        // The SIFTS row describes this deposited residue and this UniProt residue.
+        const depositedAgrees =
           code !== undefined &&
-          protein.sequence[row.uniprotPosition - 1] === code &&
-          row.uniprotResidue === code &&
           (row.componentId === position.componentId ||
             CODES[
               snapshot.componentParentIds?.[row.componentId] ?? row.componentId
             ] === code);
+        const uniprotAgrees = uniprotResidue === row.uniprotResidue;
+        // Residue identity is recorded separately from position correspondence. A
+        // curated SIFTS annotation explains a difference; anything else stays unprojected.
+        const identity: ResidueMapping["identity"] =
+          depositedAgrees && uniprotAgrees && uniprotResidue === code
+            ? "match"
+            : depositedAgrees && uniprotAgrees
+              ? row.annotations.includes("Engineered mutation")
+                ? "engineered_mutation"
+                : row.annotations.includes("Conflict")
+                  ? "conflict"
+                  : "unexplained_mismatch"
+              : "unexplained_mismatch";
         const targets = observed.length ? observed : [undefined];
         for (const residue of targets) {
           const identityAgrees =
@@ -115,7 +128,7 @@ export function mapResidues(
           const status: ResidueMapping["status"] =
             !validSegment || !identityAgrees || (residue && row.notObserved)
               ? "source_conflict"
-              : !sequenceAgrees
+              : identity === "unexplained_mismatch"
                 ? "sequence_mismatch"
                 : unique.length > 1 || observed.length > 1
                   ? "ambiguous"
@@ -139,6 +152,15 @@ export function mapResidues(
             accession: protein.accession,
             uniprotPosition: row.uniprotPosition,
             status,
+            identity,
+            ...(identity === "match" || code === undefined
+              ? {}
+              : {
+                  residueChange: {
+                    uniprot: uniprotResidue ?? "?",
+                    deposited: code,
+                  },
+                }),
             evidenceIds,
           });
         }

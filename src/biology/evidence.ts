@@ -58,6 +58,7 @@ export function structureEvidence(
     assumptions: [
       "Structure coordinates do not establish experimental support for each functional annotation. Source method should be checked separately.",
     ],
+    quality: snapshot.quality,
   };
 }
 export function analysisEvidence(run: AnalysisRun): Evidence {

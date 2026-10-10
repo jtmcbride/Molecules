@@ -1,0 +1,132 @@
+{
+  "note": "SHA-256 of canonicalRun() per case, interaction counts and Mol* edge rejection counts; see tests/engine-golden.test.ts.",
+  "cases": {
+    "3PTB-BEN-default": {
+      "sha256": "3c45593eb708a6f3fc7ddbbb24b7a9bff1bf975a64c10db20f95f82d79f24cf8",
+      "counts": {
+        "hydrogen_bond": 4,
+        "proximity_contact": 172,
+        "salt_bridge": 1,
+        "hydrophobic_contact": 1,
+        "water_bridge": 2
+      },
+      "rejections": {
+        "not_ligand_receptor": 3,
+        "mol_refinement_filtered": 2
+      }
+    },
+    "3PTB-BEN-ccd": {
+      "sha256": "ea48706158bb876d74c1e7e6d7ec50ae7c622e6ea82c88f0e1c499325b7a56be",
+      "counts": {
+        "hydrogen_bond": 4,
+        "proximity_contact": 172,
+        "salt_bridge": 1,
+        "hydrophobic_contact": 1,
+        "water_bridge": 2
+      },
+      "rejections": {
+        "not_ligand_receptor": 3,
+        "mol_refinement_filtered": 2
+      }
+    },
+    "3PTB-BEN-variant": {
+      "sha256": "9f662b2b00d1b601652296793ff234dd5a79f742288f02dc2a5bbe216da48468",
+      "counts": {
+        "hydrogen_bond": 5,
+        "proximity_contact": 172,
+        "salt_bridge": 1,
+        "hydrophobic_contact": 1
+      },
+      "rejections": {
+        "mol_refinement_filtered": 2
+      }
+    },
+    "3PTB-BEN-no-chemistry": {
+      "sha256": "f1b9c2c6ed8bdf8eff41c08e24dfb0f04b4cc6e8e172f702817cfb692c0589f8",
+      "counts": {
+        "proximity_contact": 172
+      },
+      "rejections": {}
+    },
+    "1EVE-E20-default": {
+      "sha256": "bcf98d2cf0853859e0eb9aac692c1f0239b3eb675b96454977ce603877945253",
+      "counts": {
+        "proximity_contact": 315,
+        "pi_stacking": 2,
+        "hydrophobic_contact": 8,
+        "water_bridge": 3,
+        "cation_pi": 1
+      },
+      "rejections": {
+        "not_ligand_receptor": 6,
+        "mol_refinement_filtered": 16
+      }
+    },
+    "1RMD-ZN-default": {
+      "sha256": "dc4a2bb11971e69a261543b25d90a8d45542032231bbfbf2f1480c145c733fc3",
+      "counts": {
+        "metal_coordination": 4,
+        "proximity_contact": 27
+      },
+      "rejections": {}
+    },
+    "pi-stacking": {
+      "sha256": "2fac8f9622c3aa373ce89bdfd817b2460a545fc4c76eeeffacd05a2fe4d573f7",
+      "counts": {
+        "hydrophobic_contact": 6,
+        "pi_stacking": 1,
+        "proximity_contact": 41
+      },
+      "rejections": {
+        "mol_refinement_filtered": 26
+      }
+    },
+    "cation-pi": {
+      "sha256": "ad9746a9ed4575b9c521589fa4cb4edeaf09ffdb147273f6bc85636db3aea002",
+      "counts": {
+        "cation_pi": 1,
+        "proximity_contact": 6
+      },
+      "rejections": {}
+    },
+    "metal-coordination": {
+      "sha256": "e96dbc5f0f8887d22630b7d800f2f7185ad53ca0c3517b2735492f1ea34bc5d6",
+      "counts": {
+        "metal_coordination": 1,
+        "proximity_contact": 8
+      },
+      "rejections": {}
+    },
+    "water-bridge": {
+      "sha256": "887910ee18df4d8c1d7489a7da45758b5d5ba338fa4b0fb7a7d58bee816e12a3",
+      "counts": {
+        "proximity_contact": 1,
+        "water_bridge": 1
+      },
+      "rejections": {}
+    },
+    "water-bridge-narrow": {
+      "sha256": "6c46ca1460c0c1f4e853c838e5d8cfa314d04558a085bc917909a68abbdb2d3f",
+      "counts": {
+        "proximity_contact": 1,
+        "water_bridge": 1
+      },
+      "rejections": {}
+    },
+    "hydrogen-geometry": {
+      "sha256": "fa5f7c679f29cdce2ecc7ce70efb9e82ede4c4b9e0e8726ff6304a2f3197ac36",
+      "counts": {
+        "hydrogen_bond": 1,
+        "proximity_contact": 7
+      },
+      "rejections": {}
+    },
+    "hydrogen-geometry-clash": {
+      "sha256": "b723fdf0d62c5c4a1be7fa668bd9461e75695eaaa357517c37151368c6a78abb",
+      "counts": {
+        "steric_clash": 1
+      },
+      "rejections": {}
+    }
+  }
+}

@@ -13,6 +13,16 @@ import type { ResourceSnapshot } from "../src/domain/biology";
 const sha = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
 import { biologyFixture } from "./helpers/biology";
+import { dpiFree } from "../src/structure/quality";
+import {
+  cutoffMargin,
+  distanceUncertainty,
+  isBorderline,
+} from "../src/analysis/uncertainty";
+import {
+  DEFAULT_PARAMETERS,
+  type MolecularInteraction,
+} from "../src/domain/analysis";
 describe("biological identity and evidence", () => {
   it("pins source bytes and validates real 3PTB catalytic/binding positions", async () => {
     const manifest = JSON.parse(
@@ -220,5 +230,139 @@ describe("biological identity and evidence", () => {
       "https://pubmed.ncbi.nlm.nih.gov/1234/",
     );
     expect(projectAnnotations([parsed.annotations[0]], p.mappings)).toEqual([]);
+  });
+});
+describe("engineered mutations (1OPH, S195A trypsin with alpha-1-antitrypsin Pittsburgh)", () => {
+  const at = (
+    p: Awaited<ReturnType<typeof biologyFixture>>,
+    accession: string,
+    position: number,
+  ) =>
+    p.mappings.filter(
+      (m) => m.accession === accession && m.uniprotPosition === position,
+    );
+  it("keeps exact position correspondence for a curated engineered mutation and labels the change", async () => {
+    const p = await biologyFixture("1OPH");
+    const [ser195] = at(p, "P00760", 200);
+    expect(ser195).toMatchObject({
+      status: "exact",
+      identity: "engineered_mutation",
+      residueChange: { uniprot: "S", deposited: "A" },
+      authSeqId: "195",
+    });
+    expect(
+      p.snapshot.residues.find((r) => r.id === ser195.residueId)!.componentId,
+    ).toBe("ALA");
+    // The catalytic active-site feature still projects onto the mutated, observed residue.
+    const activeSite = p.annotations.find(
+      (a) =>
+        a.proteinId === ser195.proteinId &&
+        a.type === "Active site" &&
+        a.start.position === 200,
+    )!;
+    const projection = p.projections.find(
+      (pr) => pr.annotationId === activeSite.id,
+    )!;
+    expect(projection.residueIds).toEqual([ser195.residueId]);
+    // The Pittsburgh variant (M358R) is also a curated engineered change in the other protein.
+    expect(at(p, "P01009", 382)[0]).toMatchObject({
+      identity: "engineered_mutation",
+      residueChange: { uniprot: "M", deposited: "R" },
+    });
+    // Unchanged residues record a match without a residue change.
+    expect(at(p, "P00760", 63)[0]).toMatchObject({
+      identity: "match",
+      status: "exact",
+    });
+    expect(at(p, "P00760", 63)[0].residueChange).toBeUndefined();
+  });
+  it("does not project the same difference when SIFTS gives no curated explanation", async () => {
+    const p = await biologyFixture("1OPH");
+    // Synthetic in-memory change: drop the "Engineered mutation" annotation from the row.
+    const rows = p.sifts.rows.map((r) =>
+      r.accession === "P00760" && r.uniprotPosition === 200
+        ? { ...r, annotations: [] }
+        : r,
+    );
+    const remapped = mapResidues(p.snapshot, p.discovery, rows, p.proteins, [
+      "sifts-fixture",
+    ]);
+    const [row] = remapped.mappings.filter(
+      (m) => m.accession === "P00760" && m.uniprotPosition === 200,
+    );
+    expect(row).toMatchObject({
+      status: "sequence_mismatch",
+      identity: "unexplained_mismatch",
+    });
+    const activeSite = p.annotations.find(
+      (a) =>
+        a.proteinId === row.proteinId &&
+        a.type === "Active site" &&
+        a.start.position === 200,
+    )!;
+    expect(
+      projectAnnotations([activeSite], remapped.mappings)[0].residueIds,
+    ).toEqual([]);
+  });
+});
+describe("structure quality evidence", () => {
+  it("computes Cruickshank DPI_free from 1OPH refinement statistics", async () => {
+    const p = await biologyFixture("1OPH");
+    const q = p.snapshot.quality!;
+    expect(q).toMatchObject({
+      method: "X-RAY DIFFRACTION",
+      resolutionAngstrom: 2.3,
+      rFree: 0.229,
+      reflectionsUsed: 32771,
+      completenessPercent: 97.5,
+      coordinateErrorSource: "computed_dpi_free",
+    });
+    // Independent arithmetic: sqrt(Ni / n_obs) · C^(-1/3) · d_min · R_free.
+    const expected =
+      Math.sqrt(q.refinedAtomCount / 32771) * 0.975 ** (-1 / 3) * 2.3 * 0.229;
+    expect(q.coordinateErrorAngstrom).toBeCloseTo(expected, 10);
+    expect(q.coordinateErrorAngstrom!).toBeGreaterThan(0.15);
+    expect(q.coordinateErrorAngstrom!).toBeLessThan(0.3);
+    expect(q.refinedAtomCount).toBeGreaterThan(4000);
+    expect(distanceUncertainty(q)).toBeCloseTo(
+      Math.SQRT2 * q.coordinateErrorAngstrom!,
+      12,
+    );
+  });
+  it("estimates no coordinate error when refinement inputs are missing", async () => {
+    const p = await biologyFixture();
+    expect(p.snapshot.quality).toMatchObject({ resolutionAngstrom: 1.7 });
+    expect(p.snapshot.quality!.coordinateErrorAngstrom).toBeUndefined();
+    expect(
+      dpiFree({ refinedAtomCount: 1000, resolutionAngstrom: 2, rFree: 0.2 }),
+    ).toBeUndefined();
+    expect(distanceUncertainty(p.snapshot.quality)).toBeUndefined();
+  });
+  it("flags measurements within one distance uncertainty of their cutoff without reclassifying them", () => {
+    const params = { ...DEFAULT_PARAMETERS };
+    const hbond = (d: number) =>
+      ({ type: "hydrogen_bond", distanceAngstrom: d }) as MolecularInteraction;
+    expect(cutoffMargin(hbond(3.3), params)).toBeCloseTo(0.2, 10);
+    expect(isBorderline(hbond(3.3), params, 0.29)).toBe(true);
+    expect(isBorderline(hbond(3.0), params, 0.29)).toBe(false);
+    expect(isBorderline(hbond(3.3), params, undefined)).toBe(false);
+    const stack = {
+      type: "pi_stacking",
+      distanceAngstrom: 3.4,
+      geometry: { centroidDistanceAngstrom: 5.4 },
+    } as MolecularInteraction;
+    expect(cutoffMargin(stack, params)).toBeCloseTo(0.1, 10);
+    const water = {
+      type: "water_bridge",
+      distanceAngstrom: 5,
+      geometry: { waterLegDistancesAngstrom: [2.8, 4.0] },
+    } as MolecularInteraction;
+    expect(cutoffMargin(water, params)).toBeCloseTo(0.1, 10);
+    const clash = {
+      type: "steric_clash",
+      distanceAngstrom: 2.6,
+      geometry: { overlapAngstrom: 0.7 },
+    } as MolecularInteraction;
+    expect(cutoffMargin(clash, params)).toBeCloseTo(0.1, 10);
   });
 });

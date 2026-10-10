@@ -1,12 +1,14 @@
-import type {
-  InterpretationSnapshot,
-  FunctionalAnnotation,
-  ResidueMapping,
+import {
+  featureCategory,
+  type InterpretationSnapshot,
+  type FunctionalAnnotation,
+  type ResidueMapping,
 } from "../domain/biology";
 import type { AnalysisRun } from "../domain/analysis";
 import type { StructureSnapshot, StructureSource } from "../domain/types";
 import { analysisEvidence } from "./evidence";
-import { summarizeBindingSite } from "./projection";
+import { distanceUncertainty, isBorderline } from "../analysis/uncertainty";
+import { analyzedComponent, summarizeBindingSite } from "./projection";
 export function interpretationJson(
   interpretation: InterpretationSnapshot,
   snapshot: StructureSnapshot,
@@ -27,10 +29,13 @@ export function interpretationJson(
     occupancies: Array.from(snapshot.atomBuffer.occupancies),
     preferredAtomIndices: Array.from(snapshot.atomBuffer.preferredAtomIndices),
     provenance: snapshot.provenance,
+    quality: snapshot.quality,
   };
+  const sigma = distanceUncertainty(snapshot.quality);
   return JSON.stringify(
     {
-      schemaVersion: 1,
+      // Schema 2 (biology-1.1.0): site/context overlaps, chain background and ligand relations.
+      schemaVersion: 2,
       kind: "molecular-interpretation",
       interpretation,
       analysis: run,
@@ -44,8 +49,24 @@ export function interpretationJson(
       evidence: run
         ? [...interpretation.evidence, analysisEvidence(run)]
         : interpretation.evidence,
+      // Display/export metadata derived from an unchanged analysis run; nothing is reclassified.
+      coordinateUncertainty: {
+        coordinateErrorAngstrom:
+          snapshot.quality?.coordinateErrorAngstrom ?? null,
+        source: snapshot.quality?.coordinateErrorSource ?? null,
+        distanceUncertaintyAngstrom: sigma ?? null,
+        borderlineInteractionIds: run
+          ? run.interactions
+              .filter((i) => isBorderline(i, run.request.parameters, sigma))
+              .map((i) => i.id)
+          : [],
+      },
       bindingSiteSummary: run
-        ? summarizeBindingSite(interpretation, run)
+        ? summarizeBindingSite(
+            interpretation,
+            run,
+            analyzedComponent(snapshot, run),
+          )
         : null,
     },
     null,
@@ -81,6 +102,11 @@ export function annotationCsv(
       "feature_valid",
       "evidence_ids",
       "source_hashes",
+      "feature_category",
+      "feature_ligand",
+      "feature_ligand_id",
+      "residue_identity",
+      "residue_change",
     ],
   ];
   if (interpretation.snapshotId !== snapshot.id)
@@ -131,6 +157,15 @@ export function annotationCsv(
             ...(feature?.evidenceIds ?? []),
           ].join(";"),
           sourceHashes,
+          feature
+            ? (featureCategory(feature.type) ?? "processing_or_other")
+            : "",
+          feature?.ligand?.name,
+          feature?.ligand?.identifier,
+          mapping?.identity,
+          mapping?.residueChange
+            ? `${mapping.residueChange.uniprot}${mapping.uniprotPosition}${mapping.residueChange.deposited}`
+            : "",
         ]);
       };
       if (!mapped.length) {

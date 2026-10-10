@@ -14,6 +14,7 @@ npm run dev
 ```sh
 npm test           # Scientific identity, geometry and reference regression tests
 npm run typecheck
+npm run format:check  # Prettier (CI-enforced); npm run format to apply
 npm run build
 npx playwright install chromium
 npm run test:e2e   # Real-browser integration tests
@@ -75,11 +76,17 @@ In 3PTB, the ASP189 salt-bridge contact maps to P00760 position 194 and a bindin
 
 Mappings require matching discovery chain/entity IDs, individual SIFTS correspondence, author numbering/insertion codes and UniProt sequence identity. Modified residues require a deposited `chem_comp` parent. Conflicts, unsupported isoforms and ambiguous rows remain visible; no author-number offset or sequence-alignment guess is used. Multiple accessions in a chimeric chain remain separate and require a protein choice.
 
+Position correspondence and residue identity are recorded separately. When SIFTS curates a difference as an `Engineered mutation` or a sequence `Conflict`, the position still maps exactly and annotations project onto it with a visible label, e.g. `S200A (engineered)` for the catalytic Ser195Ala mutant in 1OPH. An unexplained difference stays `sequence_mismatch` and does not project.
+
 Initial categories are active sites, binding sites, domains, regions, sites, signal peptides, propeptides and processed chains. Function/catalytic statements and their own evidence are available separately. Uncertain or invalid feature bounds are retained but do not project as exact structural features. Evidence drawers distinguish coordinate provenance, computed geometry and database annotations, preserving attached ECO codes/citations. A reviewed record does not establish experimental support for each feature.
 
-Binding-site summaries show mapped, ambiguous and unmapped polymer-contact residues with explicit denominators, plus functional-feature overlap (active/binding sites, domains, regions and sites; whole-chain processing labels are excluded from the functional numerator). Proximity, chemical contacts and clashes remain separate. Neither overlap nor contact counts establish functional importance or affinity. Annotation filters leave interaction runs unchanged.
+Binding-site summaries show mapped, ambiguous and unmapped polymer-contact residues with explicit denominators. The headline counts site-level features only (active sites, binding sites, sites) and shows the chain background beside it: in 3PTB, 4 of 17 mapped BEN-contact residues carry site features, against 11 of 223 mapped residues in the chain. Domains and regions are listed as context and never counted as functional overlap, because they can span most of a chain (the P00760 Peptidase S1 domain covers 221 of 223 mapped residues). Processing features are excluded. Proximity, chemical contacts and clashes remain separate. Neither overlap nor contact counts establish functional importance or affinity. Annotation filters leave interaction runs unchanged.
 
-**Interpretation JSON** (schema 1) includes protein/feature snapshots, residue correspondence, projections, evidence, source hashes, coordinates and the unchanged current Phase 2 analysis, when available. **Residue annotations CSV** includes every deposited polymer position, including explicit unmapped rows, as a separate correspondence/feature export; Phase 2 interaction CSV remains unchanged. Raw biological response bytes are preserved locally in IndexedDB.
+UniProt binding-site features name their ligand. Each overlapping binding site is compared with the analyzed component by ChEBI identifier only: `same`, `different` (a different ChEBI entity; charge states and conjugate forms have separate entries) or `unresolved` (a generic label such as "substrate", or no ChEBI cross-reference for the analyzed component). Component cross-references come from RCSB chemical component records, requested by component ID and pinned in the interpretation snapshot.
+
+The summary also shows structure evidence: method, resolution and R-free from the coordinate file, and an estimated coordinate error when the file supplies the inputs. That estimate is the deposited ESU based on R-free, or otherwise Cruickshank's DPI_free = sqrt(N_atoms / n_obs) · C^(-1/3) · d_min · R_free. The analyzed ligand instance's fit (RSCC, RSR, modeled completeness) comes from RCSB's wwPDB-derived validation record; it is unavailable when no structure factors were deposited (as in 4HHB). When a coordinate error is known, interaction rows whose measurement lies within √2 × that error of its cutoff are marked borderline. This is display/export metadata; no interaction is reclassified.
+
+**Interpretation JSON** (schema 2) includes protein/feature snapshots, residue correspondence and identity, projections, ligand identities and validation scores, evidence, source hashes, coordinates, structure quality, the binding-site summary (site/context overlaps with background rates and ligand relations), coordinate-uncertainty metadata with borderline interaction IDs, and the unchanged current Phase 2 analysis, when available. **Residue annotations CSV** includes every deposited polymer position, including explicit unmapped rows, as a separate correspondence/feature export. Columns appended in biology-1.1.0 are `feature_category`, `feature_ligand`, `feature_ligand_id`, `residue_identity` and `residue_change`. The Phase 2 interaction CSV remains unchanged. Raw biological response bytes are preserved locally in IndexedDB.
 
 Biological sources normally reuse cached snapshots for seven days. Expired sources are requested again, with labeled stale-cache fallback during service failure. Manual refresh creates a new interpretation revision; failure preserves the previous interpretation. Saved session schema 2 pins its interpretation and analysis, category filters and protein choice. Restoration uses those saved revisions without new biological requests; explicitly refresh and save to replace them. Schema 1 sessions remain readable.
 
@@ -89,9 +96,9 @@ See [biological validation evidence](validation/BIOLOGY.md) for frozen source ha
 
 ## Phase status
 
-- **Phase 1 — complete:** reliable structure exploration, identity and linked selection.
-- **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain.
-- **Phase 3 — complete:** validated SIFTS mappings, UniProt identity/features, linked annotation tracks, residue context, binding-site summaries, evidence, pinned sessions and interpretation exports. [Validation and limits](validation/BIOLOGY.md).
+- **Phase 1 — complete:** reliable structure exploration, identity and linked selection. [Status](docs/PHASE_1_STATUS.md).
+- **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain. [Status](docs/PHASE_2_STATUS.md).
+- **Phase 3 — complete, including follow-up milestones 3F–3J:** validated SIFTS mappings, UniProt identity/features, linked annotation tracks, residue context, site-level binding-site summaries with background rates and ligand relations, engineered-mutation projection, structure-quality and ligand-fit evidence, pinned sessions and interpretation exports. [Validation and limits](validation/BIOLOGY.md); [plan and implementation record](docs/PHASE_3_PLAN.md).
 - **Phases 4–5 — pending:** structural comparison, mutations, protein interfaces and advanced analyses.
 
 ## GitHub and GitHub Pages
@@ -120,17 +127,28 @@ Bundled samples and cached bytes allow exploration when scientific APIs are unav
 src/
   App.tsx                 Explorer workspace and synchronized views
   domain/
-    types.ts              Rendering-independent structure and session models
+    types.ts              Rendering-independent structure, quality and session models
     identity.ts           Compound identity and coherent conformer policy
+    elements.ts           Element-symbol normalization and hydrogen detection
     analysis.ts           Independent interactions, graph, binding site and provenance
     biology.ts            Proteins, features, mappings, evidence and interpretation snapshots
   biology/
-    mapping.ts, projection.ts  Exact correspondence and annotation projection
+    mapping.ts, projection.ts  Exact correspondence, residue identity, projection and binding-site summary
     controller.ts, load.ts     Independent loading, cancellation and pinned restoration
+    siftsWorker.ts, siftsClient.ts  Off-thread SIFTS decompression and XML parsing
     evidence.ts, export.ts     Statement provenance and interpretation exports
   analysis/
     worker.ts, client.ts   Dedicated computation and cancellation
-    engine.ts             Mol* chemistry wrapper and normalized interaction graph
+    engine.ts             Orchestration only: eligibility → connectivity → contacts → Mol* features → classification
+    parameters.ts         Mol* provider settings and the reproducibility cache key
+    connectivity.ts       Selected sub-structure, covalent adjacency and bonded-pair exclusion
+    contacts.ts           Proximity pairs and steric-overlap candidates
+    features.ts           Mol* feature → domain atom groups and ligand/receptor orientation
+    classify.ts           One pure classifier per interaction type with explicit rejection reasons
+    metal.ts              Metal–partner pairing and partner-angle annotation
+    collector.ts          Deduplication, the one-million-interaction guard and rejection counts
+    evaluation.ts, provenance.ts  Evaluation status, assumptions, quality flags and chemistry sources
+    uncertainty.ts        Cutoff margins and borderline flags from coordinate error (display only)
     spatial.ts, policy.ts  Uniform-grid search and explicit eligibility rules
     prepare.ts, export.ts  Worker parsing/CCD injection and reproducible exports
   components/
@@ -138,11 +156,13 @@ src/
   structure/
     adapter.ts            Mol* lifecycle, scene building, and selection translation
     extract.ts            Assembly-space coordinates and normalized identities
+    quality.ts            Refinement statistics and Cruickshank coordinate error
     controller.ts         Serialized scene updates and stale-request rejection
   data/
     provider.ts           RCSB/local ingestion, validation, hashes, and metadata
     chemistry.ts          Optional component dictionary acquisition
     sifts.ts, uniprot.ts   Validated biological provider adapters
+    chemcomp.ts, ligandFit.ts  RCSB chemical identity (ChEBI) and ligand validation adapters
     biologyResources.ts   Bounded acquisition, freshness and stale fallback
     repository.ts         Versioned IndexedDB source, session, chemistry and result caches
   state/
@@ -150,6 +170,9 @@ src/
 tests/
   structure.test.ts       Real and synthetic structural regression tests
   analysis.test.ts        Scientific geometry, chemistry and graph validation
+  engine-golden.test.ts   Hash-pinned engine output for reference and synthetic cases
+  classify.test.ts        Per-classifier positive, negative and at-cutoff cases
+  contracts.test.ts       Plan contract excerpt ↔ src/domain/biology.ts drift check
   fixtures/               Synthetic identity/model/assembly edge cases
   e2e/                    Real-browser workflow and error recovery tests
 ```
@@ -175,8 +198,9 @@ Current limits:
 - Session restoration saves structure/context/selection/representation/water state; camera orientation is not restored.
 - Saved schema 2 sessions also reference the current analysis and interpretation; camera orientation and annotation selection are not restored.
 - Biological annotation supports four-character PDB accessions, up to 32 protein records, four concurrent protein requests, a 20-second request timeout and at most two transient retries. Extended structure IDs remain viewable without this mapping.
-- SIFTS compression requires a browser with `DecompressionStream`; inputs/output are bounded to 10/50 MB, XML to 500,000 correspondence rows, and provider JSON to 5 MB discovery / 10 MB UniProt. XML parsing occurs on the main thread.
-- No automatic cache eviction, inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation interpretation is included.
+- SIFTS compression requires a browser with `DecompressionStream`; inputs/output are bounded to 10/50 MB, XML to 500,000 correspondence rows, and provider JSON to 5 MB discovery / 10 MB UniProt. Decompression and XML parsing run in a dedicated module worker that is terminated on cancellation.
+- Ligand chemical identities and validation scores are requested for at most 32 distinct components and 32 nonpolymer instances per structure; branched entities have no validation request. A failed ligand record is a quality flag and never blocks annotation.
+- No automatic cache eviction, inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation-effect interpretation is included.
 
 ## Test evidence
 
@@ -192,6 +216,8 @@ Browser tests run the production build and verify worker computation, contact se
 - [Mol* interaction implementation](https://github.com/molstar/molstar/tree/v5.13.1/src/mol-model-props/computed/interactions) — chemistry and geometry rules wrapped by this engine.
 - [SIFTS](https://www.ebi.ac.uk/pdbe/docs/sifts/) — residue-level PDB/UniProt correspondence.
 - [UniProt](https://www.uniprot.org/) — protein identity, sequences, features and statement evidence.
+- [RCSB Data API](https://data.rcsb.org/) — chemical component cross-references (ChEBI) and per-instance ligand validation scores. GET requests with the GitHub Pages Origin returned `Access-Control-Allow-Origin: *` on 2026-10-10.
+- Coordinate error: Cruickshank, Acta Cryst. D55, 583 (1999); Blow, Acta Cryst. D58, 792 (2002).
 - [PDB identifiers](https://www.rcsb.org/docs/general-help/identifiers-in-pdb).
 - [Biological assemblies](https://pdb101.rcsb.org/learn/guide-to-understanding-pdb-data/biological-assemblies).
 - Sample source files: [3PTB mmCIF](https://files.rcsb.org/download/3PTB.cif), [4HHB mmCIF](https://files.rcsb.org/download/4HHB.cif).

@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { prepareStructure } from "../../src/analysis/prepare";
 import {
@@ -14,7 +15,10 @@ import type { StructureSource } from "../../src/domain/types";
 const sha = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
 export async function biologyFixture(id = "3PTB", assembly = "") {
-  const bytes = new Uint8Array(await readFile(`public/structures/${id}.cif`)),
+  const path = existsSync(`public/structures/${id}.cif`)
+      ? `public/structures/${id}.cif`
+      : `tests/fixtures/biology/${id}.cif`,
+    bytes = new Uint8Array(await readFile(path)),
     source: StructureSource = {
       id,
       name: id,

@@ -37,14 +37,12 @@ test("Dexie v2 upgrades without losing coordinate sources, saved sessions or ana
   await database.close();
   await Dexie.delete("molecular-explorer");
   const legacy = new Dexie("molecular-explorer");
-  legacy
-    .version(2)
-    .stores({
-      sources: "contentHash, id, fetchedAt",
-      sessions: "id",
-      analyses: "cacheKey, sourceHash, generatedAt",
-      chemicalDefinitions: "componentId",
-    });
+  legacy.version(2).stores({
+    sources: "contentHash, id, fetchedAt",
+    sessions: "id",
+    analyses: "cacheKey, sourceHash, generatedAt",
+    chemicalDefinitions: "componentId",
+  });
   const fixture = await biologyFixture(),
     descriptor: SessionDescriptor = {
       schemaVersion: 1,
@@ -59,14 +57,12 @@ test("Dexie v2 upgrades without losing coordinate sources, saved sessions or ana
     };
   await legacy.table("sources").put(fixture.source);
   await legacy.table("sessions").put({ id: "last", descriptor });
-  await legacy
-    .table("analyses")
-    .put({
-      cacheKey: "preserved",
-      sourceHash: fixture.source.contentHash,
-      generatedAt: descriptor.savedAt,
-      interactions: [{ id: "untouched" }],
-    });
+  await legacy.table("analyses").put({
+    cacheKey: "preserved",
+    sourceHash: fixture.source.contentHash,
+    generatedAt: descriptor.savedAt,
+    interactions: [{ id: "untouched" }],
+  });
   legacy.close();
   await database.open();
   expect(database.verno).toBe(3);
@@ -104,13 +100,11 @@ test("fresh biological snapshots are reused without requests; stale offline fall
 test("manual refresh creates a new immutable resource and oversized or cancelled responses are rejected", async () => {
   const original = resource();
   await database.biologyResources.put(original);
-  const fetcher = vi
-    .fn()
-    .mockResolvedValue(
-      new Response('{"new":true}', {
-        headers: { "x-uniprot-release": "2026_05" },
-      }),
-    );
+  const fetcher = vi.fn().mockResolvedValue(
+    new Response('{"new":true}', {
+      headers: { "x-uniprot-release": "2026_05" },
+    }),
+  );
   vi.stubGlobal("fetch", fetcher);
   const next = await biologyResource(
     request,
@@ -162,4 +156,89 @@ test("malformed source data cannot be persisted as a validated interpretation", 
   ).rejects.toThrow();
   expect(await database.interpretations.count()).toBe(0);
   expect(await database.biologyResources.count()).toBe(0);
+});
+/** Serves frozen provider fixtures by URL; `fail` lists URL fragments that return HTTP 404. */
+function fixtureFetch(fail: string[] = []) {
+  return vi.fn().mockImplementation(async (url: string) => {
+    if (fail.some((f) => url.includes(f)))
+      return new Response("missing", { status: 404 });
+    const file = url.includes("/mappings/uniprot/")
+      ? `${url.split("/").at(-1)}-discovery.json`
+      : url.includes("/sifts/xml/")
+        ? `${url.split("/").at(-1)!.split(".")[0]}-sifts.xml.gz`
+        : url.includes("/chemcomp/")
+          ? `chemcomp-${url.split("/").at(-1)}.json`
+          : url.includes("/nonpolymer_entity_instance/")
+            ? `ligand-${url.split("/").slice(-2).join("-")}.json`
+            : url.split("/").at(-1)!;
+    return new Response(await readFile(`tests/fixtures/biology/${file}`));
+  });
+}
+test("pins ligand chemical identities with their source records and tolerates a missing record", async () => {
+  const f = await biologyFixture();
+  vi.stubGlobal("fetch", fixtureFetch());
+  const { interpretation } = await loadInterpretation(
+    f.source,
+    f.snapshot,
+    "3PTB",
+    new AbortController().signal,
+  );
+  expect(interpretation.version).toBe("biology-1.1.0");
+  expect(interpretation.ligands).toEqual([
+    expect.objectContaining({ componentId: "BEN", chebiIds: ["CHEBI:41033"] }),
+    expect.objectContaining({ componentId: "CA", chebiIds: [] }),
+  ]);
+  const refs = interpretation.resourceRefs.filter((r) => r.provider === "RCSB");
+  expect(refs.map((r) => r.identifier)).toEqual([
+    "BEN",
+    "CA",
+    "3PTB.B",
+    "3PTB.C",
+  ]);
+  expect(interpretation.ligandFits).toEqual([
+    expect.objectContaining({
+      labelAsymId: "B",
+      componentId: "CA",
+      rscc: 0.996,
+    }),
+    expect.objectContaining({
+      labelAsymId: "C",
+      componentId: "BEN",
+      rscc: 0.921,
+      rsr: 0.067,
+      completeness: 1,
+    }),
+  ]);
+  const structure = interpretation.evidence.find((e) =>
+    e.id.startsWith("structure:"),
+  )!;
+  expect(structure.quality).toMatchObject({
+    resolutionAngstrom: 1.7,
+    method: "X-RAY DIFFRACTION",
+  });
+  // 3PTB deposits no R-free or reflection count, so no coordinate error is estimated.
+  expect(structure.quality!.coordinateErrorAngstrom).toBeUndefined();
+  for (const ligand of interpretation.ligands!)
+    expect(
+      interpretation.evidence.some((e) => ligand.evidenceIds.includes(e.id)),
+    ).toBe(true);
+  await database.delete();
+  await database.open();
+  queryClient.clear();
+  vi.stubGlobal("fetch", fixtureFetch(["/chemcomp/BEN"]));
+  const partial = await loadInterpretation(
+    f.source,
+    f.snapshot,
+    "3PTB",
+    new AbortController().signal,
+  );
+  expect(partial.interpretation.ligands!.map((l) => l.componentId)).toEqual([
+    "CA",
+  ]);
+  expect(
+    partial.interpretation.qualityFlags.some((q) =>
+      q.startsWith("Chemical identity unavailable for BEN"),
+    ),
+  ).toBe(true);
+  expect(partial.interpretation.proteins).toHaveLength(1);
 });

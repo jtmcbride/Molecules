@@ -1,50 +1,642 @@
-import { useEffect, useState } from 'react';
-import { Download, FlaskConical, LoaderCircle, Network, Play, X } from 'lucide-react';
-import { useExplorer } from '../state/explorer';
-import { INTERACTION_LABELS, type InteractionType } from '../domain/analysis';
-import type { ExplorerController } from '../structure/controller';
-import { downloadAnalysis } from '../analysis/export';
+import { useEffect, useState } from "react";
+import {
+  Download,
+  FlaskConical,
+  LoaderCircle,
+  Network,
+  Play,
+  X,
+} from "lucide-react";
+import { useExplorer } from "../state/explorer";
+import { INTERACTION_LABELS, type InteractionType } from "../domain/analysis";
+import {
+  cutoffMargin,
+  distanceUncertainty,
+  isBorderline,
+} from "../analysis/uncertainty";
+import type { ExplorerController } from "../structure/controller";
+import { downloadAnalysis } from "../analysis/export";
 
-export function AnalysisPanel({controller}:{controller:ExplorerController|null}) {
-  const s=useExplorer(),snapshot=s.snapshot,run=s.analysis;
-  const [type,setType]=useState<InteractionType|'chemical'|'all'>('chemical');
-  const [residueFilter,setResidueFilter]=useState(false),[page,setPage]=useState(0),[details,setDetails]=useState(false);
-  useEffect(()=>setPage(0),[type,residueFilter,s.selectedResidueId,run?.id]);
-  if(!snapshot) return null;
-  const chains=snapshot.chains.filter(c=>c.type==='polymer');
-  const residue=(id:string)=>snapshot.residues.find(r=>r.id===id)!;
-  const label=(id:string)=>{const r=residue(id),c=snapshot.chains.find(c=>c.id===r.chainId)!;return `${r.componentId} ${c.authAsymId}:${r.authSeqId ?? '—'}${r.insertionCode ?? ''}${s.assemblyId?` · ${c.operatorId}`:''}`;};
-  const interactions=run?.interactions.filter(i=>(type==='all'||(type==='chemical'?i.type!=='proximity_contact'&&i.type!=='steric_clash':i.type===type))&&(!residueFilter||[i.ligand.residueId,i.receptor.residueId,i.mediator?.residueId].includes(s.selectedResidueId ?? ''))) ?? [];
-  const running=s.analysisPhase==='running',ready=s.phase==='ready';
-  const selected=run?.interactions.find(i=>i.id===s.selectedInteractionId);
-  const evaluationNotes=new Map<string,{types:InteractionType[];status:string;reason?:string}>();
-  if(run)for(const [type,evaluation] of Object.entries(run.evaluation))if(evaluation.status!=='evaluated') {
-    const key=JSON.stringify([evaluation.status,evaluation.reason]);
-    const group=evaluationNotes.get(key) ?? {types:[],status:evaluation.status,reason:evaluation.reason};
-    group.types.push(type as InteractionType);evaluationNotes.set(key,group);
-  }
-  return <div className="analysis-panel panel">
-    <div className="panel-heading"><span><Network size={16}/> Ligand interactions</span><small>COMPUTED IN YOUR BROWSER</small></div>
-    <div className="analysis-content">
-      <div className="analysis-intro"><div><h2>Explore the binding neighborhood.</h2><p>Measure proximity and identify chemistry-aware candidates.</p></div><span className="analysis-engine">ENGINE 2.0</span></div>
-      <div className="analysis-config"><label className="analysis-target">Target ligand<select aria-label="Analysis target ligand" value={s.targetLigandId ?? ''} disabled={!ready} onChange={e=>controller?.setAnalysisTarget(e.target.value)}>{!snapshot.ligands.length&&<option value="">No ligand available</option>}{snapshot.ligands.map(l=><option key={l.id} value={l.residueId}>{label(l.residueId)}</option>)}</select></label><label>Proximity cutoff (Å)<input aria-label="Proximity cutoff" type="number" min="1" max="8" step="0.1" value={s.analysisParameters.proximityCutoff} onChange={e=>controller?.setAnalysisParameters({proximityCutoff:Number(e.target.value)})}/></label><button className="button primary run-analysis" disabled={!ready||!s.targetLigandId||!s.receptorChainIds.length||running} onClick={()=>void controller?.runAnalysis()}>{running?<LoaderCircle size={15} className="spin"/>:<Play size={15}/>} {running?'Analyzing…':'Run analysis'}</button>{running&&<button className="icon-button" aria-label="Cancel analysis" onClick={()=>controller?.cancelAnalysis()}><X size={17}/></button>}</div>
-      <div className="receptor-chains"><span className="field-label">RECEPTOR</span>{chains.map(c=><label key={c.id}><input type="checkbox" checked={s.receptorChainIds.includes(c.id)} onChange={e=>controller?.setReceptorChains(e.target.checked?[...s.receptorChainIds,c.id]:s.receptorChainIds.filter(id=>id!==c.id))}/> Chain {c.authAsymId}{s.assemblyId&&` · ${c.operatorId}`}</label>)}</div>
-      <button className="analysis-settings-toggle" aria-expanded={details} onClick={()=>setDetails(!details)}>{details?'Hide':'Show'} calculation settings & assumptions</button>
-      {details&&<div className="analysis-settings"><div className="cutoff-fields">{([['hydrogenBondCutoff','H-bond cutoff'],['hydrophobicCutoff','Hydrophobic cutoff'],['saltBridgeCutoff','Salt-bridge cutoff'],['piStackingCutoff','π-stacking cutoff'],['cationPiCutoff','Cation–π cutoff'],['metalCutoff','Metal cutoff'],['waterLegMin','Water leg minimum'],['waterLegMax','Water leg maximum']] as const).map(([key,name])=><label key={key}>{name} (Å)<input type="number" min="1" max="8" step="0.1" aria-label={name} value={s.analysisParameters[key]} onChange={e=>controller?.setAnalysisParameters({[key]:Number(e.target.value)})}/></label>)}{([['piOffsetMax','Ring offset maximum',0,4,'Å'],['piAngleDeviation','Ring angle deviation',0,45,'°'],['waterAngleMin','Water angle minimum',0,180,'°'],['waterAngleMax','Water angle maximum',0,180,'°'],['clashOverlapMin','Clash overlap minimum',0.1,2,'Å']] as const).map(([key,name,min,max,unit])=><label key={key}>{name} ({unit})<input type="number" min={min} max={max} step="0.1" aria-label={name} value={s.analysisParameters[key]} onChange={e=>controller?.setAnalysisParameters({[key]:Number(e.target.value)})}/></label>)}<label>Minimum occupancy<input aria-label="Minimum occupancy" type="number" min="0" max="1" step="0.1" value={s.analysisParameters.minimumOccupancy} onChange={e=>controller?.setAnalysisParameters({minimumOccupancy:Number(e.target.value)})}/></label></div><label>Alternate conformers<select aria-label="Alternate conformer policy" value={s.analysisParameters.conformerPolicy} onChange={e=>controller?.setAnalysisParameters({conformerPolicy:e.target.value as 'exclude_disordered'|'preferred_residue'})}><option value="exclude_disordered">Exclude disordered residues</option><option value="preferred_residue">Preferred per residue (exploratory)</option></select></label><label className="checkbox-label"><input type="checkbox" checked={s.analysisParameters.classifyChemistry} onChange={e=>controller?.setAnalysisParameters({classifyChemistry:e.target.checked})}/> Classify supported chemical interactions</label><label className="checkbox-label"><input type="checkbox" checked={s.analysisParameters.includeWaters} onChange={e=>controller?.setAnalysisParameters({includeWaters:e.target.checked})}/> Include deposited-water bridges</label><p>Heavy-atom endpoints; deposited waters can mediate bridges. Other ligand and ion instances are excluded. Missing atoms are not generated. Zero and unknown occupancy atoms and pairs separated by one or two covalent bonds are excluded. Preferred conformers are independent across residues.</p><p>Mol* applies donor/acceptor, orientation, nonpolar-atom and inferred charge rules. Without hydrogen positions, hydrogen bonds remain candidates. Protonation and solution pH are not modeled. Refined contact counts are not binding energies.</p>{run&&<><p>Run {run.id} · {new Date(run.generatedAt).toLocaleString()} · {run.parserVersion} · {run.ruleSetVersion}</p><p>Chemistry: {run.chemistrySources.filter(c=>c.source!=='standard_template').map(c=>`${c.componentId} (${c.source})`).join(', ')||'standard residue templates'}. Complete rules and source hashes are in the JSON export.</p>{run.qualityFlags.map(f=><div className="quality-note" key={f}>{f}</div>)}</>}</div>}
-      {s.analysisError&&<div className="quality-note analysis-error" role="alert">{s.analysisError}</div>}
-      {running&&<div className="analysis-status" role="status"><LoaderCircle className="spin" size={14}/>{s.analysisStatus}</div>}
-      {!run&&!running&&<div className="analysis-empty"><FlaskConical size={21}/><p>{s.analysisStatus||'Choose a ligand and receptor, then run an analysis. The binding neighborhood will appear in the sequence and 3D view.'}</p></div>}
-      {run&&<>
-        <div className="analysis-summary" role="status"><strong>{run.residues.length}</strong> contact residues <span>·</span> <strong>{run.interactions.filter(i=>i.type==='proximity_contact').length}</strong> nearby atom pairs <span>·</span> {s.analysisCached?'Cached result':'Fresh result'} <span>·</span> {(run.stats.elapsedMilliseconds/1000).toFixed(2)} s</div>
-        <div className="interaction-counts">{(Object.keys(INTERACTION_LABELS) as InteractionType[]).map(t=><button key={t} className={type===t?'active':''} title={`${INTERACTION_LABELS[t]}: ${run.evaluation[t].status.replaceAll('_',' ')}`} onClick={()=>setType(t)}><span>{INTERACTION_LABELS[t]}</span><strong>{run.evaluation[t].status==='not_evaluated'?'—':run.interactions.filter(i=>i.type===t).length}</strong></button>)}</div>
-        {[...evaluationNotes].map(([key,note])=><div className="quality-note" key={key}><strong>{note.status.replaceAll('_',' ')}</strong> · {note.types.map(t=>INTERACTION_LABELS[t]).join(', ')}. {note.reason}</div>)}
-        <div className="interaction-filters"><label>Show<select aria-label="Interaction type filter" value={type} onChange={e=>setType(e.target.value as typeof type)}><option value="chemical">Chemical interactions</option><option value="all">All interactions</option>{Object.entries(INTERACTION_LABELS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label><label className="checkbox-label"><input type="checkbox" checked={residueFilter} onChange={e=>setResidueFilter(e.target.checked)}/> Selected residue only</label><span>{interactions.length} results</span></div>
-        {selected&&<div className="interaction-detail" data-testid="interaction-detail"><div className="field-label">SELECTED INTERACTION</div><strong>{INTERACTION_LABELS[selected.type]} · {selected.distanceAngstrom.toFixed(3)} Å</strong><p>{label(selected.ligand.residueId)} ({selected.ligand.role}: {selected.ligand.atomIndices.map(i=>snapshot.atoms[i].name).join(', ')}) ↔ {label(selected.receptor.residueId)} ({selected.receptor.role}: {selected.receptor.atomIndices.map(i=>snapshot.atoms[i].name).join(', ')})</p><p>{selected.classification.replaceAll('_',' ')}{selected.hydrogenMode&&` · ${selected.hydrogenMode} hydrogens`}{selected.donorHydrogenAcceptorAngle!==undefined&&` · D–H–A ${selected.donorHydrogenAcceptorAngle.toFixed(1)}°`}</p>{selected.mediator&&<p>Via {label(selected.mediator.residueId)} · {selected.mediator.atomIndices.map(i=>snapshot.atoms[i].name).join(', ')}</p>}{selected.geometry&&<p>{Object.entries(selected.geometry).filter(([key])=>!['ligandCentroid','receptorCentroid'].includes(key)).map(([key,value])=><span className="geometry-value" key={key}>{({centroidDistanceAngstrom:'Centroid distance (Å)',planeAngleDegrees:'Plane angle (°)',offsetAngstrom:'Offset (Å)',waterLegDistancesAngstrom:'Water legs (Å)',waterAngleDegrees:'Bridge angle (°)',overlapAngstrom:'Overlap (Å)',vdwRadiiAngstrom:'VdW radii (Å)',metalElement:'Metal',selectedReceptorPartnerCount:'Selected protein partners',selectedReceptorAnglesDegrees:'Partner angles (°)'} as Record<string,string>)[key]}: {Array.isArray(value)?value.map(v=>v.toFixed(2)).join(', '):typeof value==='number'?value.toFixed(2):value}</span>)}</p>}{selected.notes.map(n=><p key={n}>{n}</p>)}<button className="contact-focus" onClick={()=>document.querySelector('.viewer-panel')?.scrollIntoView({block:'center',behavior:'smooth'})}>Show molecular view ↑</button></div>}
-        <div className="interaction-table-wrap"><table className="interaction-table"><thead><tr><th>Receptor residue / atoms</th><th>Type</th><th>Distance</th><th>3D</th></tr></thead><tbody>{interactions.slice(page*50,(page+1)*50).map(i=><tr key={i.id} className={s.selectedInteractionId===i.id?'selected':''}><th scope="row">{label(i.receptor.residueId)}<small>{i.ligand.atomIndices.map(a=>snapshot.atoms[a].name).join('/')} ↔ {i.receptor.atomIndices.map(a=>snapshot.atoms[a].name).join('/')}</small></th><td>{INTERACTION_LABELS[i.type]}</td><td>{i.distanceAngstrom.toFixed(2)} Å</td><td><button className="contact-focus" aria-label={`Inspect ${INTERACTION_LABELS[i.type]} with ${label(i.receptor.residueId)}`} onClick={()=>controller?.selectInteraction(i.id)}>View</button></td></tr>)}</tbody></table></div>
-        {!interactions.length&&<p className="muted small">No results for these filters.{type==='chemical'?' Proximity pairs remain available in the type filter.':''}</p>}
-        {interactions.length>50&&<div className="table-pagination"><button disabled={page===0} onClick={()=>setPage(page-1)}>Previous</button><span>{page*50+1}–{Math.min((page+1)*50,interactions.length)} of {interactions.length}</span><button disabled={(page+1)*50>=interactions.length} onClick={()=>setPage(page+1)}>Next</button></div>}
-        <div className="analysis-exports"><span>All results · unfiltered</span><button className="button secondary" onClick={()=>s.source&&downloadAnalysis(run,snapshot,s.source,'json')}><Download size={14}/> JSON + provenance</button><button className="button secondary" onClick={()=>s.source&&downloadAnalysis(run,snapshot,s.source,'csv')}><Download size={14}/> CSV</button></div>
-      </>}
+export function AnalysisPanel({
+  controller,
+}: {
+  controller: ExplorerController | null;
+}) {
+  const s = useExplorer(),
+    snapshot = s.snapshot,
+    run = s.analysis,
+    sigma = distanceUncertainty(snapshot?.quality);
+  const [type, setType] = useState<InteractionType | "chemical" | "all">(
+    "chemical",
+  );
+  const [residueFilter, setResidueFilter] = useState(false),
+    [page, setPage] = useState(0),
+    [details, setDetails] = useState(false);
+  useEffect(
+    () => setPage(0),
+    [type, residueFilter, s.selectedResidueId, run?.id],
+  );
+  if (!snapshot) return null;
+  const chains = snapshot.chains.filter((c) => c.type === "polymer");
+  const residue = (id: string) => snapshot.residues.find((r) => r.id === id)!;
+  const label = (id: string) => {
+    const r = residue(id),
+      c = snapshot.chains.find((c) => c.id === r.chainId)!;
+    return `${r.componentId} ${c.authAsymId}:${r.authSeqId ?? "—"}${r.insertionCode ?? ""}${s.assemblyId ? ` · ${c.operatorId}` : ""}`;
+  };
+  const interactions =
+    run?.interactions.filter(
+      (i) =>
+        (type === "all" ||
+          (type === "chemical"
+            ? i.type !== "proximity_contact" && i.type !== "steric_clash"
+            : i.type === type)) &&
+        (!residueFilter ||
+          [
+            i.ligand.residueId,
+            i.receptor.residueId,
+            i.mediator?.residueId,
+          ].includes(s.selectedResidueId ?? "")),
+    ) ?? [];
+  const running = s.analysisPhase === "running",
+    ready = s.phase === "ready";
+  const selected = run?.interactions.find(
+    (i) => i.id === s.selectedInteractionId,
+  );
+  const evaluationNotes = new Map<
+    string,
+    { types: InteractionType[]; status: string; reason?: string }
+  >();
+  if (run)
+    for (const [type, evaluation] of Object.entries(run.evaluation))
+      if (evaluation.status !== "evaluated") {
+        const key = JSON.stringify([evaluation.status, evaluation.reason]);
+        const group = evaluationNotes.get(key) ?? {
+          types: [],
+          status: evaluation.status,
+          reason: evaluation.reason,
+        };
+        group.types.push(type as InteractionType);
+        evaluationNotes.set(key, group);
+      }
+  return (
+    <div className="analysis-panel panel">
+      <div className="panel-heading">
+        <span>
+          <Network size={16} /> Ligand interactions
+        </span>
+        <small>COMPUTED IN YOUR BROWSER</small>
+      </div>
+      <div className="analysis-content">
+        <div className="analysis-intro">
+          <div>
+            <h2>Explore the binding neighborhood.</h2>
+            <p>Measure proximity and identify chemistry-aware candidates.</p>
+          </div>
+          <span className="analysis-engine">ENGINE 2.0</span>
+        </div>
+        <div className="analysis-config">
+          <label className="analysis-target">
+            Target ligand
+            <select
+              aria-label="Analysis target ligand"
+              value={s.targetLigandId ?? ""}
+              disabled={!ready}
+              onChange={(e) => controller?.setAnalysisTarget(e.target.value)}
+            >
+              {!snapshot.ligands.length && (
+                <option value="">No ligand available</option>
+              )}
+              {snapshot.ligands.map((l) => (
+                <option key={l.id} value={l.residueId}>
+                  {label(l.residueId)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Proximity cutoff (Å)
+            <input
+              aria-label="Proximity cutoff"
+              type="number"
+              min="1"
+              max="8"
+              step="0.1"
+              value={s.analysisParameters.proximityCutoff}
+              onChange={(e) =>
+                controller?.setAnalysisParameters({
+                  proximityCutoff: Number(e.target.value),
+                })
+              }
+            />
+          </label>
+          <button
+            className="button primary run-analysis"
+            disabled={
+              !ready ||
+              !s.targetLigandId ||
+              !s.receptorChainIds.length ||
+              running
+            }
+            onClick={() => void controller?.runAnalysis()}
+          >
+            {running ? (
+              <LoaderCircle size={15} className="spin" />
+            ) : (
+              <Play size={15} />
+            )}{" "}
+            {running ? "Analyzing…" : "Run analysis"}
+          </button>
+          {running && (
+            <button
+              className="icon-button"
+              aria-label="Cancel analysis"
+              onClick={() => controller?.cancelAnalysis()}
+            >
+              <X size={17} />
+            </button>
+          )}
+        </div>
+        <div className="receptor-chains">
+          <span className="field-label">RECEPTOR</span>
+          {chains.map((c) => (
+            <label key={c.id}>
+              <input
+                type="checkbox"
+                checked={s.receptorChainIds.includes(c.id)}
+                onChange={(e) =>
+                  controller?.setReceptorChains(
+                    e.target.checked
+                      ? [...s.receptorChainIds, c.id]
+                      : s.receptorChainIds.filter((id) => id !== c.id),
+                  )
+                }
+              />{" "}
+              Chain {c.authAsymId}
+              {s.assemblyId && ` · ${c.operatorId}`}
+            </label>
+          ))}
+        </div>
+        <button
+          className="analysis-settings-toggle"
+          aria-expanded={details}
+          onClick={() => setDetails(!details)}
+        >
+          {details ? "Hide" : "Show"} calculation settings & assumptions
+        </button>
+        {details && (
+          <div className="analysis-settings">
+            <div className="cutoff-fields">
+              {(
+                [
+                  ["hydrogenBondCutoff", "H-bond cutoff"],
+                  ["hydrophobicCutoff", "Hydrophobic cutoff"],
+                  ["saltBridgeCutoff", "Salt-bridge cutoff"],
+                  ["piStackingCutoff", "π-stacking cutoff"],
+                  ["cationPiCutoff", "Cation–π cutoff"],
+                  ["metalCutoff", "Metal cutoff"],
+                  ["waterLegMin", "Water leg minimum"],
+                  ["waterLegMax", "Water leg maximum"],
+                ] as const
+              ).map(([key, name]) => (
+                <label key={key}>
+                  {name} (Å)
+                  <input
+                    type="number"
+                    min="1"
+                    max="8"
+                    step="0.1"
+                    aria-label={name}
+                    value={s.analysisParameters[key]}
+                    onChange={(e) =>
+                      controller?.setAnalysisParameters({
+                        [key]: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+              ))}
+              {(
+                [
+                  ["piOffsetMax", "Ring offset maximum", 0, 4, "Å"],
+                  ["piAngleDeviation", "Ring angle deviation", 0, 45, "°"],
+                  ["waterAngleMin", "Water angle minimum", 0, 180, "°"],
+                  ["waterAngleMax", "Water angle maximum", 0, 180, "°"],
+                  ["clashOverlapMin", "Clash overlap minimum", 0.1, 2, "Å"],
+                ] as const
+              ).map(([key, name, min, max, unit]) => (
+                <label key={key}>
+                  {name} ({unit})
+                  <input
+                    type="number"
+                    min={min}
+                    max={max}
+                    step="0.1"
+                    aria-label={name}
+                    value={s.analysisParameters[key]}
+                    onChange={(e) =>
+                      controller?.setAnalysisParameters({
+                        [key]: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+              ))}
+              <label>
+                Minimum occupancy
+                <input
+                  aria-label="Minimum occupancy"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={s.analysisParameters.minimumOccupancy}
+                  onChange={(e) =>
+                    controller?.setAnalysisParameters({
+                      minimumOccupancy: Number(e.target.value),
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <label>
+              Alternate conformers
+              <select
+                aria-label="Alternate conformer policy"
+                value={s.analysisParameters.conformerPolicy}
+                onChange={(e) =>
+                  controller?.setAnalysisParameters({
+                    conformerPolicy: e.target.value as
+                      "exclude_disordered" | "preferred_residue",
+                  })
+                }
+              >
+                <option value="exclude_disordered">
+                  Exclude disordered residues
+                </option>
+                <option value="preferred_residue">
+                  Preferred per residue (exploratory)
+                </option>
+              </select>
+            </label>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={s.analysisParameters.classifyChemistry}
+                onChange={(e) =>
+                  controller?.setAnalysisParameters({
+                    classifyChemistry: e.target.checked,
+                  })
+                }
+              />{" "}
+              Classify supported chemical interactions
+            </label>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={s.analysisParameters.includeWaters}
+                onChange={(e) =>
+                  controller?.setAnalysisParameters({
+                    includeWaters: e.target.checked,
+                  })
+                }
+              />{" "}
+              Include deposited-water bridges
+            </label>
+            <p>
+              Heavy-atom endpoints; deposited waters can mediate bridges. Other
+              ligand and ion instances are excluded. Missing atoms are not
+              generated. Zero and unknown occupancy atoms and pairs separated by
+              one or two covalent bonds are excluded. Preferred conformers are
+              independent across residues.
+            </p>
+            <p>
+              Mol* applies donor/acceptor, orientation, nonpolar-atom and
+              inferred charge rules. Without hydrogen positions, hydrogen bonds
+              remain candidates. Protonation and solution pH are not modeled.
+              Refined contact counts are not binding energies.
+            </p>
+            {run && (
+              <>
+                <p>
+                  Run {run.id} · {new Date(run.generatedAt).toLocaleString()} ·{" "}
+                  {run.parserVersion} · {run.ruleSetVersion}
+                </p>
+                <p>
+                  Chemistry:{" "}
+                  {run.chemistrySources
+                    .filter((c) => c.source !== "standard_template")
+                    .map((c) => `${c.componentId} (${c.source})`)
+                    .join(", ") || "standard residue templates"}
+                  . Complete rules and source hashes are in the JSON export.
+                </p>
+                {run.qualityFlags.map((f) => (
+                  <div className="quality-note" key={f}>
+                    {f}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+        {s.analysisError && (
+          <div className="quality-note analysis-error" role="alert">
+            {s.analysisError}
+          </div>
+        )}
+        {running && (
+          <div className="analysis-status" role="status">
+            <LoaderCircle className="spin" size={14} />
+            {s.analysisStatus}
+          </div>
+        )}
+        {!run && !running && (
+          <div className="analysis-empty">
+            <FlaskConical size={21} />
+            <p>
+              {s.analysisStatus ||
+                "Choose a ligand and receptor, then run an analysis. The binding neighborhood will appear in the sequence and 3D view."}
+            </p>
+          </div>
+        )}
+        {run && (
+          <>
+            <div className="analysis-summary" role="status">
+              <strong>{run.residues.length}</strong> contact residues{" "}
+              <span>·</span>{" "}
+              <strong>
+                {
+                  run.interactions.filter((i) => i.type === "proximity_contact")
+                    .length
+                }
+              </strong>{" "}
+              nearby atom pairs <span>·</span>{" "}
+              {s.analysisCached ? "Cached result" : "Fresh result"}{" "}
+              <span>·</span> {(run.stats.elapsedMilliseconds / 1000).toFixed(2)}{" "}
+              s
+            </div>
+            <div className="interaction-counts">
+              {(Object.keys(INTERACTION_LABELS) as InteractionType[]).map(
+                (t) => (
+                  <button
+                    key={t}
+                    className={type === t ? "active" : ""}
+                    title={`${INTERACTION_LABELS[t]}: ${run.evaluation[t].status.replaceAll("_", " ")}`}
+                    onClick={() => setType(t)}
+                  >
+                    <span>{INTERACTION_LABELS[t]}</span>
+                    <strong>
+                      {run.evaluation[t].status === "not_evaluated"
+                        ? "—"
+                        : run.interactions.filter((i) => i.type === t).length}
+                    </strong>
+                  </button>
+                ),
+              )}
+            </div>
+            {[...evaluationNotes].map(([key, note]) => (
+              <div className="quality-note" key={key}>
+                <strong>{note.status.replaceAll("_", " ")}</strong> ·{" "}
+                {note.types.map((t) => INTERACTION_LABELS[t]).join(", ")}.{" "}
+                {note.reason}
+              </div>
+            ))}
+            <div className="interaction-filters">
+              <label>
+                Show
+                <select
+                  aria-label="Interaction type filter"
+                  value={type}
+                  onChange={(e) => setType(e.target.value as typeof type)}
+                >
+                  <option value="chemical">Chemical interactions</option>
+                  <option value="all">All interactions</option>
+                  {Object.entries(INTERACTION_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={residueFilter}
+                  onChange={(e) => setResidueFilter(e.target.checked)}
+                />{" "}
+                Selected residue only
+              </label>
+              <span>{interactions.length} results</span>
+            </div>
+            {selected && (
+              <div
+                className="interaction-detail"
+                data-testid="interaction-detail"
+              >
+                <div className="field-label">SELECTED INTERACTION</div>
+                <strong>
+                  {INTERACTION_LABELS[selected.type]} ·{" "}
+                  {selected.distanceAngstrom.toFixed(3)} Å
+                </strong>
+                <p>
+                  {label(selected.ligand.residueId)} ({selected.ligand.role}:{" "}
+                  {selected.ligand.atomIndices
+                    .map((i) => snapshot.atoms[i].name)
+                    .join(", ")}
+                  ) ↔ {label(selected.receptor.residueId)} (
+                  {selected.receptor.role}:{" "}
+                  {selected.receptor.atomIndices
+                    .map((i) => snapshot.atoms[i].name)
+                    .join(", ")}
+                  )
+                </p>
+                <p>
+                  {selected.classification.replaceAll("_", " ")}
+                  {selected.hydrogenMode &&
+                    ` · ${selected.hydrogenMode} hydrogens`}
+                  {selected.donorHydrogenAcceptorAngle !== undefined &&
+                    ` · D–H–A ${selected.donorHydrogenAcceptorAngle.toFixed(1)}°`}
+                </p>
+                {sigma !== undefined &&
+                  cutoffMargin(selected, run.request.parameters) !==
+                    undefined && (
+                    <p data-testid="cutoff-margin">
+                      {cutoffMargin(selected, run.request.parameters)!.toFixed(
+                        2,
+                      )}{" "}
+                      Å inside its cutoff; estimated distance uncertainty ±
+                      {sigma.toFixed(2)} Å
+                      {isBorderline(selected, run.request.parameters, sigma)
+                        ? " (borderline: the classification could change within coordinate error)"
+                        : ""}
+                      .
+                    </p>
+                  )}
+                {selected.mediator && (
+                  <p>
+                    Via {label(selected.mediator.residueId)} ·{" "}
+                    {selected.mediator.atomIndices
+                      .map((i) => snapshot.atoms[i].name)
+                      .join(", ")}
+                  </p>
+                )}
+                {selected.geometry && (
+                  <p>
+                    {Object.entries(selected.geometry)
+                      .filter(
+                        ([key]) =>
+                          !["ligandCentroid", "receptorCentroid"].includes(key),
+                      )
+                      .map(([key, value]) => (
+                        <span className="geometry-value" key={key}>
+                          {
+                            (
+                              {
+                                centroidDistanceAngstrom:
+                                  "Centroid distance (Å)",
+                                planeAngleDegrees: "Plane angle (°)",
+                                offsetAngstrom: "Offset (Å)",
+                                waterLegDistancesAngstrom: "Water legs (Å)",
+                                waterAngleDegrees: "Bridge angle (°)",
+                                overlapAngstrom: "Overlap (Å)",
+                                vdwRadiiAngstrom: "VdW radii (Å)",
+                                metalElement: "Metal",
+                                selectedReceptorPartnerCount:
+                                  "Selected protein partners",
+                                selectedReceptorAnglesDegrees:
+                                  "Partner angles (°)",
+                              } as Record<string, string>
+                            )[key]
+                          }
+                          :{" "}
+                          {Array.isArray(value)
+                            ? value.map((v) => v.toFixed(2)).join(", ")
+                            : typeof value === "number"
+                              ? value.toFixed(2)
+                              : value}
+                        </span>
+                      ))}
+                  </p>
+                )}
+                {selected.notes.map((n) => (
+                  <p key={n}>{n}</p>
+                ))}
+                <button
+                  className="contact-focus"
+                  onClick={() =>
+                    document
+                      .querySelector(".viewer-panel")
+                      ?.scrollIntoView({ block: "center", behavior: "smooth" })
+                  }
+                >
+                  Show molecular view ↑
+                </button>
+              </div>
+            )}
+            <div className="interaction-table-wrap">
+              <table className="interaction-table">
+                <thead>
+                  <tr>
+                    <th>Receptor residue / atoms</th>
+                    <th>Type</th>
+                    <th>Distance</th>
+                    <th>3D</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {interactions.slice(page * 50, (page + 1) * 50).map((i) => (
+                    <tr
+                      key={i.id}
+                      className={
+                        s.selectedInteractionId === i.id ? "selected" : ""
+                      }
+                    >
+                      <th scope="row">
+                        {label(i.receptor.residueId)}
+                        <small>
+                          {i.ligand.atomIndices
+                            .map((a) => snapshot.atoms[a].name)
+                            .join("/")}{" "}
+                          ↔{" "}
+                          {i.receptor.atomIndices
+                            .map((a) => snapshot.atoms[a].name)
+                            .join("/")}
+                        </small>
+                      </th>
+                      <td>{INTERACTION_LABELS[i.type]}</td>
+                      <td>
+                        {i.distanceAngstrom.toFixed(2)} Å
+                        {isBorderline(i, run.request.parameters, sigma) && (
+                          <span
+                            className="borderline"
+                            title={`Within the estimated distance uncertainty (±${sigma!.toFixed(2)} Å) of its cutoff`}
+                          >
+                            borderline
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          className="contact-focus"
+                          aria-label={`Inspect ${INTERACTION_LABELS[i.type]} with ${label(i.receptor.residueId)}`}
+                          onClick={() => controller?.selectInteraction(i.id)}
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!interactions.length && (
+              <p className="muted small">
+                No results for these filters.
+                {type === "chemical"
+                  ? " Proximity pairs remain available in the type filter."
+                  : ""}
+              </p>
+            )}
+            {interactions.length > 50 && (
+              <div className="table-pagination">
+                <button disabled={page === 0} onClick={() => setPage(page - 1)}>
+                  Previous
+                </button>
+                <span>
+                  {page * 50 + 1}–
+                  {Math.min((page + 1) * 50, interactions.length)} of{" "}
+                  {interactions.length}
+                </span>
+                <button
+                  disabled={(page + 1) * 50 >= interactions.length}
+                  onClick={() => setPage(page + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            <div className="analysis-exports">
+              <span>All results · unfiltered</span>
+              <button
+                className="button secondary"
+                onClick={() =>
+                  s.source && downloadAnalysis(run, snapshot, s.source, "json")
+                }
+              >
+                <Download size={14} /> JSON + provenance
+              </button>
+              <button
+                className="button secondary"
+                onClick={() =>
+                  s.source && downloadAnalysis(run, snapshot, s.source, "csv")
+                }
+              >
+                <Download size={14} /> CSV
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
-  </div>;
+  );
 }
