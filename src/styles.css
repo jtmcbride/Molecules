@@ -2109,11 +2109,31 @@ select {
 .variant-state {
   color: #92aabd;
 }
+.variant-references {
+  display: block;
+  margin: 4px 0;
+}
 .variant-state.variant-carries {
   color: var(--accent);
 }
 .binding-variants {
   margin: 14px 0;
+}
+.variant-interactions {
+  margin: 6px 0;
+  font-size: 11px;
+  color: #a2b7cb;
+}
+.variant-consequence {
+  margin: 4px 0;
+}
+.variant-consequence strong {
+  font-size: 11px;
+  color: #d1deeb;
+}
+.variant-consequence ul {
+  margin: 2px 0 0;
+  padding-left: 16px;
 }
 .protein-notes,
 .biology-quality {
@@ -2199,6 +2219,7 @@ select {
 }
 .ligand-sites h4,
 .binding-context h4,
+.binding-variants h4,
 .structure-evidence h4 {
   margin: 0 0 6px;
   font-size: 11px;

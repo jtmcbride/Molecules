@@ -1,5 +1,11 @@
 import { useExplorer } from "../state/explorer";
 import type { ResidueMapping } from "../domain/biology";
+import { variantConsequences } from "../biology/consequences";
+import {
+  consequenceSentences,
+  interactionName,
+} from "../biology/consequenceText";
+import type { VariantConsequence } from "../domain/biology";
 import {
   interpretationVariantStates,
   isVariantAnnotation,
@@ -146,6 +152,26 @@ function ResidueVariants({ residueId }: { residueId: string }) {
     ...interpretation,
     annotations: variants,
   }).filter((x) => chainInstanceIds.has(x.chainInstanceId));
+  // Consequences need an analysis of the same coordinates; restricted to this residue.
+  const run =
+      s.analysis &&
+      s.snapshot &&
+      s.analysis.snapshotId === interpretation.snapshotId &&
+      s.snapshot.id === interpretation.snapshotId
+        ? s.analysis
+        : null,
+    consequences = run
+      ? variantConsequences(
+          { ...interpretation, annotations: variants },
+          {
+            ...run,
+            interactions: run.interactions.filter(
+              (i) => i.receptor.residueId === residueId,
+            ),
+          },
+          s.snapshot!,
+        )
+      : [];
   return (
     <details className="residue-variants" data-testid="residue-variants">
       <summary>
@@ -168,8 +194,11 @@ function ResidueVariants({ residueId }: { residueId: string }) {
                 {state.state === "not_evaluated" ? `: ${state.reason}` : ""}
               </p>
             )}
+            <VariantInteractions
+              consequences={consequences.filter((c) => c.annotationId === a.id)}
+            />
             {a.crossReferences?.length ? (
-              <small className="muted">
+              <small className="muted variant-references">
                 {a.crossReferences
                   .map((x) => `${x.database}:${x.id}`)
                   .join(" · ")}
@@ -192,5 +221,46 @@ function ResidueVariants({ residueId }: { residueId: string }) {
         effect on binding.
       </p>
     </details>
+  );
+}
+
+/** Atom-level facts about the analyzed interactions at a variant position. */
+function VariantInteractions({
+  consequences,
+}: {
+  consequences: VariantConsequence[];
+}) {
+  const s = useExplorer();
+  if (!s.analysis || !consequences.length) return null;
+  const type = (c: VariantConsequence) =>
+    s.analysis!.interactions.find((i) => i.id === c.interactionId)?.type;
+  return (
+    <div className="variant-interactions" data-testid="variant-interactions">
+      {consequences.map((c) => {
+        const [headline, ...details] = consequenceSentences(c);
+        const kind = type(c);
+        return (
+          <div
+            key={`${c.interactionId}:${c.status === "evaluated" ? c.replacement : ""}`}
+            className={`variant-consequence retained-${c.status === "evaluated" ? c.retained : "unknown"}`}
+          >
+            <strong>
+              {kind ? interactionName(kind) : "interaction"}
+              {c.status === "evaluated"
+                ? ` · ${c.deposited}→${c.replacement}`
+                : ""}
+            </strong>{" "}
+            {headline}
+            {details.length > 0 && (
+              <ul>
+                {details.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

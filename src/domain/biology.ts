@@ -235,6 +235,43 @@ export interface BindingSiteSummary {
   variants?: VariantOverlap[];
 }
 /**
+ * Atom-level statements about an analyzed interaction at a curated variant position
+ * (biology-1.2.0). They state whether the deposited interacting atoms are part of the
+ * replacement residue; they never state whether the replacement forms this or another
+ * interaction, and nothing is modeled.
+ */
+export const CONSEQUENCE_CODES = [
+  "deposited_atom_retained",
+  "backbone_nitrogen_without_hydrogen",
+  "deposited_atom_absent",
+] as const;
+export type VariantConsequence =
+  | {
+      annotationId: string;
+      interactionId: string;
+      residueId: string;
+      status: "evaluated";
+      /** One-letter deposited residue and the stated replacement. */
+      deposited: string;
+      replacement: string;
+      atoms: {
+        atomIndex: number;
+        atomName: string;
+        code: (typeof CONSEQUENCE_CODES)[number];
+      }[];
+      /** Whether all, some or none of the deposited receptor atoms are part of the replacement. */
+      retained: "all" | "some" | "none";
+      /** The deposited residue is glycine: the replacement adds side-chain atoms that are not modeled. */
+      sideChainAdded: boolean;
+    }
+  | {
+      annotationId: string;
+      interactionId: string;
+      residueId: string;
+      status: "not_evaluated";
+      reason: string;
+    };
+/**
  * Mapped contact residues covered by curated variants of one type, with the chain background
  * over the same chain instances. Descriptive counts: a variant at a contact residue is not
  * evidence that it affects binding.

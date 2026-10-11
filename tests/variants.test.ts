@@ -422,6 +422,11 @@ describe("variant labels, older interpretations and exports", () => {
       ).substitution,
     ).toEqual({ original: "E", alternatives: ["V"] });
     expect(json.bindingSiteSummary.variants[0].residueIds).toHaveLength(18);
+    expect(
+      json.variantConsequences.filter(
+        (c: { status: string }) => c.status === "evaluated",
+      ).length,
+    ).toBeGreaterThan(0);
     const lines = annotationCsv(p.interpretation, p.snapshot).split("\r\n");
     const header = lines[0].split(",").map((h) => JSON.parse(h));
     expect(header.slice(-3)).toEqual([

@@ -9,6 +9,7 @@ import type { StructureSnapshot, StructureSource } from "../domain/types";
 import { analysisEvidence } from "./evidence";
 import { distanceUncertainty, isBorderline } from "../analysis/uncertainty";
 import { analyzedComponent, summarizeBindingSite } from "./projection";
+import { variantConsequences } from "./consequences";
 import {
   interpretationVariantStates,
   isVariantAnnotation,
@@ -40,8 +41,8 @@ export function interpretationJson(
   return JSON.stringify(
     {
       // Schema 2 (biology-1.1.0): site/context overlaps, chain background and ligand relations.
-      // Schema 3 (biology-1.2.0): variant replacements, deposited-residue variant states and
-      // binding-site variant overlaps.
+      // Schema 3 (biology-1.2.0): variant replacements, deposited-residue variant states,
+      // variant consequences and binding-site variant overlaps.
       schemaVersion: 3,
       kind: "molecular-interpretation",
       interpretation,
@@ -69,6 +70,10 @@ export function interpretationJson(
           : [],
       },
       variantResidueStates: interpretationVariantStates(interpretation),
+      // Atom-level facts about the analyzed interactions at curated variant positions.
+      variantConsequences: run
+        ? variantConsequences(interpretation, run, snapshot)
+        : [],
       bindingSiteSummary: run
         ? summarizeBindingSite(
             interpretation,
