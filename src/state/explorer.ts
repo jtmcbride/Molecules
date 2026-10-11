@@ -1,5 +1,6 @@
 import {
   DEFAULT_ANNOTATION_TYPES,
+  type CarrierLookup,
   type InterpretationSnapshot,
 } from "../domain/biology";
 import {
@@ -24,6 +25,8 @@ interface ExplorerState {
   biologyAssociation: string | null;
   selectedProteinAccession: string | null;
   annotationCategories: string[];
+  /** Deposited-structure carrier lookups per UniProt accession (biology-1.2.0). */
+  carrierLookups: Record<string, CarrierLookupState>;
   selectedAnnotationId: string | null;
   biologySelectedLabel: number | null;
   evidenceIds: string[];
@@ -56,6 +59,14 @@ interface ExplorerState {
   selectedInteractionId: string | null;
   selectResidue: (id: string | null) => void;
 }
+export type CarrierLookupState =
+  | { phase: "loading" }
+  | {
+      phase: "ready";
+      lookup: CarrierLookup;
+      mode: "fresh" | "cached" | "stale" | "pinned";
+    }
+  | { phase: "error"; message: string };
 export const useExplorer = create<ExplorerState>((set, get) => ({
   interpretation: null,
   biologyPhase: "idle",
@@ -65,6 +76,7 @@ export const useExplorer = create<ExplorerState>((set, get) => ({
   biologyAssociation: null,
   selectedProteinAccession: null,
   annotationCategories: [...DEFAULT_ANNOTATION_TYPES],
+  carrierLookups: {},
   selectedAnnotationId: null,
   biologySelectedLabel: null,
   evidenceIds: [],

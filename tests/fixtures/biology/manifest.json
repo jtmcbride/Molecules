@@ -304,5 +304,33 @@
     "url": "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/2hbs.xml.gz",
     "sha256": "c63ce7073fc3fb8e26f009be44e634941ff2dbbde5721068924c0501cc843f6f",
     "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "carriers-P68871.json",
+    "url": "https://sequence-coordinates.rcsb.org/graphql",
+    "requestBody": "{\"query\":\"{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: \\\"P68871\\\") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }\"}",
+    "sha256": "7eb4588678384459cd3da7a40680aecdc63d1f18e05b877fbe099e3213833ca8",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "carriers-P69905.json",
+    "url": "https://sequence-coordinates.rcsb.org/graphql",
+    "requestBody": "{\"query\":\"{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: \\\"P69905\\\") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }\"}",
+    "sha256": "205957246e21f7e33b53ef670c4076dec8f52f4010f5bc1fae0e63797ef371cb",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "carriers-P01009.json",
+    "url": "https://sequence-coordinates.rcsb.org/graphql",
+    "requestBody": "{\"query\":\"{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: \\\"P01009\\\") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }\"}",
+    "sha256": "f884dd4395ad473c882ba8e37827295fb3e6dab397c7ed45ca25c3910ad44579",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "carriers-P00760.json",
+    "url": "https://sequence-coordinates.rcsb.org/graphql",
+    "requestBody": "{\"query\":\"{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: \\\"P00760\\\") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }\"}",
+    "sha256": "f25ac2ab72cbb2973c36786c781be23965206ab209ccfd6cca57ea6ac5ee0779",
+    "retrievedOn": "2026-10-10"
   }
 ]

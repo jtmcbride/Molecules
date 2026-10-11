@@ -484,6 +484,9 @@ export class ExplorerController {
         ...(comparison.length ? { comparison } : {}),
         interpretationId: s.interpretation?.id,
         annotationCategories: s.annotationCategories,
+        carrierResourceIds: Object.values(s.carrierLookups).flatMap((l) =>
+          l.phase === "ready" ? [l.lookup.resourceRef.id] : [],
+        ),
         selectedProteinAccession: s.selectedProteinAccession,
         associationAccession: s.biologyAssociation ?? undefined,
         analysisCacheKey: s.analysis?.cacheKey,

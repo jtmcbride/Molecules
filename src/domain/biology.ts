@@ -7,6 +7,8 @@ export interface ResourceSnapshot {
   provider: "SIFTS" | "UniProt" | "RCSB";
   identifier: string;
   url: string;
+  /** JSON body of a POST request (GraphQL), part of what identifies the response. */
+  requestBody?: string;
   contentHash: string;
   retrievedAt: string;
   release?: string;
@@ -268,6 +270,52 @@ export type VariantConsequence =
       annotationId: string;
       interactionId: string;
       residueId: string;
+      status: "not_evaluated";
+      reason: string;
+    };
+/**
+ * PDB entity sequences aligned to one UniProt accession (RCSB sequence-coordinates API,
+ * SIFTS-derived alignments), pinned like other biological sources (biology-1.2.0).
+ */
+export interface CarrierLookup {
+  accession: string;
+  resourceRef: Omit<ResourceSnapshot, "bytes">;
+  entities: {
+    entityId: string; // e.g. "2HBS_2"
+    entryId: string;
+    sequence: string;
+    regions: {
+      queryBegin: number;
+      queryEnd: number;
+      targetBegin: number;
+      targetEnd: number;
+    }[];
+  }[];
+  /** Entities whose alignment is inconsistent with their sequences; never used. */
+  invalidEntityIds: string[];
+  /** Computed structure models in the response (e.g. AlphaFold "AF_…"); not deposited, never used. */
+  computedModelIds: string[];
+}
+/**
+ * PDB entries whose deposited entity sequence has a variant's stated replacement at its UniProt
+ * positions. A sequence-level statement: whether the residue is observed in the coordinates, and
+ * how SIFTS curates it, is checked only when the entry is opened.
+ */
+export type VariantCarriers =
+  | {
+      annotationId: string;
+      replacement: string;
+      status: "evaluated";
+      carriers: { entryId: string; entityIds: string[] }[];
+      /** Entities aligned over the positions with residues other than the replacement. */
+      otherResidue: number;
+      /** Entities whose alignment does not cover every position. */
+      notCovered: number;
+      total: number;
+    }
+  | {
+      annotationId: string;
+      replacement: string;
       status: "not_evaluated";
       reason: string;
     };

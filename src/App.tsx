@@ -860,7 +860,7 @@ export default function App() {
                       remain visible.
                     </div>
                   )}
-                  <ResidueBiology />
+                  <ResidueBiology controller={controller.current} />
                   <div className="section-rule" />
                   <div className="group-heading">
                     OBSERVED ATOMS{" "}

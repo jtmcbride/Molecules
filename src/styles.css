@@ -2131,6 +2131,22 @@ select {
   font-size: 11px;
   color: #d1deeb;
 }
+.variant-carriers {
+  margin: 10px 0;
+  font-size: 11px;
+}
+.carrier-row {
+  margin: 4px 0;
+}
+.carrier-entries {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-left: 6px;
+}
+.carrier-current {
+  color: var(--accent);
+}
 .variant-consequence ul {
   margin: 2px 0 0;
   padding-left: 16px;

@@ -140,3 +140,27 @@ export const ligandInstanceSchema = z.object({
     .nullable()
     .optional(),
 });
+const position = z.number().int().positive();
+export const carrierSchema = z.object({
+  data: z.object({
+    alignments: z.object({
+      query_sequence: z.string().regex(/^[A-Z]+$/),
+      target_alignments: z
+        .array(
+          z.object({
+            target_id: z.string(),
+            target_sequence: z.string().nullable(),
+            aligned_regions: z.array(
+              z.object({
+                query_begin: position,
+                query_end: position,
+                target_begin: position,
+                target_end: position,
+              }),
+            ),
+          }),
+        )
+        .nullable(),
+    }),
+  }),
+});

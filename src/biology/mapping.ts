@@ -6,7 +6,7 @@ import type {
   SiftsRow,
 } from "../domain/biology";
 import type { StructureSnapshot } from "../domain/types";
-const CODES: Record<string, string> = {
+export const CODES: Record<string, string> = {
   ALA: "A",
   ARG: "R",
   ASN: "N",
