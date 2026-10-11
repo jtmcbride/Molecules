@@ -1,6 +1,6 @@
 # Phase 5 implementation plan: curated variants
 
-Status: decisions accepted 2026-10-10; implementation on the `phase-5-variants` branch. Baseline: `main` after the Phase 4 release (engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-3`, `biology-1.1.0`, `comparison-1.0.0`, analysis JSON schema 3, interpretation JSON schema 2, comparison JSON schema 1, session schema 3, Dexie version 4).
+Status: implemented 2026-10-10 (5V-A–5V-E) on the `phase-5-variants` branch as `biology-1.2.0`. See the [implementation record](#implementation-record), [status](PHASE_5_STATUS.md) and [validation](../validation/VARIANTS.md). Baseline: `main` after the Phase 4 release (engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-3`, `biology-1.1.0`, `comparison-1.0.0`, analysis JSON schema 3, interpretation JSON schema 2, comparison JSON schema 1, session schema 3, Dexie version 4).
 
 Phase 5 covers mutations, protein–protein interfaces and alignment-based correspondence. This plan covers the first track only: curated sequence variants. The other tracks (symmetry-corrected ligand pose RMSD, protein–protein interfaces, inferred alignment correspondence) get their own plans.
 
@@ -181,3 +181,7 @@ Acceptance: all gates above pass in CI; the release records `biology-1.2.0`, `co
   - **Controller and session.** `BiologyController.lookupCarriers` runs per accession, abortable and generation-checked, and stores the response with the other biology sources. A failure is shown for that protein only. Sessions save `carrierResourceIds`, restored from stored bytes without requests; a new interpretation revision clears lookups.
   - **Display.** The residue view's variant block offers the lookup (naming the accession it sends), lists carriers per replacement, and opens one as a Phase 4 comparison structure. The open entry is marked rather than offered.
   - **Browser workflows.** `tests/e2e/variants.spec.ts`: lookup, opening 2HBS against 4HHB (E7V paired), pinned restore with no new request, and a failed lookup leaving interpretation and analysis intact.
+- **5V-E.** As planned.
+  - **Golden test.** `tests/variants-golden.test.ts` pins SHA-256 hashes of the full variant output for 4HHB chain B heme, 2HBS chain B heme, 3PTB benzamidine and 1OPH (`UPDATE_VARIANTS_GOLDEN=1`, `DUMP_VARIANTS_GOLDEN=<dir>`).
+  - **Validation.** `validation/VARIANTS.md`.
+  - **Version.** The package version moves to 0.5.0.

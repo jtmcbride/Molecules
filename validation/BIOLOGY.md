@@ -65,4 +65,4 @@ Saved schema 2 sessions pin interpretation/analysis references; schema 1 session
 
 Ligand relations compare ChEBI identifiers only and never infer identity from names. Generic UniProt ligands such as "substrate" remain unresolved. Background rates are descriptive counts; no enrichment statistic is reported because no null model is defined. Coordinate error describes an atom with average B factor; borderline flags use √2 × that error for a distance and are display metadata only. Ligand validation scores describe deposited coordinates. For an explicitly associated local file they are shown with that assumption, not as a property of locally modified coordinates.
 
-PDBe independent binding-site cross-checks, AlphaFold interpretation, comparison, variants, mutation effects and protein interfaces remain later work.
+PDBe independent binding-site cross-checks, AlphaFold interpretation, mutation-effect prediction and protein interfaces remain later work. Comparison is Phase 4 ([COMPARISON.md](COMPARISON.md)); curated variants are Phase 5 ([VARIANTS.md](VARIANTS.md)).

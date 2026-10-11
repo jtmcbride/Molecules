@@ -137,7 +137,7 @@ See [comparison validation evidence](validation/COMPARISON.md) for the numpy sup
 - **Phase 3 — complete, including follow-up milestones 3F–3J:** validated SIFTS mappings, UniProt identity/features, linked annotation tracks, residue context, site-level binding-site summaries with background rates and ligand relations, engineered-mutation projection, structure-quality and ligand-fit evidence, pinned sessions and interpretation exports. [Validation and limits](validation/BIOLOGY.md); [plan and implementation record](docs/PHASE_3_PLAN.md).
 - **Phase 2.x — complete:** ruleset `molstar-5.13.1-ligand-3`: reference validation harness, covalent ligands, ambiguity labels, element-specific metal distances, halogen bonds, per-conformer ensembles and multi-residue ligands/receptor components. [Plan and record](docs/PHASE_2X_PLAN.md).
 - **Phase 4 — complete:** structural comparison of up to eight structures by SIFTS residue correspondence, Cα superposition validated against numpy, interaction fingerprints keyed by UniProt position with ProLIF-checked change margins, and binding-site differences judged against coordinate error. [Validation](validation/COMPARISON.md); [plan and record](docs/PHASE_4_PLAN.md); [status](docs/PHASE_4_STATUS.md).
-- **Phase 5 — pending:** mutations, protein interfaces and advanced analyses.
+- **Phase 5 — curated variants complete; other tracks pending:** UniProt natural variants and mutagenesis features projected through SIFTS, the deposited residue at each, atom-level consequences for analyzed interactions and deposited structures carrying each replacement (`biology-1.2.0`). Protein interfaces, ligand pose RMSD and alignment-based correspondence remain. [Validation](validation/VARIANTS.md); [plan and record](docs/PHASE_5_PLAN.md); [status](docs/PHASE_5_STATUS.md).
 
 ## GitHub and GitHub Pages
 
@@ -252,7 +252,7 @@ Current limits:
 - SIFTS compression requires a browser with `DecompressionStream`; inputs/output are bounded to 10/50 MB, XML to 500,000 correspondence rows, and provider JSON to 5 MB discovery / 10 MB UniProt. Decompression and XML parsing run in a dedicated module worker that is terminated on cancellation.
 - Ensemble analysis covers at most four alternate-conformer labels; beyond that the preferred conformer per residue is analyzed, with a flag.
 - Ligand chemical identities and validation scores are requested for at most 32 distinct components and 32 nonpolymer instances per structure; branched entities have no validation request. A failed ligand record is a quality flag and never blocks annotation.
-- No inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation-effect interpretation is included. Comparison never pairs residues without SIFTS, never aligns different proteins and does not compute symmetry-corrected ligand pose RMSD (Phase 5).
+- No inferred alignment fallback, isoform conversion, PDBe binding-site cross-check or mutation-effect prediction is included. Variant consequences state which deposited atoms a replacement keeps; they do not model the replacement. Comparison never pairs residues without SIFTS, never aligns different proteins and does not compute symmetry-corrected ligand pose RMSD (Phase 5).
 
 ## Test evidence
 
