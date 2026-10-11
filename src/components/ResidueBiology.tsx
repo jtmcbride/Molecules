@@ -1,10 +1,29 @@
+import { useState } from "react";
 import { useExplorer } from "../state/explorer";
+import type { ExplorerController } from "../structure/controller";
+import { variantCarriers } from "../biology/carriers";
 import type { ResidueMapping } from "../domain/biology";
+import { variantConsequences } from "../biology/consequences";
+import {
+  consequenceSentences,
+  interactionName,
+} from "../biology/consequenceText";
+import type {
+  FunctionalAnnotation,
+  VariantConsequence,
+} from "../domain/biology";
+import {
+  interpretationVariantStates,
+  isVariantAnnotation,
+  variantLabel,
+  type VariantResidueState,
+} from "../biology/variants";
 
 const IDENTITY_LABEL: Partial<
   Record<NonNullable<ResidueMapping["identity"]>, string>
 > = {
   engineered_mutation: "engineered",
+  natural_variant: "natural variant",
   conflict: "sequence conflict",
   unexplained_mismatch: "unexplained mismatch",
 };
@@ -15,7 +34,11 @@ export function residueChangeLabel(m: ResidueMapping) {
   const kind = m.identity ? IDENTITY_LABEL[m.identity] : undefined;
   return `${uniprot}${m.uniprotPosition}${deposited}${kind ? ` (${kind})` : ""}`;
 }
-export function ResidueBiology() {
+export function ResidueBiology({
+  controller = null,
+}: {
+  controller?: ExplorerController | null;
+} = {}) {
   const s = useExplorer(),
     interpretation = s.interpretation,
     residue = s.snapshot?.residues.find((r) => r.id === s.selectedResidueId);
@@ -29,6 +52,7 @@ export function ResidueBiology() {
           interpretation.annotations.filter(
             (a) =>
               a.id === p.annotationId &&
+              !isVariantAnnotation(a) &&
               s.annotationCategories.includes(a.type),
           ),
         ) ?? [];
@@ -102,8 +126,303 @@ export function ResidueBiology() {
                 : "Exact functional projection is unavailable."}
             </p>
           )}
+          <ResidueVariants residueId={residue.id} controller={controller} />
         </>
       )}
     </section>
+  );
+}
+
+const STATE_LABEL: Record<VariantResidueState["state"], string> = {
+  carries: "this structure carries the replacement",
+  original: "deposited residue is the original",
+  other: "deposited residue is neither the original nor the replacement",
+  not_evaluated: "not evaluated",
+};
+
+/** Curated variants at one residue, quoted from their source with evidence. */
+function ResidueVariants({
+  residueId,
+  controller,
+}: {
+  residueId: string;
+  controller: ExplorerController | null;
+}) {
+  const s = useExplorer(),
+    interpretation = s.interpretation;
+  if (!interpretation) return null;
+  const variants = interpretation.projections
+    .filter((p) => p.residueIds.includes(residueId))
+    .flatMap((p) =>
+      interpretation.annotations.filter(
+        (a) => a.id === p.annotationId && isVariantAnnotation(a),
+      ),
+    );
+  if (!variants.length) return null;
+  const chainInstanceIds = new Set(
+    interpretation.mappings
+      .filter((m) => m.residueId === residueId)
+      .map((m) => m.chainInstanceId),
+  );
+  const states = interpretationVariantStates({
+    ...interpretation,
+    annotations: variants,
+  }).filter((x) => chainInstanceIds.has(x.chainInstanceId));
+  // Consequences need an analysis of the same coordinates; restricted to this residue.
+  const run =
+      s.analysis &&
+      s.snapshot &&
+      s.analysis.snapshotId === interpretation.snapshotId &&
+      s.snapshot.id === interpretation.snapshotId
+        ? s.analysis
+        : null,
+    consequences = run
+      ? variantConsequences(
+          { ...interpretation, annotations: variants },
+          {
+            ...run,
+            interactions: run.interactions.filter(
+              (i) => i.receptor.residueId === residueId,
+            ),
+          },
+          s.snapshot!,
+        )
+      : [];
+  return (
+    <details className="residue-variants" data-testid="residue-variants">
+      <summary>
+        Curated variants at this position <small>{variants.length}</small>
+      </summary>
+      {variants.map((a) => {
+        const state = states.find((x) => x.annotationId === a.id);
+        return (
+          <article className="residue-feature" key={a.id}>
+            <strong>
+              {variantLabel(a)} <small>{a.type}</small>
+            </strong>
+            {a.description && <q>{a.description}</q>}
+            {state && (
+              <p
+                className={`variant-state variant-${state.state}`}
+                title={state.state === "not_evaluated" ? state.reason : ""}
+              >
+                {STATE_LABEL[state.state]}
+                {state.state === "not_evaluated" ? `: ${state.reason}` : ""}
+              </p>
+            )}
+            <VariantInteractions
+              consequences={consequences.filter((c) => c.annotationId === a.id)}
+            />
+            {a.crossReferences?.length ? (
+              <small className="muted variant-references">
+                {a.crossReferences
+                  .map((x) => `${x.database}:${x.id}`)
+                  .join(" · ")}
+              </small>
+            ) : null}
+            <button
+              className="biology-link"
+              onClick={() =>
+                useExplorer.setState({ evidenceIds: a.evidenceIds })
+              }
+            >
+              Variant evidence
+            </button>
+          </article>
+        );
+      })}
+      <VariantCarrierList variants={variants} controller={controller} />
+      <p className="small muted">
+        Quoted from UniProt with its evidence. These are database records, not a
+        clinical interpretation, and their location here is not evidence of an
+        effect on binding.
+      </p>
+    </details>
+  );
+}
+
+/** Atom-level facts about the analyzed interactions at a variant position. */
+function VariantInteractions({
+  consequences,
+}: {
+  consequences: VariantConsequence[];
+}) {
+  const s = useExplorer();
+  if (!s.analysis || !consequences.length) return null;
+  const type = (c: VariantConsequence) =>
+    s.analysis!.interactions.find((i) => i.id === c.interactionId)?.type;
+  return (
+    <div className="variant-interactions" data-testid="variant-interactions">
+      {consequences.map((c) => {
+        const [headline, ...details] = consequenceSentences(c);
+        const kind = type(c);
+        return (
+          <div
+            key={`${c.interactionId}:${c.status === "evaluated" ? c.replacement : ""}`}
+            className={`variant-consequence retained-${c.status === "evaluated" ? c.retained : "unknown"}`}
+          >
+            <strong>
+              {kind ? interactionName(kind) : "interaction"}
+              {c.status === "evaluated"
+                ? ` · ${c.deposited}→${c.replacement}`
+                : ""}
+            </strong>{" "}
+            {headline}
+            {details.length > 0 && (
+              <ul>
+                {details.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Deposited PDB entries whose entity sequence has a variant's stated replacement. Looked up on
+ * request per protein (the accession is the only thing sent) and pinned with the session.
+ */
+function VariantCarrierList({
+  variants,
+  controller,
+}: {
+  variants: FunctionalAnnotation[];
+  controller: ExplorerController | null;
+}) {
+  const s = useExplorer(),
+    [error, setError] = useState<string | null>(null);
+  const interpretation = s.interpretation!;
+  const accessions = [
+    ...new Set(
+      variants
+        .filter((a) => a.substitution)
+        .flatMap(
+          (a) =>
+            interpretation.proteins.find((p) => p.id === a.proteinId)
+              ?.accession ?? [],
+        ),
+    ),
+  ];
+  if (!accessions.length) return null;
+  const open = (entryId: string) => {
+    setError(null);
+    controller?.comparison
+      .addPdb(entryId)
+      .catch((e: unknown) =>
+        setError(e instanceof Error ? e.message : String(e)),
+      );
+  };
+  return (
+    <div className="variant-carriers" data-testid="variant-carriers">
+      {accessions.map((accession) => {
+        const state = s.carrierLookups[accession];
+        const protein = interpretation.proteins.find(
+          (p) => p.accession === accession,
+        )!;
+        if (!state || state.phase === "error")
+          return (
+            <div key={accession}>
+              <button
+                className="biology-link"
+                disabled={!controller}
+                onClick={() =>
+                  void controller?.biology.lookupCarriers(accession)
+                }
+              >
+                Find deposited structures with these replacements
+              </button>
+              <small className="muted variant-references">
+                Sends {accession} to RCSB&apos;s sequence-coordinates service.
+              </small>
+              {state?.phase === "error" && (
+                <p className="comparison-error" role="alert">
+                  {state.message}
+                </p>
+              )}
+            </div>
+          );
+        if (state.phase === "loading")
+          return (
+            <p className="small muted" key={accession}>
+              Looking up deposited {accession} sequences…
+            </p>
+          );
+        const { lookup, mode } = state;
+        return (
+          <div key={accession}>
+            {variants
+              .filter((a) => a.proteinId === protein.id)
+              .flatMap((a) => variantCarriers(a, lookup))
+              .map((c) => {
+                const annotation = variants.find(
+                  (a) => a.id === c.annotationId,
+                )!;
+                const label = `${annotation.substitution!.original}${annotation.start.position}${c.replacement}`;
+                return (
+                  <div
+                    className="carrier-row"
+                    key={`${c.annotationId}:${c.replacement}`}
+                  >
+                    <strong>{label}</strong>{" "}
+                    {c.status === "not_evaluated" ? (
+                      <span className="muted">{c.reason}</span>
+                    ) : c.carriers.length ? (
+                      <>
+                        <span className="muted">
+                          {c.carriers.length} deposited{" "}
+                          {c.carriers.length === 1 ? "entry" : "entries"}:
+                        </span>
+                        <span className="carrier-entries">
+                          {c.carriers.map((entry) =>
+                            entry.entryId === interpretation.entryId ? (
+                              <span
+                                key={entry.entryId}
+                                className="carrier-current"
+                              >
+                                {entry.entryId} (open)
+                              </span>
+                            ) : (
+                              <button
+                                key={entry.entryId}
+                                className="biology-link"
+                                aria-label={`Compare ${entry.entryId}`}
+                                onClick={() => open(entry.entryId)}
+                              >
+                                {entry.entryId}
+                              </button>
+                            ),
+                          )}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="muted">
+                        no deposited entity sequence among {c.total}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            <p className="small muted">
+              Deposited entity sequences from RCSB&apos;s SIFTS-derived
+              alignments ({mode}, retrieved{" "}
+              {lookup.resourceRef.retrievedAt.slice(0, 10)}). Whether the
+              residue is observed, and how SIFTS labels it, is shown when an
+              entry opens as a comparison structure.
+              {lookup.computedModelIds.length > 0 &&
+                " Computed models in the response are not listed."}
+            </p>
+          </div>
+        );
+      })}
+      {error && (
+        <p className="comparison-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

@@ -9,6 +9,12 @@ import type { StructureSnapshot, StructureSource } from "../domain/types";
 import { analysisEvidence } from "./evidence";
 import { distanceUncertainty, isBorderline } from "../analysis/uncertainty";
 import { analyzedComponent, summarizeBindingSite } from "./projection";
+import { variantConsequences } from "./consequences";
+import {
+  interpretationVariantStates,
+  isVariantAnnotation,
+  variantLabel,
+} from "./variants";
 export function interpretationJson(
   interpretation: InterpretationSnapshot,
   snapshot: StructureSnapshot,
@@ -35,7 +41,9 @@ export function interpretationJson(
   return JSON.stringify(
     {
       // Schema 2 (biology-1.1.0): site/context overlaps, chain background and ligand relations.
-      schemaVersion: 2,
+      // Schema 3 (biology-1.2.0): variant replacements, deposited-residue variant states,
+      // variant consequences and binding-site variant overlaps.
+      schemaVersion: 3,
       kind: "molecular-interpretation",
       interpretation,
       analysis: run,
@@ -61,6 +69,11 @@ export function interpretationJson(
               .map((i) => i.id)
           : [],
       },
+      variantResidueStates: interpretationVariantStates(interpretation),
+      // Atom-level facts about the analyzed interactions at curated variant positions.
+      variantConsequences: run
+        ? variantConsequences(interpretation, run, snapshot)
+        : [],
       bindingSiteSummary: run
         ? summarizeBindingSite(
             interpretation,
@@ -107,6 +120,9 @@ export function annotationCsv(
       "feature_ligand_id",
       "residue_identity",
       "residue_change",
+      "variant_replacement",
+      "variant_cross_references",
+      "variant_deposited_state",
     ],
   ];
   if (interpretation.snapshotId !== snapshot.id)
@@ -122,6 +138,12 @@ export function annotationCsv(
     byPosition.set(key, group);
   }
   const residues = new Map(snapshot.residues.map((r) => [r.id, r]));
+  const variantStates = new Map(
+    interpretationVariantStates(interpretation).map((v) => [
+      JSON.stringify([v.annotationId, v.chainInstanceId]),
+      v,
+    ]),
+  );
   for (const chain of snapshot.chains.filter((c) => c.type === "polymer")) {
     for (const position of chain.sequence) {
       const mapped =
@@ -165,6 +187,14 @@ export function annotationCsv(
           mapping?.identity,
           mapping?.residueChange
             ? `${mapping.residueChange.uniprot}${mapping.uniprotPosition}${mapping.residueChange.deposited}`
+            : "",
+          feature && isVariantAnnotation(feature) ? variantLabel(feature) : "",
+          feature?.crossReferences
+            ?.map((x) => `${x.database}:${x.id}`)
+            .join(";"),
+          feature && isVariantAnnotation(feature)
+            ? (variantStates.get(JSON.stringify([feature.id, chain.id]))
+                ?.state ?? "")
             : "",
         ]);
       };

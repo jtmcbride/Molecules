@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useExplorer } from "../state/explorer";
+import { isVariantAnnotation, variantLabel } from "../biology/variants";
 import type { ExplorerController } from "../structure/controller";
 export function AnnotationTracks({
   controller,
@@ -91,7 +92,7 @@ export function AnnotationTracks({
                   className={`annotation-cell ${overlap.length ? "annotated" : ""} ${uncertain ? "uncertain" : ""} ${!p.residueIds.length ? "unobserved" : ""}`}
                   disabled={!overlap.length}
                   aria-label={`${type} at label ${p.labelSeqId}`}
-                  title={`${type} · PDB label ${p.labelSeqId}${uncertain ? " · uncertain correspondence/boundary" : ""}`}
+                  title={`${type} · PDB label ${p.labelSeqId}${overlap.some(isVariantAnnotation) ? ` · ${overlap.map(variantLabel).join(", ")}` : ""}${uncertain ? " · uncertain correspondence/boundary" : ""}`}
                   onClick={() => {
                     if (uncertain) controller?.select(null);
                     else controller?.selectBiologyPosition(p.labelSeqId);

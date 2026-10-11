@@ -3,15 +3,20 @@ import type {
   StructureSnapshot,
   StructureSource,
 } from "../domain/types";
-import { useExplorer } from "../state/explorer";
+import { useExplorer, type CarrierLookupState } from "../state/explorer";
+import { biologyResource, carrierRequest } from "../data/biologyResources";
+import { parseCarriers } from "../data/variantCarriers";
 import { database } from "../data/repository";
 import { loadInterpretation } from "./load";
 export class BiologyController {
   private generation = 0;
   private abort: AbortController | null = null;
+  private carrierAborts = new Map<string, AbortController>();
   cancel(clear = true) {
     ++this.generation;
     this.abort?.abort();
+    for (const abort of this.carrierAborts.values()) abort.abort();
+    this.carrierAborts.clear();
     if (!clear)
       useExplorer.setState({
         biologyPhase: useExplorer.getState().interpretation ? "ready" : "idle",
@@ -29,6 +34,7 @@ export class BiologyController {
         biologyAssociation: null,
         biologySelectedLabel: null,
         evidenceIds: [],
+        carrierLookups: {},
       });
   }
   async initialize(
@@ -62,6 +68,7 @@ export class BiologyController {
             biologyMode: "pinned",
             biologyAssociation: interpretation.entryId,
           });
+          await this.restoreCarriers(restore.carrierResourceIds ?? [], current);
           return;
         }
         useExplorer.setState({
@@ -94,7 +101,10 @@ export class BiologyController {
     this.abort = new AbortController();
     const signal = this.abort.signal,
       current = ++this.generation;
+    for (const abort of this.carrierAborts.values()) abort.abort();
+    this.carrierAborts.clear();
     useExplorer.setState({
+      carrierLookups: {},
       biologyPhase: "loading",
       biologyStatus: refresh
         ? "Refreshing annotation sources"
@@ -141,6 +151,100 @@ export class BiologyController {
         biologyError: error instanceof Error ? error.message : String(error),
         biologyStatus: "Annotations unavailable",
       });
+    }
+  }
+  /**
+   * Deposited entity sequences aligned to one protein of the current interpretation. Sends the
+   * accession only. A failure is recorded for that protein and never touches the interpretation,
+   * the analysis or the scene.
+   */
+  async lookupCarriers(accession: string) {
+    const state = useExplorer.getState(),
+      interpretation = state.interpretation,
+      protein = interpretation?.proteins.find((p) => p.accession === accession);
+    if (!interpretation || !protein) return;
+    this.carrierAborts.get(accession)?.abort();
+    const abort = new AbortController(),
+      current = this.generation;
+    this.carrierAborts.set(accession, abort);
+    const set = (value: CarrierLookupState) =>
+      useExplorer.setState((s) => ({
+        carrierLookups: { ...s.carrierLookups, [accession]: value },
+      }));
+    set({ phase: "loading" });
+    try {
+      const { resource, mode } = await biologyResource(
+        carrierRequest(accession),
+        abort.signal,
+        crypto.randomUUID(),
+      );
+      const { bytes, ...ref } = resource;
+      const lookup = parseCarriers(
+        JSON.parse(new TextDecoder().decode(bytes)),
+        accession,
+        protein.sequence,
+        ref,
+      );
+      await database.biologyResources.put(resource).catch(() => undefined);
+      if (
+        current !== this.generation ||
+        abort.signal.aborted ||
+        useExplorer.getState().interpretation?.id !== interpretation.id
+      )
+        return;
+      set({ phase: "ready", lookup, mode });
+    } catch (error) {
+      if (current !== this.generation || abort.signal.aborted) return;
+      set({
+        phase: "error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      if (this.carrierAborts.get(accession) === abort)
+        this.carrierAborts.delete(accession);
+    }
+  }
+  /** Pinned lookups of a saved session, from stored bytes only; never refetched. */
+  private async restoreCarriers(resourceIds: string[], current: number) {
+    for (const id of resourceIds) {
+      const resource = await database.biologyResources
+        .get(id)
+        .catch(() => undefined);
+      const interpretation = useExplorer.getState().interpretation;
+      if (current !== this.generation || !interpretation) return;
+      const accession = resource?.identifier;
+      const protein = interpretation.proteins.find(
+        (p) => p.accession === accession,
+      );
+      let value: CarrierLookupState;
+      try {
+        if (!resource || !protein)
+          throw Error(
+            "The saved carrier lookup is no longer in browser storage.",
+          );
+        const { bytes, ...ref } = resource;
+        value = {
+          phase: "ready",
+          mode: "pinned",
+          lookup: parseCarriers(
+            JSON.parse(new TextDecoder().decode(bytes)),
+            protein.accession,
+            protein.sequence,
+            ref,
+          ),
+        };
+      } catch (error) {
+        value = {
+          phase: "error",
+          message: error instanceof Error ? error.message : String(error),
+        };
+      }
+      useExplorer.setState((s) => ({
+        carrierLookups: {
+          ...s.carrierLookups,
+          [accession ?? id]: value,
+        },
+      }));
     }
   }
 }

@@ -148,4 +148,6 @@ export interface SessionDescriptor {
   showWater: boolean;
   savedAt: string;
   comparison?: ComparisonMemberDescriptor[];
+  /** Pinned carrier lookups (biology resource IDs); restored without new requests (biology-1.2.0). */
+  carrierResourceIds?: string[];
 }

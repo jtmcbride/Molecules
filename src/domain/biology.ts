@@ -1,12 +1,14 @@
 /** Biological records and evidence are independent of the renderer and API formats. */
 import type { StructureQuality } from "./types";
-export const BIOLOGY_VERSION = "biology-1.1.0";
+export const BIOLOGY_VERSION = "biology-1.2.0";
 export interface ResourceSnapshot {
   id: string;
   key: string;
   provider: "SIFTS" | "UniProt" | "RCSB";
   identifier: string;
   url: string;
+  /** JSON body of a POST request (GraphQL), part of what identifies the response. */
+  requestBody?: string;
   contentHash: string;
   retrievedAt: string;
   release?: string;
@@ -27,6 +29,7 @@ export const MAPPING_STATUSES = [
 export const RESIDUE_IDENTITIES = [
   "match",
   "engineered_mutation",
+  "natural_variant",
   "conflict",
   "unexplained_mismatch",
 ] as const;
@@ -72,6 +75,14 @@ export interface FunctionalAnnotation {
   end: FeatureBoundary;
   sourceFeatureId?: string;
   ligand?: { name?: string; identifier?: string; label?: string };
+  /**
+   * Residues replaced by a variant or mutagenesis feature, as the source states them (biology-1.2.0).
+   * Absent when the source states no replacement (e.g. a deletion) or states one inconsistent with
+   * the sequence; never inferred from the description.
+   */
+  substitution?: { original: string; alternatives: string[] };
+  /** Source cross-references of the feature, e.g. dbSNP identifiers (biology-1.2.0). */
+  crossReferences?: { database: string; id: string }[];
   evidenceIds: string[];
   valid: boolean;
   qualityFlags: string[];
@@ -222,6 +233,106 @@ export interface BindingSiteSummary {
   cofactorContactIds: string[];
   /** ChEBI identifiers of the analyzed component, when cross-referenced. */
   analyzedLigand: { componentId: string; chebiIds: string[] };
+  /** Curated variants at mapped contact residues, one entry per variant type (biology-1.2.0). */
+  variants?: VariantOverlap[];
+}
+/**
+ * Atom-level statements about an analyzed interaction at a curated variant position
+ * (biology-1.2.0). They state whether the deposited interacting atoms are part of the
+ * replacement residue; they never state whether the replacement forms this or another
+ * interaction, and nothing is modeled.
+ */
+export const CONSEQUENCE_CODES = [
+  "deposited_atom_retained",
+  "backbone_nitrogen_without_hydrogen",
+  "deposited_atom_absent",
+] as const;
+export type VariantConsequence =
+  | {
+      annotationId: string;
+      interactionId: string;
+      residueId: string;
+      status: "evaluated";
+      /** One-letter deposited residue and the stated replacement. */
+      deposited: string;
+      replacement: string;
+      atoms: {
+        atomIndex: number;
+        atomName: string;
+        code: (typeof CONSEQUENCE_CODES)[number];
+      }[];
+      /** Whether all, some or none of the deposited receptor atoms are part of the replacement. */
+      retained: "all" | "some" | "none";
+      /** The deposited residue is glycine: the replacement adds side-chain atoms that are not modeled. */
+      sideChainAdded: boolean;
+    }
+  | {
+      annotationId: string;
+      interactionId: string;
+      residueId: string;
+      status: "not_evaluated";
+      reason: string;
+    };
+/**
+ * PDB entity sequences aligned to one UniProt accession (RCSB sequence-coordinates API,
+ * SIFTS-derived alignments), pinned like other biological sources (biology-1.2.0).
+ */
+export interface CarrierLookup {
+  accession: string;
+  resourceRef: Omit<ResourceSnapshot, "bytes">;
+  entities: {
+    entityId: string; // e.g. "2HBS_2"
+    entryId: string;
+    sequence: string;
+    regions: {
+      queryBegin: number;
+      queryEnd: number;
+      targetBegin: number;
+      targetEnd: number;
+    }[];
+  }[];
+  /** Entities whose alignment is inconsistent with their sequences; never used. */
+  invalidEntityIds: string[];
+  /** Computed structure models in the response (e.g. AlphaFold "AF_…"); not deposited, never used. */
+  computedModelIds: string[];
+}
+/**
+ * PDB entries whose deposited entity sequence has a variant's stated replacement at its UniProt
+ * positions. A sequence-level statement: whether the residue is observed in the coordinates, and
+ * how SIFTS curates it, is checked only when the entry is opened.
+ */
+export type VariantCarriers =
+  | {
+      annotationId: string;
+      replacement: string;
+      status: "evaluated";
+      carriers: { entryId: string; entityIds: string[] }[];
+      /** Entities aligned over the positions with residues other than the replacement. */
+      otherResidue: number;
+      /** Entities whose alignment does not cover every position. */
+      notCovered: number;
+      total: number;
+    }
+  | {
+      annotationId: string;
+      replacement: string;
+      status: "not_evaluated";
+      reason: string;
+    };
+/**
+ * Mapped contact residues covered by curated variants of one type, with the chain background
+ * over the same chain instances. Descriptive counts: a variant at a contact residue is not
+ * evidence that it affects binding.
+ */
+export interface VariantOverlap {
+  type: string;
+  residueIds: string[];
+  annotationIds: string[];
+  background: { annotated: number; total: number };
+  /** Accessions of the contacted chains whose UniProt record lists features of this type. */
+  accessionsWithRecords: string[];
+  /** Accessions of the contacted chains whose UniProt record lists no feature of this type. */
+  accessionsWithoutRecords: string[];
 }
 export const DEFAULT_ANNOTATION_TYPES = [
   "Active site",
@@ -234,6 +345,13 @@ export const DEFAULT_ANNOTATION_TYPES = [
   "Chain",
 ];
 
+/** Feature types offered as annotation categories. Variant types are offered but off by default. */
+export const ANNOTATION_TYPE_OPTIONS = [
+  ...DEFAULT_ANNOTATION_TYPES,
+  "Natural variant",
+  "Mutagenesis",
+];
+
 /**
  * Site-level features name specific residues and form the binding-site headline. Domains and
  * regions often span most of a chain (e.g. the P00760 Peptidase S1 domain covers 24–244), so
@@ -241,11 +359,26 @@ export const DEFAULT_ANNOTATION_TYPES = [
  */
 export const SITE_FEATURE_TYPES = ["Active site", "Binding site", "Site"];
 export const CONTEXT_FEATURE_TYPES = ["Domain", "Region"];
-export type FeatureCategory = "site" | "context";
+/**
+ * Curated sequence variants (biology-1.2.0). Natural variants are observed in individuals;
+ * mutagenesis features are laboratory changes. They stay separate types and are never counted
+ * with site-level or context features.
+ */
+export const VARIANT_FEATURE_TYPES = ["Natural variant", "Mutagenesis"];
+export type FeatureCategory = "site" | "context" | "variant";
+/** Variant replacements are recorded in interpretations from biology-1.2.0 on. */
+export function recordsVariantReplacements(version: string) {
+  const [major, minor] = (version.match(/(\d+)\.(\d+)\.\d+$/) ?? [])
+    .slice(1)
+    .map(Number);
+  return major > 1 || (major === 1 && minor >= 2);
+}
 export function featureCategory(type: string): FeatureCategory | undefined {
   return SITE_FEATURE_TYPES.includes(type)
     ? "site"
     : CONTEXT_FEATURE_TYPES.includes(type)
       ? "context"
-      : undefined;
+      : VARIANT_FEATURE_TYPES.includes(type)
+        ? "variant"
+        : undefined;
 }

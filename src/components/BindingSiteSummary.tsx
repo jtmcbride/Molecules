@@ -177,6 +177,50 @@ export function BindingSiteSummary() {
           </p>
         </div>
       )}
+      {summary.variants && (
+        <div className="binding-variants" data-testid="binding-variants">
+          <h4>Curated variants (UniProt)</h4>
+          {summary.variants.map((v) => (
+            <div key={v.type}>
+              {v.accessionsWithRecords.length > 0 && (
+                <div
+                  className="binding-overlap"
+                  data-testid={`binding-variant-${v.type === "Mutagenesis" ? "mutagenesis" : "natural"}`}
+                >
+                  <strong>{v.type}</strong>
+                  <span title="Mapped contact residues with a curated variant of this type / mapped contact residues">
+                    {v.residueIds.length} / {summary.mappedCount}
+                  </span>
+                  <span title="Chain background: mapped observed residues with a curated variant of this type / all mapped observed residues in the same chains">
+                    chain {v.background.annotated} / {v.background.total}
+                  </span>
+                  <button
+                    className="biology-link"
+                    onClick={() => showSources(v.annotationIds)}
+                  >
+                    Sources
+                  </button>
+                </div>
+              )}
+              {v.accessionsWithoutRecords.length > 0 && (
+                <p className="small muted">
+                  UniProt {v.accessionsWithoutRecords.join(", ")} lists no{" "}
+                  {v.type === "Mutagenesis"
+                    ? "mutagenesis features"
+                    : "natural variants"}
+                  .
+                </p>
+              )}
+            </div>
+          ))}
+          <p className="small muted">
+            Natural variants are observed in people; mutagenesis features are
+            laboratory changes. Compare each count with its chain background: a
+            variant at a contact residue is not evidence that it affects
+            binding, and these records are not a clinical interpretation.
+          </p>
+        </div>
+      )}
       <p className="small muted">
         Site-level features are active sites, binding sites and sites. Feature
         overlap and contact counts do not establish functional importance,

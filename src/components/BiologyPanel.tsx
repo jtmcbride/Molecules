@@ -5,7 +5,8 @@ import type { ExplorerController } from "../structure/controller";
 import { AnnotationTracks } from "./AnnotationTracks";
 import { BindingSiteSummary } from "./BindingSiteSummary";
 import { downloadInterpretation } from "../biology/export";
-import { DEFAULT_ANNOTATION_TYPES } from "../domain/biology";
+import { ANNOTATION_TYPE_OPTIONS } from "../domain/biology";
+import { isVariantAnnotation, variantLabel } from "../biology/variants";
 import { BIOLOGY_FRESHNESS_MS } from "../data/biologyResources";
 export function BiologyPanel({
   controller,
@@ -205,7 +206,7 @@ export function BiologyPanel({
             {protein && (
               <>
                 <div className="annotation-categories">
-                  {DEFAULT_ANNOTATION_TYPES.map((type) => (
+                  {ANNOTATION_TYPE_OPTIONS.map((type) => (
                     <label key={type}>
                       <input
                         type="checkbox"
@@ -250,9 +251,21 @@ export function BiologyPanel({
                           <strong>{a.type}</strong>
                           <span>UniProt {range(a)}</span>
                           <small>
-                            {a.description ||
+                            {isVariantAnnotation(a) ? (
+                              <>
+                                {variantLabel(a)}
+                                {a.description && (
+                                  <>
+                                    {" · "}
+                                    <q>{a.description}</q>
+                                  </>
+                                )}
+                              </>
+                            ) : (
+                              a.description ||
                               a.ligand?.name ||
-                              "Database annotation"}
+                              "Database annotation"
+                            )}
                           </small>
                         </button>
                         <div className="feature-availability">

@@ -6,7 +6,7 @@ import type {
   SiftsRow,
 } from "../domain/biology";
 import type { StructureSnapshot } from "../domain/types";
-const CODES: Record<string, string> = {
+export const CODES: Record<string, string> = {
   ALA: "A",
   ARG: "R",
   ASN: "N",
@@ -109,15 +109,18 @@ export function mapResidues(
         const uniprotAgrees = uniprotResidue === row.uniprotResidue;
         // Residue identity is recorded separately from position correspondence. A
         // curated SIFTS annotation explains a difference; anything else stays unprojected.
+        // "Variant" marks a natural sequence variant (e.g. sickle haemoglobin, biology-1.2.0).
         const identity: ResidueMapping["identity"] =
           depositedAgrees && uniprotAgrees && uniprotResidue === code
             ? "match"
             : depositedAgrees && uniprotAgrees
               ? row.annotations.includes("Engineered mutation")
                 ? "engineered_mutation"
-                : row.annotations.includes("Conflict")
-                  ? "conflict"
-                  : "unexplained_mismatch"
+                : row.annotations.includes("Variant")
+                  ? "natural_variant"
+                  : row.annotations.includes("Conflict")
+                    ? "conflict"
+                    : "unexplained_mismatch"
               : "unexplained_mismatch";
         const targets = observed.length ? observed : [undefined];
         for (const residue of targets) {

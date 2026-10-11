@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`) and Phase 4 structural comparison (`comparison-1.0.0`). Phase 5 (mutations, protein–protein interfaces, alignment-based correspondence) is pending.
+Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`) and Phase 4 structural comparison (`comparison-1.1.0`). Phase 5's curated-variant track is complete (`biology-1.2.0`); its other tracks (protein–protein interfaces, ligand pose RMSD, alignment-based correspondence) are pending.
 
-Scientific policy, defaults and limits live in `README.md`. Validation evidence lives in `validation/README.md` (Phase 2, PLIP comparison) and `validation/BIOLOGY.md` (Phase 3). Design contracts and follow-up milestones live in `docs/PHASE_3_PLAN.md`; phase status records are in `docs/PHASE_*_STATUS.md`. `docs/PHASE_2X_PLAN.md` records the ligand-3 ruleset revision. `docs/PHASE_4_PLAN.md` records Phase 4 (structural comparison); validation is in `validation/COMPARISON.md`. `tests/contracts.test.ts` fails if the plan's contract excerpt drifts from `src/domain/biology.ts`. Update those docs whenever behavior, defaults or limits change. They are the project's scientific record, not marketing.
+Scientific policy, defaults and limits live in `README.md`. Validation evidence lives in `validation/README.md` (Phase 2, PLIP comparison) and `validation/BIOLOGY.md` (Phase 3). Design contracts and follow-up milestones live in `docs/PHASE_3_PLAN.md`; phase status records are in `docs/PHASE_*_STATUS.md`. `docs/PHASE_2X_PLAN.md` records the ligand-3 ruleset revision. `docs/PHASE_4_PLAN.md` records Phase 4 (structural comparison); validation is in `validation/COMPARISON.md`. `docs/PHASE_5_PLAN.md` records the Phase 5 curated-variant track; validation is in `validation/VARIANTS.md`. `tests/contracts.test.ts` fails if the plan's contract excerpt drifts from `src/domain/biology.ts`. Update those docs whenever behavior, defaults or limits change. They are the project's scientific record, not marketing.
 
 ## Commands
 
@@ -24,6 +24,7 @@ npx vitest run tests/biology.test.ts   # single file
 - `tests/reference-set.test.ts` compares engine output with pinned PLIP 3.0.0 and ProLIF 2.2.2 observations on 26 cases (`validation/reference-set*.json`, fixtures in `tests/fixtures/reference-set/`). A rule change re-pins it with `RECORD_REFERENCE_SET=1 npm test`, and every agreement change is explained in the `validation/README.md` change log. Regenerating reference observations needs the Python environment described there (`scripts/reference-set*.py`).
 - `tests/comparison-golden.test.ts` pins hashes of full comparison output for four fixture pairs; a deliberate change regenerates with `UPDATE_COMPARISON_GOLDEN=1`, bumps `COMPARISON_VERSION` and is recorded in `validation/COMPARISON.md`.
 - `tests/comparison-*.test.ts` check comparison against `validation/comparison.json` (numpy superposition, ProLIF fingerprint differences). Regenerate with `RECORD_COMPARISON_PAIRS=1`, `scripts/comparison-reference.py` and `scripts/comparison-prolif.py` (see `validation/COMPARISON.md`).
+- `tests/variants-golden.test.ts` pins hashes of curated-variant output (records, deposited states, binding-site counts, consequences) for four cases; a deliberate change regenerates with `UPDATE_VARIANTS_GOLDEN=1`, bumps `BIOLOGY_VERSION` when semantics change and is recorded in `validation/VARIANTS.md`.
 - `tests/engine-golden.test.ts` pins SHA-256 hashes of engine output for 13 cases. Any engine change must keep them unless the ruleset changes on purpose: then `UPDATE_ENGINE_GOLDEN=1 npm test`, bump `RULESET_VERSION`, and document why in `validation/README.md`. Use `DUMP_ENGINE_GOLDEN=<dir>` to diff full output.
 - Regenerate PLIP reference observations with `scripts/plip-reference.py` (see `validation/README.md`). Normal CI doesn't run it.
 - CI (`.github/workflows/ci.yml`) runs format:check → test → build → e2e. `pages.yml` deploys `main` with `VITE_BASE_PATH=/<repo>/`. Asset URLs must respect the Vite base path.
@@ -62,7 +63,10 @@ src/
     export.ts      JSON (schema 2) / CSV exports
   biology/     Phase 3 interpretation
     mapping.ts     Exact SIFTS residue correspondence + per-chain coverage
-    projection.ts  Annotation → residue projection; binding-site summary (site headline vs chain background, context features, ChEBI ligand relations)
+    projection.ts  Annotation → residue projection; binding-site summary (site headline vs chain background, context features, ChEBI ligand relations, variant counts)
+    variants.ts    Curated variants vs deposited residues (carries/original/other/not_evaluated), labels
+    consequences.ts, consequenceText.ts  Atom-level variant consequences; the only source of their wording
+    carriers.ts    Deposited entries whose entity sequence carries a variant's replacement
     siftsWorker.ts, siftsClient.ts  SIFTS gzip + XML parsing in a module worker (inline fallback in Node tests)
     load.ts, controller.ts  Independent loading, cancellation, pinned restore
     evidence.ts, export.ts  Evidence records; interpretation JSON/CSV
@@ -71,6 +75,7 @@ src/
     chemistry.ts   Optional RCSB CCD downloads
     sifts.ts, uniprot.ts, biologySchemas.ts  Zod/XML-validated adapters
     chemcomp.ts, ligandFit.ts  RCSB chemical component (ChEBI) and ligand-instance validation adapters
+    variantCarriers.ts  RCSB sequence-coordinates alignments (GraphQL POST), source-conflict check
     biologyResources.ts  Bounded fetch, 7-day freshness, stale fallback
     repository.ts  Dexie IndexedDB (DB version 4). Add a new version(); never edit old ones. Source cache budget + eviction
     cache.ts       Pure LRU eviction planning (protected: open structures, saved session)
@@ -86,7 +91,7 @@ src/
   App.tsx      Workspace layout and synchronized views
 tests/
   *.test.ts    Vitest (structure, analysis, interaction-categories, reference-comparison, scaling, biology, biologyResources, interpretation)
-  e2e/         Playwright (explorer, analysis, interpretation, ruleset, comparison). Biology APIs are intercepted with frozen fixtures
+  e2e/         Playwright (explorer, analysis, interpretation, ruleset, comparison, variants). Biology APIs are intercepted with frozen fixtures
   fixtures/    Synthetic geometry CIFs (labeled artificial), reference PDB/mmCIF (1EVE, 1RMD, 3PTB), frozen biology responses incl. 1OPH engineered mutant + RCSB ligand records + SHA-256 manifest, golden/engine.json
 public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ```
@@ -96,6 +101,7 @@ public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 - **Domain stays rendering-free.** Mol* objects never enter `src/domain`. `StructureSnapshot` is the scientific source of truth. Mol* owns only the scene.
 - **Identity is explicit.** IDs are JSON tuples via `identity()`. Author numbering, label numbering, insertion codes, chain *instance* (label asym + assembly operator) and source atom rows are kept separate. Never derive one numbering from another by offset.
 - **Reproducibility.** Analysis results are keyed by source SHA-256, model, assembly, ligand instance, receptor chains, all parameters, engine/ruleset/parser versions and CCD hashes (`analysisKey`). Bump `ENGINE_VERSION`/`RULESET_VERSION` (and the biology projection version) when results can change. `AnalysisRun` is immutable. Annotations reference it and never rewrite it.
+- **Variants are records, not predictions.** UniProt variant text is quoted, never parsed into effects. Consequence sentences come only from `consequenceText.ts` and state which deposited atoms a replacement keeps, never whether an interaction is lost; a test rejects effect words. Variant counts always show the chain background.
 - **No silent scientific claims.** Use "not evaluated", "partially evaluated", "candidate", "ambiguous", "unmapped", "source_conflict", "sequence_mismatch" and "unresolved" instead of zeros or guesses. Residue differences project only when SIFTS curates them. Ligand relations use ChEBI IDs only, never names. Domains/regions are context, never functional overlap. Don't infer feature-level experimental evidence from a reviewed UniProt record. Don't claim affinity or energy.
 - **Pinned snapshots.** Biological sources are stored with hashes and retrieval times. Refresh creates a new interpretation revision. Restored sessions never silently refetch.
 - **Privacy.** Local coordinate bytes never leave the browser. Only identifiers (PDB ID, CCD component ID, accession, ligand label asym ID) are requested.
@@ -105,7 +111,7 @@ public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ## Conventions
 
 - `src/` is Prettier-formatted (defaults, double quotes) and CI enforces it. Older test files keep their dense single-quoted style; new test files use Prettier. ESLint isn't set up because `typescript-eslint` doesn't support TypeScript 7 yet.
-- Version bumps: `ENGINE_VERSION` for output-shape changes, `RULESET_VERSION` for rule/assumption changes, `BIOLOGY_VERSION` for interpretation semantics. Analysis JSON is schema 3; interpretation JSON is schema 2; comparison JSON is schema 1. `COMPARISON_VERSION` (`src/domain/comparison.ts`) for comparison semantics. New request/parameter fields must be optional, and restored parameters merge over `DEFAULT_PARAMETERS`.
+- Version bumps: `ENGINE_VERSION` for output-shape changes, `RULESET_VERSION` for rule/assumption changes, `BIOLOGY_VERSION` for interpretation semantics. Analysis JSON is schema 3; interpretation JSON is schema 3; comparison JSON is schema 1. `COMPARISON_VERSION` (`src/domain/comparison.ts`) for comparison semantics. New request/parameter fields must be optional, and restored parameters merge over `DEFAULT_PARAMETERS`.
 - Dependencies are pinned exactly. The Mol* version is part of the ruleset version, so upgrading Mol* means bumping `RULESET_VERSION` and re-reviewing the PLIP reference comparison.
 - Tests use frozen fixtures, never live APIs. A source hash change means re-retrieving and reviewing inputs, not editing assertions. Label synthetic fixtures and in-memory modifications as artificial.
 - Treat discrepancies against external tools (PLIP) as investigated, documented differences in `validation/README.md`. Don't hide them behind count tolerances.

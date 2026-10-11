@@ -2,7 +2,7 @@ import type { StructureSnapshot } from "../domain/types";
 import { isHydrogenElement } from "../domain/elements";
 // Expected standard amino-acid heavy atoms, excluding optional terminal OXT.
 // This is a completeness check, not a protonation or chemical-state assignment.
-const SIDECHAINS: Record<string, string> = {
+export const SIDECHAINS: Record<string, string> = {
   ALA: "CB",
   ARG: "CB CG CD NE CZ NH1 NH2",
   ASN: "CB CG OD1 ND2",

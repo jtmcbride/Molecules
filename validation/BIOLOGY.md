@@ -13,6 +13,7 @@ Implemented 2026-10-09 (`biology-1.0.0`); follow-up milestones 3F–3J implement
 | 4HHB | B/D | P68871, deposited labels1–146 → UniProt2–147 |
 | 1OPH | B | P00760 S200A (Ser195Ala, author 195), SIFTS `Engineered mutation`: exact position, identity `engineered_mutation`, active-site feature projects |
 | 1OPH | A | P01009 M382R (Pittsburgh variant, author 358), SIFTS `Engineered mutation` |
+| 2HBS | B/D/F/H | P68871 E7V (sickle haemoglobin, author 6), SIFTS `Variant`: exact position, identity `natural_variant` (biology-1.2.0) |
 
 Additional frozen inputs (2026-10-10, hashes in the manifest): 1OPH mmCIF, discovery JSON and SIFTS XML; UniProt P01009; RCSB chemical component records for BEN, CA, HEM and PO4; and RCSB nonpolymer-instance validation records for 3PTB B/C and 4HHB E–J. BEN has ChEBI:41033 and PO4 has ChEBI:18367. CA and HEM have no ChEBI cross-reference in RCSB, so relations involving them as the analyzed ligand stay unresolved. 3PTB BEN fit: RSCC 0.921, RSR 0.067; 4HHB ligands have no density-fit scores.
 
@@ -52,7 +53,7 @@ The complete 20-case suite also retains 13 Phase 1–2 browser cases. Run `npm t
 
 Mappings/projections live inside immutable interpretation snapshots; raw source snapshots are cached separately. There is no redundant standalone mapping table. `AnalysisRun` is unchanged, and binding summaries are derived from the current compatible run. This keeps refreshed annotations from changing previous interaction results.
 
-Exact correspondence requires one validated mapping and one observed residue instance per deposited position. Source conflicts and unsupported chemistry do not project. A residue-identity difference projects only when SIFTS curates it (`Engineered mutation` or `Conflict`); the mapping then records `identity` and `residueChange`. No sequence-alignment inference or author-offset fallback is implemented. Isoform accessions are preserved; a canonical-only endpoint response is rejected rather than converted. Uncertain feature bounds are retained/exported but never selected as exact structural features. Default categories omit mutation workflows; all normalized source features remain traceable in exports.
+Exact correspondence requires one validated mapping and one observed residue instance per deposited position. Source conflicts and unsupported chemistry do not project. A residue-identity difference projects only when SIFTS curates it (`Engineered mutation`, `Conflict`, or from `biology-1.2.0` `Variant`); the mapping then records `identity` and `residueChange`. No sequence-alignment inference or author-offset fallback is implemented. Isoform accessions are preserved; a canonical-only endpoint response is rejected rather than converted. Uncertain feature bounds are retained/exported but never selected as exact structural features. Default categories omit mutation workflows; all normalized source features remain traceable in exports.
 
 The current P00760 active-site features have no attached ECO evidence. Their database provenance is displayed explicitly. Signal-peptide evidence provides a positive ECO/PubMed fixture. Coordinates, reviewed status, contact overlap and function annotations are distinct kinds of information; none estimates affinity or mutation effects.
 
@@ -64,4 +65,4 @@ Saved schema 2 sessions pin interpretation/analysis references; schema 1 session
 
 Ligand relations compare ChEBI identifiers only and never infer identity from names. Generic UniProt ligands such as "substrate" remain unresolved. Background rates are descriptive counts; no enrichment statistic is reported because no null model is defined. Coordinate error describes an atom with average B factor; borderline flags use √2 × that error for a distance and are display metadata only. Ligand validation scores describe deposited coordinates. For an explicitly associated local file they are shown with that assumption, not as a property of locally modified coordinates.
 
-PDBe independent binding-site cross-checks, AlphaFold interpretation, comparison, variants, mutation effects and protein interfaces remain later work.
+PDBe independent binding-site cross-checks, AlphaFold interpretation, mutation-effect prediction and protein interfaces remain later work. Comparison is Phase 4 ([COMPARISON.md](COMPARISON.md)); curated variants are Phase 5 ([VARIANTS.md](VARIANTS.md)).

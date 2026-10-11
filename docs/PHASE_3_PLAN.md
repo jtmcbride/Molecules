@@ -78,7 +78,7 @@ interface ResidueMapping {
   accession: string;
   uniprotPosition: number; // explicitly 1-based
   status: 'exact' | 'ambiguous' | 'sequence_mismatch' | 'source_conflict';
-  identity?: 'match' | 'engineered_mutation' | 'conflict' | 'unexplained_mismatch'; // 3J; absent before biology-1.1.0
+  identity?: 'match' | 'engineered_mutation' | 'natural_variant' | 'conflict' | 'unexplained_mismatch'; // 3J; absent before biology-1.1.0; natural_variant (SIFTS "Variant") from biology-1.2.0
   residueChange?: { uniprot: string; deposited: string }; // one-letter codes when identity is not 'match'
   evidenceIds: string[];
 }
@@ -95,6 +95,8 @@ interface FunctionalAnnotation {
   end: FeatureBoundary;
   sourceFeatureId?: string;
   ligand?: { name?: string; identifier?: string; label?: string };
+  substitution?: { original: string; alternatives: string[] }; // Phase 5: variant/mutagenesis replacement as stated, checked against the sequence
+  crossReferences?: { database: string; id: string }[]; // Phase 5: e.g. dbSNP
   evidenceIds: string[];
   valid: boolean; // false when bounds fall outside the referenced sequence
   qualityFlags: string[];

@@ -51,6 +51,19 @@ export const uniprotSchema = z.object({
           })
           .optional(),
         evidences: z.array(attachedEvidence).optional(),
+        // Variant and mutagenesis features (biology-1.2.0). A malformed value is dropped,
+        // never repaired, so it cannot reject the rest of the record.
+        alternativeSequence: z
+          .object({
+            originalSequence: z.string().optional(),
+            alternativeSequences: z.array(z.string()).optional(),
+          })
+          .optional()
+          .catch(undefined),
+        featureCrossReferences: z
+          .array(z.object({ database: z.string(), id: z.string() }))
+          .optional()
+          .catch(undefined),
       }),
     )
     .optional(),
@@ -126,4 +139,28 @@ export const ligandInstanceSchema = z.object({
     )
     .nullable()
     .optional(),
+});
+const position = z.number().int().positive();
+export const carrierSchema = z.object({
+  data: z.object({
+    alignments: z.object({
+      query_sequence: z.string().regex(/^[A-Z]+$/),
+      target_alignments: z
+        .array(
+          z.object({
+            target_id: z.string(),
+            target_sequence: z.string().nullable(),
+            aligned_regions: z.array(
+              z.object({
+                query_begin: position,
+                query_end: position,
+                target_begin: position,
+                target_end: position,
+              }),
+            ),
+          }),
+        )
+        .nullable(),
+    }),
+  }),
 });

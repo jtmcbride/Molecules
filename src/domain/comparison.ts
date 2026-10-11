@@ -6,7 +6,7 @@ import type { InteractionType } from "./analysis";
  */
 
 /** Comparison semantics version: bump whenever comparison output can change. */
-export const COMPARISON_VERSION = "comparison-1.0.0";
+export const COMPARISON_VERSION = "comparison-1.1.0";
 /** Comparison structures besides the reference (eight structures in total). */
 export const MAX_COMPARISON_STRUCTURES = 7;
 

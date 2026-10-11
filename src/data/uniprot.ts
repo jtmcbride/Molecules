@@ -1,11 +1,12 @@
 import { uniprotSchema } from "./biologySchemas";
 import { resourceEvidence, attachedEvidence } from "../biology/evidence";
-import type {
-  Evidence,
-  FeatureBoundary,
-  FunctionalAnnotation,
-  ProteinRecord,
-  ResourceSnapshot,
+import {
+  VARIANT_FEATURE_TYPES,
+  type Evidence,
+  type FeatureBoundary,
+  type FunctionalAnnotation,
+  type ProteinRecord,
+  type ResourceSnapshot,
 } from "../domain/biology";
 import { hashBytes } from "./provider";
 function boundary(raw: { value?: number; modifier?: string }): FeatureBoundary {
@@ -22,6 +23,46 @@ function boundary(raw: { value?: number; modifier?: string }): FeatureBoundary {
             ? "greater_than"
             : "unknown",
   };
+}
+const RESIDUES = /^[ACDEFGHIKLMNPQRSTVWY]+$/;
+/**
+ * The replacement a variant or mutagenesis feature states. It is kept only when its original
+ * residues equal the sequence over exact feature bounds; otherwise it is dropped with a flag.
+ * Features without a stated replacement (deletions, "Missing") carry none and no flag.
+ */
+function substitution(
+  feature: {
+    alternativeSequence?: {
+      originalSequence?: string;
+      alternativeSequences?: string[];
+    };
+  },
+  start: FeatureBoundary,
+  end: FeatureBoundary,
+  sequence: string,
+): { value?: FunctionalAnnotation["substitution"]; flag?: string } {
+  const raw = feature.alternativeSequence;
+  if (!raw?.originalSequence || !raw.alternativeSequences?.length) return {};
+  const original = raw.originalSequence,
+    alternatives = raw.alternativeSequences;
+  if (!RESIDUES.test(original) || !alternatives.every((a) => RESIDUES.test(a)))
+    return {
+      flag: "The stated replacement contains symbols other than standard amino acids.",
+    };
+  if (
+    start.modifier !== "exact" ||
+    end.modifier !== "exact" ||
+    start.position === undefined ||
+    end.position === undefined
+  )
+    return {
+      flag: "The stated replacement has uncertain feature bounds and is not used.",
+    };
+  if (sequence.slice(start.position - 1, end.position) !== original)
+    return {
+      flag: `The stated original residues ${original} differ from the sequence at ${start.position}–${end.position}.`,
+    };
+  return { value: { original, alternatives: [...alternatives] } };
 }
 export async function parseUniProt(
   value: unknown,
@@ -77,6 +118,9 @@ export async function parseUniProt(
           : start.position <= end.position &&
             start.position >= 1 &&
             end.position <= protein.sequence.length;
+      const replacement = VARIANT_FEATURE_TYPES.includes(feature.type)
+        ? substitution(feature, start, end, protein.sequence)
+        : {};
       return {
         id: featureId,
         proteinId: id,
@@ -92,11 +136,20 @@ export async function parseUniProt(
               label: feature.ligand.label,
             }
           : undefined,
+        ...(replacement.value ? { substitution: replacement.value } : {}),
+        ...(feature.featureCrossReferences?.length
+          ? { crossReferences: feature.featureCrossReferences }
+          : {}),
         evidenceIds: [record.id, ...attached.map((e) => e.id)],
         valid,
-        qualityFlags: valid
-          ? []
-          : ["Feature boundaries fall outside this sequence or are reversed."],
+        qualityFlags: [
+          ...(valid
+            ? []
+            : [
+                "Feature boundaries fall outside this sequence or are reversed.",
+              ]),
+          ...(replacement.flag ? [replacement.flag] : []),
+        ],
       };
     },
   );

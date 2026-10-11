@@ -285,5 +285,52 @@
     "url": "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/2dn1.xml.gz",
     "sha256": "312ced5e9ea03477d7b8c0d56b2226aa7cc5f0b2f066811db015b2d7981111fa",
     "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2HBS.cif.gz",
+    "url": "https://files.rcsb.org/download/2HBS.cif",
+    "sha256": "b67f36fa3ebc49344d9dcdb41c15568829de9f6de5d9950af7fd2a9c064bd129",
+    "uncompressedSha256": "e6991972885992e7f110833e2d491953a34e4c4b8a238804c09ec06b8ebf2ea2",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2hbs-discovery.json",
+    "url": "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/2hbs",
+    "sha256": "c177a26930c737eb54c9bdccd2f1a727ba74a65edd5396c64ad9182ed151bffd",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "2hbs-sifts.xml.gz",
+    "url": "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/2hbs.xml.gz",
+    "sha256": "c63ce7073fc3fb8e26f009be44e634941ff2dbbde5721068924c0501cc843f6f",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "carriers-P68871.json",
+    "url": "https://sequence-coordinates.rcsb.org/graphql",
+    "requestBody": "{\"query\":\"{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: \\\"P68871\\\") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }\"}",
+    "sha256": "7eb4588678384459cd3da7a40680aecdc63d1f18e05b877fbe099e3213833ca8",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "carriers-P69905.json",
+    "url": "https://sequence-coordinates.rcsb.org/graphql",
+    "requestBody": "{\"query\":\"{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: \\\"P69905\\\") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }\"}",
+    "sha256": "205957246e21f7e33b53ef670c4076dec8f52f4010f5bc1fae0e63797ef371cb",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "carriers-P01009.json",
+    "url": "https://sequence-coordinates.rcsb.org/graphql",
+    "requestBody": "{\"query\":\"{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: \\\"P01009\\\") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }\"}",
+    "sha256": "f884dd4395ad473c882ba8e37827295fb3e6dab397c7ed45ca25c3910ad44579",
+    "retrievedOn": "2026-10-10"
+  },
+  {
+    "file": "carriers-P00760.json",
+    "url": "https://sequence-coordinates.rcsb.org/graphql",
+    "requestBody": "{\"query\":\"{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: \\\"P00760\\\") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }\"}",
+    "sha256": "f25ac2ab72cbb2973c36786c781be23965206ab209ccfd6cca57ea6ac5ee0779",
+    "retrievedOn": "2026-10-10"
   }
 ]

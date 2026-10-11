@@ -8,6 +8,8 @@ import {
   type LigandRelation,
   type LigandSiteOverlap,
   type ResidueMapping,
+  type VariantOverlap,
+  VARIANT_FEATURE_TYPES,
 } from "../domain/biology";
 import { normalizeChebi } from "../data/chemcomp";
 import type { AnalysisRun } from "../domain/analysis";
@@ -174,7 +176,8 @@ export function summarizeBindingSite(
     if (!chains.has(projection.chainInstanceId)) continue;
     const annotation = annotationById.get(projection.annotationId)!;
     const category = featureCategory(annotation.type);
-    if (!category) continue;
+    // Variants are summarized separately and never enter site or context counts.
+    if (!category || category === "variant") continue;
     const group = groups.get(annotation.type) ?? {
       category,
       contact: new Set<string>(),
@@ -200,6 +203,44 @@ export function summarizeBindingSite(
     }
     groups.set(annotation.type, group);
   }
+  // Curated variants per type, over the same contact residues and chain background.
+  const proteinIds = new Set(
+    exact.filter((m) => chains.has(m.chainInstanceId)).map((m) => m.proteinId),
+  );
+  const accessions = (type: string, listed: boolean) =>
+    interpretation.proteins
+      .filter(
+        (p) =>
+          proteinIds.has(p.id) &&
+          interpretation.annotations.some(
+            (a) => a.proteinId === p.id && a.type === type,
+          ) === listed,
+      )
+      .map((p) => p.accession);
+  const variants: VariantOverlap[] = VARIANT_FEATURE_TYPES.map((type) => {
+    const contact = new Set<string>(),
+      background = new Set<string>(),
+      annotationIds = new Set<string>();
+    for (const projection of interpretation.projections) {
+      if (!chains.has(projection.chainInstanceId)) continue;
+      if (annotationById.get(projection.annotationId)!.type !== type) continue;
+      projection.residueIds.forEach((id) => background.add(id));
+      const touched = projection.residueIds.filter((id) => mapped.has(id));
+      touched.forEach((id) => contact.add(id));
+      if (touched.length) annotationIds.add(projection.annotationId);
+    }
+    return {
+      type,
+      residueIds: [...contact],
+      annotationIds: [...annotationIds],
+      background: {
+        annotated: background.size,
+        total: backgroundResidues.size,
+      },
+      accessionsWithRecords: accessions(type, true),
+      accessionsWithoutRecords: accessions(type, false),
+    };
+  });
   const union = (category: FeatureCategory, key: "contact" | "background") =>
     new Set(
       [...groups.values()]
@@ -248,5 +289,6 @@ export function summarizeBindingSite(
       .map((r) => r.residueId)
       .filter((id) => components.has(id)),
     analyzedLigand: { componentId: ligandComponentId, chebiIds: analyzedChebi },
+    variants,
   };
 }

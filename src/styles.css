@@ -2090,6 +2090,67 @@ select {
 .residue-feature p {
   margin: 5px 0;
 }
+.residue-variants {
+  margin: 14px 0;
+  font-size: 12px;
+  color: #a2b7cb;
+}
+.residue-variants summary {
+  cursor: pointer;
+}
+.residue-variants q,
+.functional-feature q,
+.binding-variants q {
+  display: block;
+  margin: 4px 0;
+  color: #d1deeb;
+  font-style: italic;
+}
+.variant-state {
+  color: #92aabd;
+}
+.variant-references {
+  display: block;
+  margin: 4px 0;
+}
+.variant-state.variant-carries {
+  color: var(--accent);
+}
+.binding-variants {
+  margin: 14px 0;
+}
+.variant-interactions {
+  margin: 6px 0;
+  font-size: 11px;
+  color: #a2b7cb;
+}
+.variant-consequence {
+  margin: 4px 0;
+}
+.variant-consequence strong {
+  font-size: 11px;
+  color: #d1deeb;
+}
+.variant-carriers {
+  margin: 10px 0;
+  font-size: 11px;
+}
+.carrier-row {
+  margin: 4px 0;
+}
+.carrier-entries {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-left: 6px;
+}
+.carrier-current {
+  color: var(--accent);
+}
+.variant-consequence ul {
+  margin: 2px 0 0;
+  padding-left: 16px;
+}
 .protein-notes,
 .biology-quality {
   margin: 16px 0;
@@ -2174,6 +2235,7 @@ select {
 }
 .ligand-sites h4,
 .binding-context h4,
+.binding-variants h4,
 .structure-evidence h4 {
   margin: 0 0 6px;
   font-size: 11px;
@@ -2211,6 +2273,7 @@ select {
   color: #92aabd;
 }
 .residue-change.identity-engineered_mutation,
+.residue-change.identity-natural_variant,
 .residue-change.identity-conflict {
   color: var(--accent);
 }

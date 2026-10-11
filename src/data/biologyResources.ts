@@ -7,6 +7,8 @@ interface ResourceRequest {
   provider: ResourceSnapshot["provider"];
   identifier: string;
   url: string;
+  /** JSON body; the request is then a POST (GraphQL). */
+  requestBody?: string;
   limit: number;
 }
 class HttpFailure extends Error {
@@ -83,7 +85,17 @@ export async function biologyResource(
         signal.throwIfAborted();
         const timeout = AbortSignal.timeout(20_000),
           combined = AbortSignal.any([signal, timeout]);
-        const response = await fetch(request.url, { signal: combined });
+        const response = await fetch(
+          request.url,
+          request.requestBody
+            ? {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: request.requestBody,
+                signal: combined,
+              }
+            : { signal: combined },
+        );
         if (!response.ok) {
           const retry = response.headers.get("retry-after"),
             seconds = Number(retry);
@@ -169,5 +181,25 @@ export function ligandFitRequest(
     identifier: `${entryId}.${labelAsymId}`,
     url: `https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/${entryId}/${labelAsymId}`,
     limit: 2 * 1024 * 1024,
+  };
+}
+/**
+ * PDB entity sequences aligned to a UniProt accession (RCSB sequence-coordinates API; RCSB
+ * records the alignments as SIFTS-derived). Only the accession is sent.
+ */
+export const SEQUENCE_COORDINATES_URL =
+  "https://sequence-coordinates.rcsb.org/graphql";
+export function carrierRequest(accession: string): ResourceRequest {
+  if (!/^[A-Z0-9]{6,10}$/.test(accession))
+    throw Error("Carrier lookup needs a canonical UniProt accession.");
+  return {
+    key: `rcsb:alignments:${accession}`,
+    provider: "RCSB",
+    identifier: accession,
+    url: SEQUENCE_COORDINATES_URL,
+    requestBody: JSON.stringify({
+      query: `{ alignments(from: UNIPROT, to: PDB_ENTITY, queryId: "${accession}") { query_sequence target_alignments { target_id target_sequence aligned_regions { query_begin query_end target_begin target_end } } } }`,
+    }),
+    limit: 10 * 1024 * 1024,
   };
 }
