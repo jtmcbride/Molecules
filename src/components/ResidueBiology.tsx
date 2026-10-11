@@ -5,6 +5,7 @@ const IDENTITY_LABEL: Partial<
   Record<NonNullable<ResidueMapping["identity"]>, string>
 > = {
   engineered_mutation: "engineered",
+  natural_variant: "natural variant",
   conflict: "sequence conflict",
   unexplained_mismatch: "unexplained mismatch",
 };

@@ -193,7 +193,7 @@ test("pins ligand chemical identities with their source records and tolerates a 
     "3PTB",
     new AbortController().signal,
   );
-  expect(interpretation.version).toBe("biology-1.1.0");
+  expect(interpretation.version).toBe("biology-1.2.0");
   expect(interpretation.ligands).toEqual([
     expect.objectContaining({ componentId: "BEN", chebiIds: ["CHEBI:41033"] }),
     expect.objectContaining({ componentId: "CA", chebiIds: [] }),

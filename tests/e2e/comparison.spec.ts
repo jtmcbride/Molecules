@@ -269,7 +269,7 @@ test("fingerprints compare like-for-like analyses by UniProt position and export
     await readFile((await (await downloaded).path())!, "utf8"),
   );
   expect(json.schemaVersion).toBe(1);
-  expect(json.comparisonVersion).toBe("comparison-1.0.0");
+  expect(json.comparisonVersion).toBe("comparison-1.1.0");
   expect(json.structures[0].correspondence.counts.paired).toBe(223);
   expect(json.structures[0].superposition.fitted).toBe(213);
   expect(json.fingerprint.columns[1].similarity.tanimoto).toBe(1);

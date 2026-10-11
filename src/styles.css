@@ -2211,6 +2211,7 @@ select {
   color: #92aabd;
 }
 .residue-change.identity-engineered_mutation,
+.residue-change.identity-natural_variant,
 .residue-change.identity-conflict {
   color: var(--accent);
 }

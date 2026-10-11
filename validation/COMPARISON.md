@@ -1,6 +1,6 @@
 # Phase 4 comparison validation
 
-Evidence for structural comparison (`COMPARISON_VERSION = comparison-1.0.0`). The plan is in [docs/PHASE_4_PLAN.md](../docs/PHASE_4_PLAN.md). Inputs are the frozen fixtures in `tests/fixtures/biology` (coordinates, SIFTS and UniProt records with SHA-256 manifest).
+Evidence for structural comparison (`COMPARISON_VERSION = comparison-1.1.0`; see the [change log](#change-log)). The plan is in [docs/PHASE_4_PLAN.md](../docs/PHASE_4_PLAN.md). Inputs are the frozen fixtures in `tests/fixtures/biology` (coordinates, SIFTS and UniProt records with SHA-256 manifest).
 
 ## Residue correspondence (4B)
 
@@ -12,8 +12,11 @@ Correspondence uses only the Phase 3 exact SIFTS mapping. Checked in `tests/comp
 | 1S0Q ↔ 1S0R | P00760 | A↔A (same author chain) | 223 | none |
 | 4HHB ↔ 1HHO | P68871, P69905 | B↔B, A↔A (same author chain) | 287 | 4HHB C and D unpaired (1HHO deposits one αβ dimer) |
 | 3PTB ↔ 4HHB | none | none | 0 | comparison refused |
+| 4HHB ↔ 2HBS (sickle) | P68871, P69905 | A↔A, B↔B, C↔C, D↔D (same author chain) | 574 | β E7V paired as a residue change in B and D; 2HBS E–H (second tetramer) unpaired |
 
 Author numbering differs at all 223 trypsin positions: 3PTB uses chymotrypsinogen numbering (Asp189 = UniProt 194), 1S0R numbers from 1 and 1S0Q from 660. Pairing by author numbering, or by offset, would have been wrong at every position. Every paired trypsin residue has the same component in both structures.
+
+The 4HHB ↔ 2HBS row is checked in `tests/variants.test.ts` (from `comparison-1.1.0`).
 
 Synthetic in-memory modifications of the 1S0R mapping check the labels for an unobserved position (`reference_only`), an ambiguous mapping (`not_comparable`, with the reason), a missing SIFTS row (`reference_only`) and an engineered mutation (paired, with both deposited residues).
 
@@ -144,3 +147,7 @@ Checked in `tests/comparison-site.test.ts` (global superposition):
 **Hemoglobin.** In the α heme pocket, the F-helix residues Leu83, Leu86, His87 (proximal) and Leu91 shift by more than 1 Å between deoxy and oxy. This is the T→R ligation shift of the F helix.
 
 **Equivalent atoms.** Swapping Asp189 OD1/OD2 in memory (artificial) leaves its side-chain RMSD unchanged and changes Δχ2 by under 5°: the deposited carboxylate oxygens are not exactly 180° apart.
+
+## Change log
+
+- **comparison-1.1.0 (Phase 5, 5V-A).** SIFTS residues annotated `Variant` (a natural sequence variant in the deposited entity, such as sickle haemoglobin β Val6 in 2HBS) now have the residue identity `natural_variant` and an exact mapping (`biology-1.2.0`). Before, they were `sequence_mismatch`, so the position was `not_comparable`. Such positions now pair with a residue change, like engineered mutations. None of the four golden pairs contains a SIFTS `Variant` residue: their full outputs were dumped before and after and differ only in the version string, which is the only reason the golden hashes changed. Engine goldens are unchanged.

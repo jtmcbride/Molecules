@@ -51,6 +51,19 @@ export const uniprotSchema = z.object({
           })
           .optional(),
         evidences: z.array(attachedEvidence).optional(),
+        // Variant and mutagenesis features (biology-1.2.0). A malformed value is dropped,
+        // never repaired, so it cannot reject the rest of the record.
+        alternativeSequence: z
+          .object({
+            originalSequence: z.string().optional(),
+            alternativeSequences: z.array(z.string()).optional(),
+          })
+          .optional()
+          .catch(undefined),
+        featureCrossReferences: z
+          .array(z.object({ database: z.string(), id: z.string() }))
+          .optional()
+          .catch(undefined),
       }),
     )
     .optional(),

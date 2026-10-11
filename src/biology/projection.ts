@@ -174,7 +174,8 @@ export function summarizeBindingSite(
     if (!chains.has(projection.chainInstanceId)) continue;
     const annotation = annotationById.get(projection.annotationId)!;
     const category = featureCategory(annotation.type);
-    if (!category) continue;
+    // Variants are summarized separately and never enter site or context counts.
+    if (!category || category === "variant") continue;
     const group = groups.get(annotation.type) ?? {
       category,
       contact: new Set<string>(),

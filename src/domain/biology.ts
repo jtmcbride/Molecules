@@ -1,6 +1,6 @@
 /** Biological records and evidence are independent of the renderer and API formats. */
 import type { StructureQuality } from "./types";
-export const BIOLOGY_VERSION = "biology-1.1.0";
+export const BIOLOGY_VERSION = "biology-1.2.0";
 export interface ResourceSnapshot {
   id: string;
   key: string;
@@ -27,6 +27,7 @@ export const MAPPING_STATUSES = [
 export const RESIDUE_IDENTITIES = [
   "match",
   "engineered_mutation",
+  "natural_variant",
   "conflict",
   "unexplained_mismatch",
 ] as const;
@@ -72,6 +73,14 @@ export interface FunctionalAnnotation {
   end: FeatureBoundary;
   sourceFeatureId?: string;
   ligand?: { name?: string; identifier?: string; label?: string };
+  /**
+   * Residues replaced by a variant or mutagenesis feature, as the source states them (biology-1.2.0).
+   * Absent when the source states no replacement (e.g. a deletion) or states one inconsistent with
+   * the sequence; never inferred from the description.
+   */
+  substitution?: { original: string; alternatives: string[] };
+  /** Source cross-references of the feature, e.g. dbSNP identifiers (biology-1.2.0). */
+  crossReferences?: { database: string; id: string }[];
   evidenceIds: string[];
   valid: boolean;
   qualityFlags: string[];
@@ -241,11 +250,19 @@ export const DEFAULT_ANNOTATION_TYPES = [
  */
 export const SITE_FEATURE_TYPES = ["Active site", "Binding site", "Site"];
 export const CONTEXT_FEATURE_TYPES = ["Domain", "Region"];
-export type FeatureCategory = "site" | "context";
+/**
+ * Curated sequence variants (biology-1.2.0). Natural variants are observed in individuals;
+ * mutagenesis features are laboratory changes. They stay separate types and are never counted
+ * with site-level or context features.
+ */
+export const VARIANT_FEATURE_TYPES = ["Natural variant", "Mutagenesis"];
+export type FeatureCategory = "site" | "context" | "variant";
 export function featureCategory(type: string): FeatureCategory | undefined {
   return SITE_FEATURE_TYPES.includes(type)
     ? "site"
     : CONTEXT_FEATURE_TYPES.includes(type)
       ? "context"
-      : undefined;
+      : VARIANT_FEATURE_TYPES.includes(type)
+        ? "variant"
+        : undefined;
 }

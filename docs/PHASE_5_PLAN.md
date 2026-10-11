@@ -57,7 +57,7 @@ Accepted 2026-10-10.
 
 - `BIOLOGY_VERSION` → `biology-1.2.0`: variant records, `natural_variant` identity, variant overlaps and consequences.
 - Interpretation JSON schema 3: variants, consequences and carrier lookups. Schema 2 files still import.
-- `COMPARISON_VERSION` → `comparison-1.1.0`: `natural_variant` positions pair instead of being `not_comparable`. The four golden pairs contain no SIFTS `Variant` residue, so their hashes are expected to stay; the bump records the semantic change.
+- `COMPARISON_VERSION` → `comparison-1.1.0`: `natural_variant` positions pair instead of being `not_comparable`. The four golden pairs contain no SIFTS `Variant` residue: their outputs are unchanged apart from the version string, which alone changes their hashes.
 - `RESIDUE_IDENTITIES` gains `natural_variant`, so the Phase 3 contract excerpt (`docs/PHASE_3_PLAN.md`, checked by `tests/contracts.test.ts`) is updated in the same change.
 - Engine, ruleset, analysis JSON and Dexie versions are unchanged unless carrier storage needs a new table (5V-D decides; a new table means Dexie version 5).
 
@@ -149,3 +149,14 @@ Acceptance: all gates above pass in CI; the release records `biology-1.2.0`, `co
 - **Unversioned carrier source.** The sequence-coordinates API has no release number, so lookups are reproducible only through the pinned response. Its SIFTS provenance comes from RCSB's entity records, not the API documentation; the cross-check against frozen SIFTS XML guards it.
 - **Large proteins.** Entries with thousands of entities (lysozyme, thrombin, HIV protease) may exceed the size bound and fail per protein, with the reason shown.
 - **Name-based atom classes.** Classification relies on standard atom names. Non-standard naming in a deposited residue makes that residue `not_evaluated` rather than guessed.
+
+## Implementation record
+
+- **5V-A.** As planned.
+  - **Records.** `uniprotSchema` keeps `alternativeSequence` and `featureCrossReferences`, each dropped on its own if malformed so the rest of the record still parses. `parseUniProt` sets `substitution` only for `Natural variant` and `Mutagenesis` features with exact bounds whose stated original residues equal the sequence; otherwise it records a quality flag. Other feature types (sequence conflicts, isoform `Alternative sequence`) are unchanged. P68871: 261 natural variants, 258 with a replacement, none flagged.
+  - **Category.** `featureCategory` returns `variant` for both types. `summarizeBindingSite` skips them, so site and context counts are unchanged. The interpretation CSV's feature-category column now says `variant` for these features instead of `processing_or_other`.
+  - **Identity.** SIFTS `Variant` → `natural_variant`. 2HBS β Val6 (all four β chains) maps exactly to P68871 7 with `E → V`.
+  - **Deposited match.** `src/biology/variants.ts` (`variantResidueStates`) compares each variant's stated residues with the deposited residues of every chain instance: `carries`, `original`, `other` or `not_evaluated` with a reason. Only exact mappings of observed residues are read, and the SIFTS identity is reported alongside. 2HBS carries E7V and reports Hb C (E7K) as `other`; 1OPH carries Pittsburgh M382R through a SIFTS engineered mutation, while the M382V mutagenesis feature is `other`; the nine-residue P01009 replacement is compared over its whole span.
+  - **Comparison.** 4HHB ↔ 2HBS pairs all 574 positions, with E7V as a residue change in both β chains (`comparison-1.1.0`). Golden comparison outputs were dumped before and after the change: identical apart from the version string. Engine goldens unchanged.
+  - **Fixtures.** 2HBS coordinates, discovery JSON and SIFTS XML, hash-pinned in the manifest.
+  - **Tests.** `tests/variants.test.ts`.
