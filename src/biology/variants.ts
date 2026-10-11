@@ -1,6 +1,8 @@
 import {
   featureCategory,
+  recordsVariantReplacements,
   type FunctionalAnnotation,
+  type InterpretationSnapshot,
   type ProteinRecord,
   type ResidueMapping,
 } from "../domain/biology";
@@ -128,4 +130,47 @@ export function variantResidueStates(
     }
   }
   return output;
+}
+
+/**
+ * Deposited-residue states for an interpretation. Snapshots before biology-1.2.0 did not
+ * record variant replacements, so every state is then `not_evaluated` with that reason.
+ */
+export function interpretationVariantStates(
+  interpretation: Pick<
+    InterpretationSnapshot,
+    "version" | "annotations" | "mappings" | "proteins"
+  >,
+): VariantResidueState[] {
+  const states = variantResidueStates(
+    interpretation.annotations,
+    interpretation.mappings,
+    interpretation.proteins,
+  );
+  return recordsVariantReplacements(interpretation.version)
+    ? states
+    : states.map((s) => ({
+        annotationId: s.annotationId,
+        chainInstanceId: s.chainInstanceId,
+        state: "not_evaluated",
+        reason: `This interpretation (${interpretation.version}) predates recorded variant replacements; refresh it to record them.`,
+      }));
+}
+
+/**
+ * Compact label of a variant as the source states it: "E7V", "E7K/Q", "QGKIVDLVK190–198GFQNAILVR",
+ * or the position alone when no replacement is stated.
+ */
+export function variantLabel(annotation: FunctionalAnnotation) {
+  const start = annotation.start.position,
+    end = annotation.end.position;
+  const range =
+    start === undefined
+      ? "?"
+      : end !== undefined && end !== start
+        ? `${start}–${end}`
+        : `${start}`;
+  return annotation.substitution
+    ? `${annotation.substitution.original}${range}${annotation.substitution.alternatives.join("/")}`
+    : `${range} (no replacement stated)`;
 }

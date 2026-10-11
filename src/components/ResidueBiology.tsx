@@ -1,5 +1,11 @@
 import { useExplorer } from "../state/explorer";
 import type { ResidueMapping } from "../domain/biology";
+import {
+  interpretationVariantStates,
+  isVariantAnnotation,
+  variantLabel,
+  type VariantResidueState,
+} from "../biology/variants";
 
 const IDENTITY_LABEL: Partial<
   Record<NonNullable<ResidueMapping["identity"]>, string>
@@ -30,6 +36,7 @@ export function ResidueBiology() {
           interpretation.annotations.filter(
             (a) =>
               a.id === p.annotationId &&
+              !isVariantAnnotation(a) &&
               s.annotationCategories.includes(a.type),
           ),
         ) ?? [];
@@ -103,8 +110,87 @@ export function ResidueBiology() {
                 : "Exact functional projection is unavailable."}
             </p>
           )}
+          <ResidueVariants residueId={residue.id} />
         </>
       )}
     </section>
+  );
+}
+
+const STATE_LABEL: Record<VariantResidueState["state"], string> = {
+  carries: "this structure carries the replacement",
+  original: "deposited residue is the original",
+  other: "deposited residue is neither the original nor the replacement",
+  not_evaluated: "not evaluated",
+};
+
+/** Curated variants at one residue, quoted from their source with evidence. */
+function ResidueVariants({ residueId }: { residueId: string }) {
+  const s = useExplorer(),
+    interpretation = s.interpretation;
+  if (!interpretation) return null;
+  const variants = interpretation.projections
+    .filter((p) => p.residueIds.includes(residueId))
+    .flatMap((p) =>
+      interpretation.annotations.filter(
+        (a) => a.id === p.annotationId && isVariantAnnotation(a),
+      ),
+    );
+  if (!variants.length) return null;
+  const chainInstanceIds = new Set(
+    interpretation.mappings
+      .filter((m) => m.residueId === residueId)
+      .map((m) => m.chainInstanceId),
+  );
+  const states = interpretationVariantStates({
+    ...interpretation,
+    annotations: variants,
+  }).filter((x) => chainInstanceIds.has(x.chainInstanceId));
+  return (
+    <details className="residue-variants" data-testid="residue-variants">
+      <summary>
+        Curated variants at this position <small>{variants.length}</small>
+      </summary>
+      {variants.map((a) => {
+        const state = states.find((x) => x.annotationId === a.id);
+        return (
+          <article className="residue-feature" key={a.id}>
+            <strong>
+              {variantLabel(a)} <small>{a.type}</small>
+            </strong>
+            {a.description && <q>{a.description}</q>}
+            {state && (
+              <p
+                className={`variant-state variant-${state.state}`}
+                title={state.state === "not_evaluated" ? state.reason : ""}
+              >
+                {STATE_LABEL[state.state]}
+                {state.state === "not_evaluated" ? `: ${state.reason}` : ""}
+              </p>
+            )}
+            {a.crossReferences?.length ? (
+              <small className="muted">
+                {a.crossReferences
+                  .map((x) => `${x.database}:${x.id}`)
+                  .join(" · ")}
+              </small>
+            ) : null}
+            <button
+              className="biology-link"
+              onClick={() =>
+                useExplorer.setState({ evidenceIds: a.evidenceIds })
+              }
+            >
+              Variant evidence
+            </button>
+          </article>
+        );
+      })}
+      <p className="small muted">
+        Quoted from UniProt with its evidence. These are database records, not a
+        clinical interpretation, and their location here is not evidence of an
+        effect on binding.
+      </p>
+    </details>
   );
 }

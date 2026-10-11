@@ -136,6 +136,7 @@ describe("multi-residue ligands and receptor components (R6)", () => {
       mappings: [],
       projections: [],
       annotations: [],
+      proteins: [],
       ligands: [],
       id: "x",
     } as unknown as InterpretationSnapshot;

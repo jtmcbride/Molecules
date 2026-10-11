@@ -231,6 +231,23 @@ export interface BindingSiteSummary {
   cofactorContactIds: string[];
   /** ChEBI identifiers of the analyzed component, when cross-referenced. */
   analyzedLigand: { componentId: string; chebiIds: string[] };
+  /** Curated variants at mapped contact residues, one entry per variant type (biology-1.2.0). */
+  variants?: VariantOverlap[];
+}
+/**
+ * Mapped contact residues covered by curated variants of one type, with the chain background
+ * over the same chain instances. Descriptive counts: a variant at a contact residue is not
+ * evidence that it affects binding.
+ */
+export interface VariantOverlap {
+  type: string;
+  residueIds: string[];
+  annotationIds: string[];
+  background: { annotated: number; total: number };
+  /** Accessions of the contacted chains whose UniProt record lists features of this type. */
+  accessionsWithRecords: string[];
+  /** Accessions of the contacted chains whose UniProt record lists no feature of this type. */
+  accessionsWithoutRecords: string[];
 }
 export const DEFAULT_ANNOTATION_TYPES = [
   "Active site",
@@ -241,6 +258,13 @@ export const DEFAULT_ANNOTATION_TYPES = [
   "Signal",
   "Propeptide",
   "Chain",
+];
+
+/** Feature types offered as annotation categories. Variant types are offered but off by default. */
+export const ANNOTATION_TYPE_OPTIONS = [
+  ...DEFAULT_ANNOTATION_TYPES,
+  "Natural variant",
+  "Mutagenesis",
 ];
 
 /**
@@ -257,6 +281,13 @@ export const CONTEXT_FEATURE_TYPES = ["Domain", "Region"];
  */
 export const VARIANT_FEATURE_TYPES = ["Natural variant", "Mutagenesis"];
 export type FeatureCategory = "site" | "context" | "variant";
+/** Variant replacements are recorded in interpretations from biology-1.2.0 on. */
+export function recordsVariantReplacements(version: string) {
+  const [major, minor] = (version.match(/(\d+)\.(\d+)\.\d+$/) ?? [])
+    .slice(1)
+    .map(Number);
+  return major > 1 || (major === 1 && minor >= 2);
+}
 export function featureCategory(type: string): FeatureCategory | undefined {
   return SITE_FEATURE_TYPES.includes(type)
     ? "site"

@@ -2090,6 +2090,31 @@ select {
 .residue-feature p {
   margin: 5px 0;
 }
+.residue-variants {
+  margin: 14px 0;
+  font-size: 12px;
+  color: #a2b7cb;
+}
+.residue-variants summary {
+  cursor: pointer;
+}
+.residue-variants q,
+.functional-feature q,
+.binding-variants q {
+  display: block;
+  margin: 4px 0;
+  color: #d1deeb;
+  font-style: italic;
+}
+.variant-state {
+  color: #92aabd;
+}
+.variant-state.variant-carries {
+  color: var(--accent);
+}
+.binding-variants {
+  margin: 14px 0;
+}
 .protein-notes,
 .biology-quality {
   margin: 16px 0;

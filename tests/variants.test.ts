@@ -1,10 +1,23 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { parseUniProt } from "../src/data/uniprot";
-import { featureCategory } from "../src/domain/biology";
-import type { ResourceSnapshot } from "../src/domain/biology";
-import { projectAnnotations } from "../src/biology/projection";
-import { variantResidueStates } from "../src/biology/variants";
+import {
+  BIOLOGY_VERSION,
+  featureCategory,
+  recordsVariantReplacements,
+  type InterpretationSnapshot,
+  type ResourceSnapshot,
+} from "../src/domain/biology";
+import {
+  projectAnnotations,
+  summarizeBindingSite,
+} from "../src/biology/projection";
+import { annotationCsv, interpretationJson } from "../src/biology/export";
+import {
+  interpretationVariantStates,
+  variantLabel,
+  variantResidueStates,
+} from "../src/biology/variants";
 import { biologyFixture } from "./helpers/biology";
 
 async function uniprot(accession: string, edit?: (raw: any) => void) {
@@ -264,5 +277,160 @@ describe("comparison with a natural-variant structure", () => {
         residueChange: { reference: "E", comparison: "V" },
       });
     expect(result.counts.not_comparable).toBe(0);
+  });
+});
+
+async function interpreted(id: string, component: string, chain: string) {
+  const { comparisonSide } = await import("./helpers/comparison");
+  const { analyzeLigand } = await import("./helpers/fingerprint");
+  const p = await comparisonSide(id);
+  const interpretation: InterpretationSnapshot = {
+    schemaVersion: 1,
+    id: `pinned-${id}`,
+    version: BIOLOGY_VERSION,
+    snapshotId: p.snapshot.id,
+    sourceHash: p.source.contentHash,
+    entryId: id,
+    createdAt: "2026-10-10T00:00:00Z",
+    resourceIds: [],
+    resourceRefs: [],
+    proteins: p.proteins,
+    annotations: p.annotations,
+    mappings: p.mappings,
+    coverage: p.coverage,
+    projections: p.projections,
+    evidence: p.evidence,
+    qualityFlags: [],
+    ligands: [],
+  };
+  return {
+    ...p,
+    interpretation,
+    run: await analyzeLigand(p, component, chain),
+  };
+}
+
+describe("binding-site variant summary", () => {
+  it("reports 4HHB beta heme contact residues with variants beside the chain background", async () => {
+    const p = await interpreted("4HHB", "HEM", "B");
+    const summary = summarizeBindingSite(p.interpretation, p.run, "HEM");
+    expect(summary.mappedCount).toBe(21);
+    const [natural, mutagenesis] = summary.variants!;
+    expect(natural).toMatchObject({
+      type: "Natural variant",
+      background: { annotated: 130, total: 146 },
+      accessionsWithRecords: ["P68871"],
+      accessionsWithoutRecords: [],
+    });
+    expect(natural.residueIds).toHaveLength(18);
+    // The proximal (UniProt 93) and distal (64) histidines carry curated variants.
+    const positions = new Set(
+      p.mappings
+        .filter((m) => natural.residueIds.includes(m.residueId!))
+        .map((m) => m.uniprotPosition),
+    );
+    expect(positions.has(93) && positions.has(64)).toBe(true);
+    expect(mutagenesis).toMatchObject({
+      type: "Mutagenesis",
+      residueIds: [],
+      accessionsWithRecords: [],
+      accessionsWithoutRecords: ["P68871"],
+    });
+    // Variant records leave the site-level and context counts unchanged.
+    const kept = p.annotations.filter(
+      (a) => featureCategory(a.type) !== "variant",
+    );
+    const without = summarizeBindingSite(
+      {
+        ...p.interpretation,
+        annotations: kept,
+        projections: p.projections.filter((pr) =>
+          kept.some((a) => a.id === pr.annotationId),
+        ),
+      },
+      p.run,
+      "HEM",
+    );
+    expect(summary.overlaps).toEqual(without.overlaps);
+    expect(summary.siteAnnotatedCount).toBe(without.siteAnnotatedCount);
+    expect(summary.siteBackground).toEqual(without.siteBackground);
+  });
+
+  it("says a protein lists no variants instead of reporting zero (3PTB, P00760)", async () => {
+    const p = await interpreted("3PTB", "BEN", "A");
+    const summary = summarizeBindingSite(p.interpretation, p.run, "BEN");
+    for (const v of summary.variants!)
+      expect(v).toMatchObject({
+        accessionsWithRecords: [],
+        accessionsWithoutRecords: ["P00760"],
+        residueIds: [],
+      });
+  });
+});
+
+describe("variant labels, older interpretations and exports", () => {
+  it("labels variants as the source states them", async () => {
+    const { annotations } = await uniprot("P01009");
+    expect(
+      variantLabel(
+        variant({ annotations }, "P01009", "Natural variant", 382, "R"),
+      ),
+    ).toBe("M382R");
+    expect(
+      variantLabel(
+        annotations.find(
+          (a) => a.start.position === 190 && a.end.position === 198,
+        )!,
+      ),
+    ).toBe("QGKIVDLVK190–198GFQNAILVR");
+    const unstated = annotations.find(
+      (a) => a.type === "Natural variant" && !a.substitution,
+    )!;
+    expect(variantLabel(unstated)).toMatch(/\(no replacement stated\)$/);
+  });
+
+  it("does not evaluate variants of an interpretation that predates recorded replacements", async () => {
+    const p = await biologyFixture("2HBS");
+    const states = interpretationVariantStates({
+      version: "biology-1.1.0",
+      annotations: p.annotations,
+      mappings: p.mappings,
+      proteins: p.proteins,
+    });
+    expect(states.length).toBeGreaterThan(0);
+    expect(states.every((s) => s.state === "not_evaluated")).toBe(true);
+    expect(recordsVariantReplacements("biology-1.1.0")).toBe(false);
+    expect(recordsVariantReplacements("biology-1.2.0")).toBe(true);
+    expect(recordsVariantReplacements("biology-2.0.0")).toBe(true);
+  });
+
+  it("exports variant records, deposited states and summary (JSON schema 3, CSV columns)", async () => {
+    const p = await interpreted("4HHB", "HEM", "B");
+    const json = JSON.parse(
+      interpretationJson(p.interpretation, p.snapshot, p.source, p.run),
+    );
+    expect(json.schemaVersion).toBe(3);
+    const sickle = variant(p, "P68871", "Natural variant", 7, "V");
+    expect(
+      json.variantResidueStates.filter(
+        (s: { annotationId: string }) => s.annotationId === sickle.id,
+      ),
+    ).toHaveLength(2);
+    expect(
+      json.interpretation.annotations.find(
+        (a: { id: string }) => a.id === sickle.id,
+      ).substitution,
+    ).toEqual({ original: "E", alternatives: ["V"] });
+    expect(json.bindingSiteSummary.variants[0].residueIds).toHaveLength(18);
+    const lines = annotationCsv(p.interpretation, p.snapshot).split("\r\n");
+    const header = lines[0].split(",").map((h) => JSON.parse(h));
+    expect(header.slice(-3)).toEqual([
+      "variant_replacement",
+      "variant_cross_references",
+      "variant_deposited_state",
+    ]);
+    const row = lines.find((l) => l.includes('"E7V"'))!;
+    expect(row).toContain('"dbSNP:rs334"');
+    expect(row.endsWith('"original"')).toBe(true);
   });
 });

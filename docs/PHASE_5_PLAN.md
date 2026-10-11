@@ -160,3 +160,9 @@ Acceptance: all gates above pass in CI; the release records `biology-1.2.0`, `co
   - **Comparison.** 4HHB ↔ 2HBS pairs all 574 positions, with E7V as a residue change in both β chains (`comparison-1.1.0`). Golden comparison outputs were dumped before and after the change: identical apart from the version string. Engine goldens unchanged.
   - **Fixtures.** 2HBS coordinates, discovery JSON and SIFTS XML, hash-pinned in the manifest.
   - **Tests.** `tests/variants.test.ts`.
+- **5V-B.** As planned.
+  - **Categories.** `ANNOTATION_TYPE_OPTIONS` offers `Natural variant` and `Mutagenesis`; `DEFAULT_ANNOTATION_TYPES` (the default selection) is unchanged. Track tooltips and the feature list show the stated replacement (`variantLabel`), with descriptions quoted.
+  - **Residue view.** A separate "Curated variants at this position" block, independent of the category filter, lists each variant with its quoted description, deposited-residue state, cross-references and evidence, and the note that these are database records, not a clinical interpretation.
+  - **Binding-site summary.** `variants` (one `VariantOverlap` per type) gives contact residues with variants, the chain background over the same chain instances, and the contacted accessions with and without records. 4HHB chain B heme: natural variants at 18 of 21 mapped contact residues against 130 of 146 in the chain; P68871 lists no mutagenesis features. 3PTB: P00760 lists no natural variants or mutagenesis features. Site-level and context counts are identical with and without variant records.
+  - **Older interpretations.** `interpretationVariantStates` reports every variant of a pre-1.2.0 snapshot as `not_evaluated` with a reason to refresh, since those snapshots did not record replacements.
+  - **Exports.** Interpretation JSON schema 3 adds `variantResidueStates` and the summary's `variants`; the CSV appends `variant_replacement`, `variant_cross_references` and `variant_deposited_state`.
