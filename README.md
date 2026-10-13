@@ -1,5 +1,7 @@
 # Molecular Interaction Explorer
 
+<https://jtmcbride.github.io/Molecules>
+
 A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Phases 1–3 are implemented: structure exploration, ligand-centered interaction computation, and functional interpretation through exact SIFTS/UniProt correspondence and traceable evidence. [Phase 3 implementation record](docs/PHASE_3_PLAN.md) describes its contracts and acceptance gates.
 
 ## Run locally
