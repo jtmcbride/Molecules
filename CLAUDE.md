@@ -42,9 +42,11 @@ src/
     release.ts     Build-injected package version and scientific version constants for UI
     analysis.ts    Interaction types, DEFAULT_PARAMETERS, ENGINE_VERSION/RULESET_VERSION
     comparison.ts  COMPARISON_VERSION, comparison session descriptors, rigid transforms
+    selection.ts   StructureRef/ResidueTarget, InvestigationRequest/View/Result (structure-qualified selection)
     biology.ts     ProteinRecord, ResidueMapping (status + identity), FunctionalAnnotation, Evidence, LigandIdentity, LigandFit, InterpretationSnapshot, site/context feature categories
   structure/   Mol* boundary for parsing/rendering
-    adapter.ts     Mol* plugin lifecycle, scene, bidirectional domain↔Mol* selection
+    adapter.ts     Mol* plugin lifecycle, scene, bidirectional domain↔Mol* selection; member registry (snapshot, selection index, deposited root, display transform)
+    investigation.ts  The single writer of the persistent selection; projects the reference side into selectedResidueId
     extract.ts     Builds StructureSnapshot (assembly-space Float32Array coords) + SelectionIndex
     quality.ts     Refinement statistics from mmCIF; Cruickshank DPI coordinate error
     ligandGroups.ts  Multi-residue ligand groups (branched, BIRD, covalently linked)
@@ -84,13 +86,15 @@ src/
     cache.ts       Pure LRU eviction planning (protected: open structures, saved session)
   state/explorer.ts  Zustand UI state (reference structure)
   state/comparison.ts  Comparison slots, one per comparison structure
+  state/investigation.ts  Current investigation result and hover target
   comparison/  Phase 4 structural comparison
     controller.ts  Per-slot loading, pinned restore, interpretation and queued analysis; never touches the reference
     correspondence.ts  SIFTS-only chain pairing and residue correspondence
     superposition.ts   Horn fit of paired Cα with outlier rejection (validated against numpy)
     fingerprint.ts     Fingerprint matrix keyed by UniProt position; unmeasured cells never count as absent
     derived.ts, export.ts  Memoized correspondence/fingerprints; comparison JSON/CSV
-  components/  AnalysisPanel, BiologyPanel, ComparisonPanel, CacheUsage, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
+    selection.ts   resolveInvestigation/refreshInvestigation: pure, never touches the viewer or stores
+  components/  AnalysisPanel, BiologyPanel, ComparisonPanel, InvestigationSummary, CacheUsage, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
   App.tsx      Workspace layout and synchronized views
 tests/
   *.test.ts    Vitest (structure, analysis, interaction-categories, reference-comparison, scaling, biology, biologyResources, interpretation)
@@ -102,6 +106,7 @@ public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ## Invariants (do not break)
 
 - **Domain stays rendering-free.** Mol* objects never enter `src/domain`. `StructureSnapshot` is the scientific source of truth. Mol* owns only the scene.
+- **Selection is structure-qualified.** Residue IDs are unique only within a snapshot and a source can be open twice, so scene targets carry a `StructureRef` (reference, or slot + snapshot). Clicks resolve the owning structure by deposited root before unit IDs. Only `InvestigationController` writes the persistent selection; `selectedResidueId` is its reference-side projection.
 - **Identity is explicit.** IDs are JSON tuples via `identity()`. Author numbering, label numbering, insertion codes, chain *instance* (label asym + assembly operator) and source atom rows are kept separate. Never derive one numbering from another by offset.
 - **Reproducibility.** Analysis results are keyed by source SHA-256, model, assembly, ligand instance, receptor chains, all parameters, engine/ruleset/parser versions and CCD hashes (`analysisKey`). Bump `ENGINE_VERSION`/`RULESET_VERSION` (and the biology projection version) when results can change. `AnalysisRun` is immutable. Annotations reference it and never rewrite it.
 - **Variants are records, not predictions.** UniProt variant text is quoted, never parsed into effects. Consequence sentences come only from `consequenceText.ts` and state which deposited atoms a replacement keeps, never whether an interaction is lost; a test rejects effect words. Variant counts always show the chain background.

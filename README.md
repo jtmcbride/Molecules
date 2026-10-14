@@ -114,7 +114,7 @@ See [biological validation evidence](validation/BIOLOGY.md) for frozen source ha
 
 ## Phase 4 capabilities and scientific policy
 
-Up to seven comparison structures load beside the reference structure. Each keeps its own coordinates, snapshot, SIFTS/UniProt interpretation and analysis, built by the same code and versions as the reference. Comparison structures are display-only cartoons in their own colour; picking, selection and the analysis panel stay with the reference. Loading a different reference structure, model or assembly closes the comparison. A failed or cancelled comparison structure never affects the reference or other comparison structures.
+Up to seven comparison structures load beside the reference structure. Each keeps its own coordinates, snapshot, SIFTS/UniProt interpretation and analysis, built by the same code and versions as the reference. Comparison structures are drawn as cartoons in their own colour. Clicking a comparison residue selects it in its own structure: the inspector shows that residue, the reference residue paired with it by exact SIFTS correspondence (or why there is none), and each side's interactions in its current analysis. Hidden structures keep the selection but are not highlighted; clicking empty space clears it, and removing the structure or replacing the reference closes it. Inspecting a comparison residue never changes the reference ligand, receptor chains or analysis settings. The analysis panel stays with the reference. Loading a different reference structure, model or assembly closes the comparison. A failed or cancelled comparison structure never affects the reference or other comparison structures.
 
 **Residue correspondence** uses only the Phase 3 exact SIFTS mapping:
 - Chain instances pair per shared UniProt accession: the user's choice first, then the same author chain ID and operator, then order of appearance. The basis of each pairing is shown, and homo-oligomers pair chain by chain.
@@ -188,6 +188,7 @@ src/
     analysis.ts           Independent interactions, graph, binding site and provenance
     biology.ts            Proteins, features, mappings, evidence and interpretation snapshots
     comparison.ts         Comparison sessions, correspondence, superposition, fingerprint and site contracts
+    selection.ts          Structure-qualified residue targets and investigation requests/views
   biology/
     mapping.ts, projection.ts  Exact correspondence, residue identity, projection and binding-site summary
     controller.ts, load.ts     Independent loading, cancellation and pinned restoration
@@ -214,6 +215,7 @@ src/
     fingerprint.ts        UniProt-keyed fingerprints, comparability and change margins
     siteDifferences.ts, torsions.ts  Residue shifts, χ angles and site waters
     derived.ts, export.ts  Memoized derived results; comparison JSON and fingerprint CSV
+    selection.ts          Pure resolver: investigation request → residues, interaction IDs, correspondence
   components/
     AnalysisPanel.tsx      Settings, filters, contact inspection and export controls
     ComparisonPanel.tsx    Comparison structures, pairings, superposition, site differences
@@ -223,6 +225,7 @@ src/
     extract.ts            Assembly-space coordinates and normalized identities
     quality.ts            Refinement statistics and Cruickshank coordinate error
     controller.ts         Serialized scene updates and stale-request rejection
+    investigation.ts      The single writer of the persistent selection; re-resolves or clears on change
   data/
     provider.ts           RCSB/local ingestion, validation, hashes, and metadata
     chemistry.ts          Optional component dictionary acquisition
@@ -233,6 +236,7 @@ src/
     cache.ts              Least-recently-used eviction planning
   state/
     explorer.ts           UI state and domain references (reference structure)
+    investigation.ts      Current investigation and hover (structure-qualified)
     comparison.ts         Comparison slots
 tests/
   structure.test.ts       Real and synthetic structural regression tests
@@ -259,7 +263,7 @@ Current limits:
 
 - Coordinate file size: 40 MB.
 - Selected structure: 250,000 atomic elements, including assembly copies.
-- One reference structure and one structural model at a time, plus up to seven comparison structures, each within the per-structure limits. Comparison structures are display-only (no picking) and are drawn as cartoons with their ligands.
+- One reference structure and one structural model at a time, plus up to seven comparison structures, each within the per-structure limits. Comparison structures are drawn as cartoons with their ligands; their residues can be picked and inspected, but their interactions are not yet drawn in the scene.
 - Atomic mmCIF/BinaryCIF only; legacy PDB, compressed files, and coarse-only models are not supported.
 - Parsing and scene construction currently use Mol* on the main thread. Download cancellation aborts the request; cancellation during parsing discards its result and clears the scene once the current serialized operation finishes.
 - Cache reads reuse downloaded bytes; there is no automatic source-refresh policy. Cached coordinates beyond 300 MB are evicted least recently used first, with their analyses and interpretations. Open structures and the saved session's structures are never evicted. The Source tab shows cache use and clears unused entries.

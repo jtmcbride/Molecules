@@ -2635,3 +2635,18 @@ select {
 .comparison-site-table tr.moved td {
   color: var(--accent);
 }
+
+.investigation {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.investigation .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.investigation dd small {
+  display: block;
+  color: var(--muted);
+}

@@ -19,7 +19,9 @@ import {
   loadPdb,
 } from "../data/provider";
 import { getLastSession, saveAnalysis, saveSession } from "../data/repository";
+import type { ResidueTarget } from "../domain/selection";
 import type { MolecularViewer } from "./adapter";
+import { InvestigationController } from "./investigation";
 
 export class ExplorerController {
   readonly biology = new BiologyController();
@@ -30,7 +32,9 @@ export class ExplorerController {
   private abort: AbortController | null = null;
   private queue: Promise<unknown> = Promise.resolve();
   readonly comparison: ComparisonController;
+  readonly investigation: InvestigationController;
   constructor(readonly viewer: MolecularViewer) {
+    this.investigation = new InvestigationController(viewer);
     this.comparison = new ComparisonController(viewer, (job) =>
       this.enqueue(job),
     );
@@ -145,7 +149,7 @@ export class ExplorerController {
         phase: "ready",
         status: "Structure ready",
       });
-      this.viewer.selectResidue(selectedResidueId);
+      this.investigation.selectReference(selectedResidueId);
       void this.biology.initialize(source, result.snapshot, restore);
       if (restore?.comparison?.length)
         this.comparison.restore(restore.comparison);
@@ -258,8 +262,16 @@ export class ExplorerController {
       selectedAnnotationId: null,
     });
     this.viewer.clearInteractionLine();
-    useExplorer.getState().selectResidue(id);
-    this.viewer.selectResidue(id, focus);
+    this.investigation.selectReference(id, focus);
+  }
+  /** A residue picked in the scene, in any structure; null (empty space) clears. */
+  selectTarget(target: ResidueTarget | null) {
+    useExplorer.setState({
+      selectedInteractionId: null,
+      selectedAnnotationId: null,
+    });
+    this.viewer.clearInteractionLine();
+    this.investigation.selectTarget(target);
   }
   private invalidateAnalysis() {
     ++this.analysisGeneration;
@@ -420,7 +432,12 @@ export class ExplorerController {
       .getState()
       .analysis?.interactions.find((i) => i.id === id);
     if (!interaction) return;
-    useExplorer.getState().selectResidue(interaction.receptor.residueId);
+    // The interaction draws its own scene selection.
+    this.investigation.selectReference(
+      interaction.receptor.residueId,
+      false,
+      false,
+    );
     useExplorer.setState({
       selectedInteractionId: id,
       selectedAnnotationId: null,
@@ -462,12 +479,12 @@ export class ExplorerController {
     useExplorer.setState({ biologySelectedLabel: label });
   }
   focusSelection() {
-    this.viewer.selectResidue(useExplorer.getState().selectedResidueId, true);
+    this.investigation.reapply(true);
   }
   async setRepresentation(representation: Representation) {
     useExplorer.setState({ representation });
     await this.enqueue(() => this.viewer.setRepresentation(representation));
-    this.viewer.selectResidue(useExplorer.getState().selectedResidueId);
+    this.investigation.reapply();
   }
   async setWater(showWater: boolean) {
     useExplorer.setState({ showWater });
@@ -511,6 +528,7 @@ export class ExplorerController {
     }
   }
   dispose() {
+    this.investigation.dispose();
     this.biology.cancel();
     this.comparison.dispose();
     ++this.analysisGeneration;
