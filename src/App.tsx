@@ -1,4 +1,5 @@
 import { BiologyPanel } from "./components/BiologyPanel";
+import { RELEASE } from "./domain/release";
 import { ComparisonPanel } from "./components/ComparisonPanel";
 import { CacheUsage } from "./components/CacheUsage";
 import { ResidueBiology } from "./components/ResidueBiology";
@@ -226,7 +227,7 @@ export default function App() {
         <span className="workspace-label">Structure workspace</span>
         <div className="header-actions">
           <span className="phase-badge">
-            <span /> PHASE 03 · INTERPRETATION
+            <span /> EXPLORE · ANALYZE · COMPARE
           </span>
           <button
             className="icon-button"
@@ -1039,7 +1040,8 @@ export default function App() {
           from RCSB PDB
         </span>
         <span>
-          Browser workspace <span className="version">v0.3.0</span>
+          Browser workspace{" "}
+          <span className="version">v{RELEASE.application}</span>
         </span>
       </footer>
       <EvidenceDrawer />

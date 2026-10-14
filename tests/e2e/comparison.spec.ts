@@ -104,7 +104,7 @@ test("a comparison structure has its own mapping and analysis, and restores with
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
@@ -159,7 +159,7 @@ test("a failed comparison load leaves the reference analysis intact, and a new r
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Structure ready", { exact: true }),
   ).toBeVisible();
@@ -192,7 +192,7 @@ test("hemoglobin chains pair by author chain, can be re-paired, and the pairing 
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Structure ready", { exact: true }),
   ).toBeVisible();
@@ -240,7 +240,7 @@ test("fingerprints compare like-for-like analyses by UniProt position and export
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();

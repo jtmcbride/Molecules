@@ -2,7 +2,7 @@
 
 <https://jtmcbride.github.io/Molecules>
 
-A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Phases 1–3 are implemented: structure exploration, ligand-centered interaction computation, and functional interpretation through exact SIFTS/UniProt correspondence and traceable evidence. [Phase 3 implementation record](docs/PHASE_3_PLAN.md) describes its contracts and acceptance gates.
+A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Structure exploration, ligand-centered interaction computation, SIFTS/UniProt interpretation, structural comparison, and curated variants are implemented in version 0.5.0. The [phase status](#phase-status) links to each track's contracts and validation evidence.
 
 ## Run locally
 
@@ -21,6 +21,17 @@ npm run build
 npx playwright install chromium
 npm run test:e2e   # Real-browser integration tests
 ```
+
+`test:e2e` builds once, then tests that production artifact. For an existing build, use `npm run test:e2e:built`; the browser configuration verifies `dist/build-info.json` against the requested path, package version, and CI commit before starting. Tests always start their own preview server.
+
+To test repository-subpath hosting:
+
+```sh
+VITE_BASE_PATH=/Molecules/ npm run build
+PLAYWRIGHT_BASE_PATH=/Molecules/ npm run test:e2e:built
+```
+
+Build paths must start and end with `/`. `PLAYWRIGHT_ORIGIN` optionally changes the local HTTP origin (default `http://127.0.0.1:4173`); its host must be `127.0.0.1` or `localhost`. Relative browser navigation preserves the build path.
 
 For an existing system Chromium installation, set `PLAYWRIGHT_CHROMIUM_PATH` to its executable path. Browser tests use software WebGL to support CI machines without a GPU.
 
@@ -128,11 +139,13 @@ Up to seven comparison structures load beside the reference structure. Each keep
 - Shifts are compared with twice the combined Cruickshank coordinate error, or labeled not assessable. That error describes an average-B atom and leaves out fit error.
 - Site waters are conserved when superposed oxygens lie within 1.0 Å. Comparison waters in the reference ligand site are reported.
 
-**Comparison JSON** (schema 1, `comparison-1.0.0`) records every structure's source hash, pinned analysis and interpretation, chain pairings and residue correspondence, superposition and policy, fingerprints and binding-site differences. The **fingerprint CSV** has one line per row and structure. Saved sessions (schema 3) restore comparison structures, pairings, superposition scope and analyses without new biological requests.
+**Comparison JSON** (schema 1, `comparison-1.1.0`) records every structure's source hash, pinned analysis and interpretation, chain pairings and residue correspondence, superposition and policy, fingerprints and binding-site differences. The **fingerprint CSV** has one line per row and structure. These exports are analytical records; they do not package coordinate bytes or import a workspace into another browser. Saved sessions (schema 3) restore comparison structures, pairings, superposition scope and analyses from this browser's stored bytes without new biological requests.
 
 See [comparison validation evidence](validation/COMPARISON.md) for the numpy superposition check, the ProLIF fingerprint comparison and the documented limits.
 
 ## Phase status
+
+The [next development plan](docs/NEXT_DEVELOPMENT_PLAN.md) records the implemented M1 release-consistency and deployment-validation changes. Linked comparison investigation, protein-level variant discovery, ligand pose RMSD, broader validation, portable workspaces, inferred correspondence, and protein interfaces remain planned milestones.
 
 - **Phase 1 — complete:** reliable structure exploration, identity and linked selection. [Status](docs/PHASE_1_STATUS.md).
 - **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain. [Status](docs/PHASE_2_STATUS.md).
@@ -143,13 +156,15 @@ See [comparison validation evidence](validation/COMPARISON.md) for the numpy sup
 
 ## GitHub and GitHub Pages
 
-Code is hosted at https://github.com/jtmcbride/Molecules and the app is published at https://jtmcbride.github.io/Molecules/. Independent validation and Pages deployment workflows run on pushes to main.
+Code is hosted at https://github.com/jtmcbride/Molecules and the app is published at https://jtmcbride.github.io/Molecules/. Pull requests and branch pushes call the reusable production-validation workflow. Pushes to `main` and manual Pages runs call that same workflow before deployment.
 
 1. Push the project to the repository's `main` branch.
 2. In **Settings → Pages**, choose **GitHub Actions** as the build source.
 3. Run the **Deploy to GitHub Pages** workflow, or push to `main`.
 
-The workflow uses `/<repository-name>/` as Vite's base path. Repositories named `*.github.io` use `/`. Sample downloads, dynamically imported Mol* code, fonts, and the favicon use the build's base path.
+The workflow smoke-tests root hosting, then builds `/<repository-name>/` and runs the full browser suite against that exact artifact. Repositories named `*.github.io` use `/` for the full suite. A failed format, scientific-test, build, or browser check blocks deployment. Pages downloads the validated artifact from the same workflow run and uploads it without rebuilding; Pages write and identity-token permissions belong only to the deployment job. Sample downloads, dynamically imported Mol* code, fonts, the favicon, and both workers use the build's base path.
+
+The build's `build-info.json` records package version, base path, and the CI commit when available. The [release validation checklist](validation/RELEASE.md) covers local reproduction and separate post-deployment checks of live scientific providers.
 
 For a manual build at another subpath:
 
@@ -238,7 +253,7 @@ The parser and dependency versions are pinned by package.json and package-lock.j
 
 ## Conformers and limits
 
-All deposited alternate conformers remain visible and are preserved in the domain snapshot. For computation, a preferred conformer is recorded per residue by mean occupancy, with deterministic alphabetical tie-breaking. Shared atoms are retained; atom identities are deduplicated by name within that preferred residue conformer. This does not establish compatibility between disorder groups in different residues. Analysis defaults to excluding whole residues that contain alternate locations. The optional preferred-per-residue mode is explicitly exploratory and flags unverified cross-residue compatibility.
+All deposited alternate conformers remain visible and are preserved in the domain snapshot. A preferred conformer is recorded per residue by mean occupancy, with deterministic alphabetical tie-breaking; shared atoms are retained and atom names deduplicated for that preferred conformer. Analysis defaults to a per-conformer ensemble: shared atoms plus each alternate label are analyzed separately, up to four labels. Residues without a given label use their preferred conformer, flagged as an assumed combination; beyond four labels the preferred-per-residue fallback is flagged. This does not establish compatibility between disorder groups in different residues. The optional exclusion mode drops whole disordered residues, while preferred-per-residue mode remains explicitly exploratory. Results record conformer presence and occupancy where available.
 
 Current limits:
 
