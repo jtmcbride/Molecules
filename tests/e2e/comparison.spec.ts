@@ -308,12 +308,13 @@ const SCAN = Array.from({ length: 13 * 13 }, (_, i) => ({
     Math.hypot(a.fx - 0.5, a.fy - 0.5) - Math.hypot(b.fx - 0.5, b.fy - 0.5),
 );
 /**
- * Moves over the canvas until the hover label names an amino acid of `label`; returns the
- * point. The camera is reset and zoomed onto the superposed pair first, so the scan does not
- * depend on where earlier steps left the view. Software WebGL picks a few frames behind the
- * pointer, so each point waits for the label to settle.
+ * Clicks the canvas from the centre outwards until the selection is a paired amino acid of
+ * the comparison structure `label`; returns the point and residue name. The camera is reset
+ * and zoomed onto the superposed pair first, so the scan does not depend on where earlier
+ * steps left the view. Clicks pick synchronously; hover picking is asynchronous and proved
+ * unreliable under software WebGL on CI runners.
  */
-async function findComparisonResidue(page: Page, label: string) {
+async function pickComparisonResidue(page: Page, label: string) {
   const canvas = page.locator("canvas");
   await canvas.scrollIntoViewIfNeeded();
   await page.getByRole("button", { name: "Reset camera" }).click();
@@ -323,24 +324,40 @@ async function findComparisonResidue(page: Page, label: string) {
   await page.waitForTimeout(1000);
   for (let i = 0; i < 4; i++) await page.mouse.wheel(0, -120);
   await page.waitForTimeout(800);
-  const hover = page.locator(".hover-label");
+  const card = page.getByTestId("investigation");
+  const outcomes: Record<string, number> = {};
   for (const { fx, fy } of SCAN) {
     const x = box.x + box.width * fx,
       y = box.y + box.height * fy;
-    await page.mouse.move(x, y, { steps: 3 });
-    await page.waitForTimeout(400);
-    if (!(await hover.count())) continue;
-    const text = await hover.textContent();
-    const component = text?.match(new RegExp(`${label} · (\\w+) `))?.[1];
-    if (component && AMINO_ACIDS.has(component)) return { x, y, component };
+    await page.mouse.click(x, y);
+    await page.waitForTimeout(300);
+    let outcome = "nothing selected";
+    if (await card.count()) {
+      const text = (await card.textContent()) ?? "";
+      const component = (await card.locator("dd").first().textContent())
+        ?.trim()
+        .match(/^([A-Z0-9]{1,3}) /)?.[1];
+      if (
+        text.includes(`COMPARISON · ${label}`) &&
+        text.includes("paired · exact SIFTS") &&
+        component &&
+        AMINO_ACIDS.has(component)
+      )
+        return { x, y, component };
+      outcome = `${label} ${component ?? "?"} not paired`;
+    } else if (await page.locator(".residue-identity h2").count())
+      outcome = "reference residue";
+    outcomes[outcome] = (outcomes[outcome] ?? 0) + 1;
   }
-  throw new Error(`No ${label} residue found under the pointer`);
+  throw new Error(
+    `No paired ${label} residue picked: ${JSON.stringify(outcomes)}`,
+  );
 }
 
 test("a residue picked in a comparison structure resolves to its own structure and SIFTS partner", async ({
   page,
 }) => {
-  // Two pointer scans under software WebGL.
+  // Two click scans under software WebGL.
   test.setTimeout(180_000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -357,8 +374,7 @@ test("a residue picked in a comparison structure resolves to its own structure a
   );
   await expect(slot.getByTestId("comparison-fit")).toContainText("Core RMSD");
 
-  const point = await findComparisonResidue(page, "1S0R");
-  await page.mouse.click(point.x, point.y);
+  const point = await pickComparisonResidue(page, "1S0R");
   const card = page.getByTestId("investigation");
   await expect(card).toContainText("COMPARISON · 1S0R");
   await expect(card).toContainText(`${point.component} `);
@@ -383,8 +399,7 @@ test("a residue picked in a comparison structure resolves to its own structure a
   await expect(card).toHaveCount(0);
 
   // Removing the structure clears an investigation of it.
-  const again = await findComparisonResidue(page, "1S0R");
-  await page.mouse.click(again.x, again.y);
+  await pickComparisonResidue(page, "1S0R");
   await expect(card).toContainText("COMPARISON · 1S0R");
   await slot.getByRole("button", { name: "Remove 1S0R" }).click();
   await expect(card).toHaveCount(0);
