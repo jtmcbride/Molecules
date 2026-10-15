@@ -1,8 +1,11 @@
 import {
+  drawnInteractions,
   refreshInvestigation,
   resolveInvestigation,
+  type DrawnInteractions,
   type InvestigationWorkspace,
 } from "../comparison/selection";
+import type { MolecularInteraction } from "../domain/analysis";
 import type {
   InvestigationRequest,
   InvestigationResult,
@@ -44,6 +47,44 @@ function groups(result: InvestigationResult | null): SelectionGroup[] {
   );
 }
 
+const NOT_CHEMICAL = new Set(["proximity_contact", "steric_clash"]);
+/** Whether an interaction ID of either side's current analysis is a chemical interaction. */
+function chemical(id: string) {
+  const runs = [
+    useExplorer.getState().analysis,
+    ...useComparison.getState().slots.map((s) => s.analysis),
+  ];
+  for (const run of runs) {
+    const interaction = run?.interactions.find((i) => i.id === id);
+    if (interaction) return !NOT_CHEMICAL.has(interaction.type);
+  }
+  return false;
+}
+
+/** The chosen interactions of a comparison investigation, on visible structures only. */
+function drawable(
+  result: InvestigationResult | null,
+  drawn: DrawnInteractions,
+) {
+  if (result?.status !== "resolved" || !result.view.slotId) return [];
+  const slot = useComparison
+    .getState()
+    .slots.find((s) => s.id === result.view.slotId);
+  const sides = [
+    [result.view.reference, drawn.reference, useExplorer.getState().analysis],
+    [result.view.comparison, drawn.comparison, slot?.analysis ?? null],
+  ] as const;
+  return sides.flatMap(([side, id, run]) => {
+    if (!side || !id || side.interactions.status !== "evaluated") return [];
+    if (side.structure.kind === "comparison" && !slot?.visible) return [];
+    if (run?.cacheKey !== side.interactions.analysisCacheKey) return [];
+    const interaction = run.interactions.find(
+      (i: MolecularInteraction) => i.id === id,
+    );
+    return interaction ? [{ interaction, structure: side.structure }] : [];
+  });
+}
+
 /** Visibility of the slot a result involves; a change re-applies the scene selection. */
 function visibility(result: InvestigationResult | null) {
   const slotId = result?.status === "resolved" ? result.view.slotId : null;
@@ -61,6 +102,8 @@ function visibility(result: InvestigationResult | null) {
 export class InvestigationController {
   private visible: boolean | undefined;
   private pending = false;
+  /** The interaction lines in the scene were drawn by this controller. */
+  private drawing = false;
   private unsubscribe: (() => void)[] = [];
   constructor(private readonly viewer: MolecularViewer) {
     const refresh = () => this.refresh();
@@ -97,21 +140,56 @@ export class InvestigationController {
   hover(target: ResidueTarget | null) {
     useInvestigation.setState({ hovered: target });
   }
+  /** Draws another listed interaction of one side of the current comparison investigation. */
+  chooseInteraction(side: keyof DrawnInteractions, id: string) {
+    const { result, drawn } = useInvestigation.getState();
+    const next = drawnInteractions(result, { ...drawn, [side]: id }, chemical);
+    if (next[side] !== id) return;
+    useInvestigation.setState({ drawn: next });
+    this.draw();
+  }
   clear() {
-    useInvestigation.setState({ result: null });
+    useInvestigation.setState({
+      result: null,
+      drawn: drawnInteractions(null),
+    });
     useExplorer.getState().selectResidue(null);
     this.viewer.select([]);
+    this.draw();
   }
   /** Re-applies the current selection in the scene (after a visibility or display change). */
   reapply(focus = false) {
     this.viewer.select(groups(useInvestigation.getState().result), focus);
+    this.draw();
+  }
+  /**
+   * Draws the chosen interactions of a comparison investigation. Lines this controller did
+   * not draw (an interaction selected in the analysis panel) are left alone.
+   */
+  private draw() {
+    const { result, drawn } = useInvestigation.getState();
+    const items = drawable(result, drawn);
+    if (items.length) {
+      this.drawing = true;
+      void this.viewer.drawInteractions(items);
+    } else if (this.drawing) {
+      this.drawing = false;
+      this.viewer.clearInteractionLine();
+    }
   }
   private install(
     result: InvestigationResult,
     focus: boolean,
     highlight: boolean,
+    keepDrawn = false,
   ) {
-    useInvestigation.setState({ result });
+    // A refreshed result keeps the user's choice of drawn interactions where still listed.
+    const drawn = drawnInteractions(
+      result,
+      keepDrawn ? useInvestigation.getState().drawn : null,
+      chemical,
+    );
+    useInvestigation.setState({ result, drawn });
     this.visible = visibility(result);
     const reference =
       result.status === "resolved"
@@ -120,6 +198,8 @@ export class InvestigationController {
     if (useExplorer.getState().selectedResidueId !== reference)
       useExplorer.getState().selectResidue(reference);
     if (highlight) this.viewer.select(groups(result), focus);
+    // Redrawn on every install: a refit moves the lines without changing residues.
+    this.draw();
   }
   /**
    * Store notifications are coalesced into one deferred pass (a store update must not write
@@ -145,7 +225,7 @@ export class InvestigationController {
       const changed =
         JSON.stringify(groups(next)) !== JSON.stringify(groups(current)) ||
         visibility(next) !== this.visible;
-      this.install(next, false, changed);
+      this.install(next, false, changed, true);
     });
   }
   dispose() {

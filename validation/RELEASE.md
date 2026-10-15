@@ -1,6 +1,6 @@
 # Production artifact and release validation
 
-M1 implementation, 2026-10-13. Application package remains 0.5.0 until the planned M2 release. Scientific versions and calculation semantics are unchanged.
+M1 implementation, 2026-10-13; package 0.5.1 (M1 + M2 linked comparison investigation), 2026-10-14. Scientific versions and calculation semantics are unchanged.
 
 ## Automated gate
 
@@ -41,8 +41,9 @@ Run this after a successful deployment in a fresh browser profile or after clear
 2. Open both bundled examples. Check scene rendering and the browser network/console for missing local JS, CSS, fonts, favicon, coordinates, or worker scripts. Confirm asset requests remain under the deployment prefix.
 3. Open public PDB entry `1S0R` by accession. Verify live coordinate retrieval, exact SIFTS correspondence and UniProt protein/feature loading. Record any provider's HTTP/CORS error separately from local asset failures; optional metadata/validation unavailability should preserve exploration.
 4. Open 4HHB, select the beta-chain heme, run interaction analysis, and inspect a curated variant. Explicitly request P68871 carrier lookup, confirm a fresh RCSB sequence-coordinates POST succeeds from the deployed origin, then open a listed carrier such as 2HBS as a comparison. Confirm the reference and comparison remain usable independently.
-5. Save the session and reload. Confirm the pinned interpretation, lookup and analyses restore without new scientific requests. Explicit refresh should create a new revision rather than relabel the saved one as fresh.
-6. Block scientific-provider requests and reopen bundled examples. Confirm the geometry workflow survives provider failure and annotations/lookup failures explain their availability state.
+5. With 3PTB analyzed, add and analyze `1S0R`. From the keyboard, open the water-bridge cell at UniProt 216 and a binding-site row. Confirm by eye that both residues are highlighted on the superposed 1S0R cartoon (not at its deposited position), that one dashed interaction per structure is drawn through its water, that switching the superposition scope moves the 1S0R highlight and line with the cartoon, and that hiding 1S0R removes its cartoon, highlight and line while the reference line stays. Toggle water on and off. Browser tests check the resolved selection and drawn-interaction choice but cannot see the rendered scene.
+6. Save the session and reload. Confirm the pinned interpretation, lookup and analyses restore without new scientific requests. Explicit refresh should create a new revision rather than relabel the saved one as fresh.
+7. Block scientific-provider requests and reopen bundled examples. Confirm the geometry workflow survives provider failure and annotations/lookup failures explain their availability state.
 
 Attach observed failures, not just a pass/fail headline: failing URL, request method, HTTP status/CORS message, and the unaffected workflows. These checks verify deployed integration on that date; frozen fixtures remain the reproducible scientific evidence.
 

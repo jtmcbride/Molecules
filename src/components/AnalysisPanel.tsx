@@ -115,7 +115,7 @@ export function AnalysisPanel({
       }
     }
   return (
-    <div className="analysis-panel panel">
+    <div className="analysis-panel panel" id="analysis" tabIndex={-1}>
       <div className="panel-heading">
         <span>
           <Network size={16} /> Ligand interactions

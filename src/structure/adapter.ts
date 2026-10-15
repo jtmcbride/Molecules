@@ -77,7 +77,11 @@ export class MolecularViewer {
   private bindingSite: string | null = null;
   private interactionEpoch = 0;
   private interactionLine: ReturnType<
-    typeof ShapeRepresentation<MolecularInteraction, Lines, typeof Lines.Params>
+    typeof ShapeRepresentation<
+      MolecularInteraction[],
+      Lines,
+      typeof Lines.Params
+    >
   > | null = null;
   private structure: Structure | null = null;
   private selections: SelectionIndex | null = null;
@@ -494,7 +498,8 @@ export class MolecularViewer {
   async setMemberVisibility(id: string, visible: boolean) {
     const member = this.members.get(id);
     if (!member) return;
-    const hidden = this.plugin.state.data.cells.get(member.data)?.state
+    // A cell that was never toggled has no isHidden flag: it is visible.
+    const hidden = !!this.plugin.state.data.cells.get(member.data)?.state
       .isHidden;
     if (hidden === visible)
       await PluginCommands.State.ToggleVisibility(this.plugin, {
@@ -661,19 +666,19 @@ export class MolecularViewer {
   }
   /**
    * Selects and draws one interaction of the reference (default) or of a comparison
-   * structure. Comparison endpoints, ring centroids and water legs are drawn in the
-   * displayed frame: the display transform is applied once, here, to copies.
+   * structure, and frames it.
    */
   async selectInteraction(
     interaction: MolecularInteraction | null,
     structure?: StructureRef,
   ) {
     this.clearInteractionLine();
-    const epoch = this.interactionEpoch;
     if (!interaction || !this.snapshot) return;
-    const owner = this.owner(
-      structure ?? { kind: "reference", snapshotId: this.snapshot.id },
-    );
+    const ref = structure ?? {
+      kind: "reference" as const,
+      snapshotId: this.snapshot.id,
+    };
+    const owner = this.owner(ref);
     if (!owner) return;
     const loci = this.lociForAtoms(owner, [
       ...interaction.ligand.atomIndices,
@@ -691,52 +696,75 @@ export class MolecularViewer {
         durationMs: 250,
       });
     }
-    const positions = owner.snapshot.atomBuffer.positions;
-    const [a, b] = interaction.closestAtomPair;
+    await this.drawInteractions([{ interaction, structure: ref }]);
+  }
+  /**
+   * Draws interactions of any structures as dashed lines, replacing what was drawn, without
+   * changing the selection or camera. Comparison endpoints, ring centroids and water legs
+   * are drawn in the displayed frame: the display transform is applied once, here, to
+   * copies. Structures that are not in the scene are skipped.
+   */
+  async drawInteractions(
+    items: { interaction: MolecularInteraction; structure: StructureRef }[],
+  ) {
+    this.clearInteractionLine();
+    const epoch = this.interactionEpoch;
+    const drawn = items.flatMap(({ interaction, structure }) => {
+      const owner = this.owner(structure);
+      return owner ? [{ interaction, owner }] : [];
+    });
+    if (!drawn.length) return;
     const builder = LinesBuilder.create();
-    const display = owner.displayTransform
-      ? Mat4.fromArray(Mat4(), owner.displayTransform, 0)
-      : null;
-    const shown = (v: Vec3) =>
-      display ? Vec3.transformMat4(v, v, display) : v;
-    const point = (i: number) =>
-      shown(
-        Vec3.create(
-          positions[i * 3],
-          positions[i * 3 + 1],
-          positions[i * 3 + 2],
-        ),
-      );
-    if (interaction.mediator) {
-      const water = point(interaction.mediator.atomIndices[0]);
-      builder.addFixedLengthDashes(point(a), water, 0.2, 0);
-      builder.addFixedLengthDashes(water, point(b), 0.2, 1);
-    } else if (
-      interaction.geometry?.ligandCentroid &&
-      interaction.geometry.receptorCentroid
-    ) {
-      builder.addFixedLengthDashes(
-        shown(Vec3.create(...interaction.geometry.ligandCentroid)),
-        shown(Vec3.create(...interaction.geometry.receptorCentroid)),
-        0.2,
-        0,
-      );
-    } else builder.addFixedLengthDashes(point(a), point(b), 0.2, 0);
+    drawn.forEach(({ interaction, owner }, group) => {
+      const positions = owner.snapshot.atomBuffer.positions;
+      const [a, b] = interaction.closestAtomPair;
+      const display = owner.displayTransform
+        ? Mat4.fromArray(Mat4(), owner.displayTransform, 0)
+        : null;
+      const shown = (v: Vec3) =>
+        display ? Vec3.transformMat4(v, v, display) : v;
+      const point = (i: number) =>
+        shown(
+          Vec3.create(
+            positions[i * 3],
+            positions[i * 3 + 1],
+            positions[i * 3 + 2],
+          ),
+        );
+      if (interaction.mediator) {
+        const water = point(interaction.mediator.atomIndices[0]);
+        builder.addFixedLengthDashes(point(a), water, 0.2, group);
+        builder.addFixedLengthDashes(water, point(b), 0.2, group);
+      } else if (
+        interaction.geometry?.ligandCentroid &&
+        interaction.geometry.receptorCentroid
+      ) {
+        builder.addFixedLengthDashes(
+          shown(Vec3.create(...interaction.geometry.ligandCentroid)),
+          shown(Vec3.create(...interaction.geometry.receptorCentroid)),
+          0.2,
+          group,
+        );
+      } else builder.addFixedLengthDashes(point(a), point(b), 0.2, group);
+    });
+    const interactions = drawn.map((d) => d.interaction);
     const shape = Shape.create(
-      "Selected interaction",
-      interaction,
+      "Selected interactions",
+      interactions,
       builder.getLines(),
-      () => Color.fromHexStyle(INTERACTION_COLORS[interaction.type]),
+      (group) =>
+        Color.fromHexStyle(INTERACTION_COLORS[interactions[group].type]),
       () => 1,
-      () => `${interaction.type} ${interaction.distanceAngstrom.toFixed(2)} Å`,
+      (group) =>
+        `${interactions[group].type} ${interactions[group].distanceAngstrom.toFixed(2)} Å`,
     );
     const representation = ShapeRepresentation<
-      MolecularInteraction,
+      MolecularInteraction[],
       Lines,
       typeof Lines.Params
     >(() => shape, Lines.Utils);
     await this.plugin.runTask(
-      representation.createOrUpdate({ sizeFactor: 2.5 }, interaction),
+      representation.createOrUpdate({ sizeFactor: 2.5 }, interactions),
     );
     if (epoch !== this.interactionEpoch || !this.alive) {
       representation.destroy();
@@ -779,7 +807,7 @@ export class MolecularViewer {
         );
       this.waterRepresentation = repr.ref;
     }
-    const hidden = this.plugin.state.data.cells.get(this.water.ref)?.state
+    const hidden = !!this.plugin.state.data.cells.get(this.water.ref)?.state
       .isHidden;
     if (hidden === show)
       await PluginCommands.State.ToggleVisibility(this.plugin, {

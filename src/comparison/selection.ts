@@ -573,3 +573,39 @@ export function refreshInvestigation(
   if (investigationRevision(request, workspace) === revision) return previous;
   return resolveInvestigation(request, workspace);
 }
+
+/** The interaction drawn on each side of a comparison investigation. */
+export interface DrawnInteractions {
+  reference: string | null;
+  comparison: string | null;
+}
+
+/**
+ * Which listed interaction each side draws: the user's earlier choice while it is still
+ * listed, otherwise the nearest chemical interaction, otherwise the nearest of any type
+ * (lists are nearest first). A side without a measured interaction draws nothing; a
+ * missing bond is never drawn. Reference-only selections draw nothing here: the analysis
+ * panel owns its own interaction drawing. `chemical` tells which IDs are chemical
+ * interactions (not proximity or clashes); without it the nearest is drawn.
+ */
+export function drawnInteractions(
+  result: InvestigationResult | null,
+  previous?: DrawnInteractions | null,
+  chemical?: (id: string) => boolean,
+): DrawnInteractions {
+  const none = { reference: null, comparison: null };
+  if (result?.status !== "resolved" || !result.view.slotId) return none;
+  const pick = (
+    side: InvestigationSide | null,
+    chosen: string | null | undefined,
+  ) => {
+    if (side?.interactions.status !== "evaluated") return null;
+    const ids = side.interactions.ids;
+    if (chosen && ids.includes(chosen)) return chosen;
+    return (chemical && ids.find(chemical)) ?? ids[0] ?? null;
+  };
+  return {
+    reference: pick(result.view.reference, previous?.reference),
+    comparison: pick(result.view.comparison, previous?.comparison),
+  };
+}
