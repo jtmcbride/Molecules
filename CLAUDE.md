@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`) and Phase 4 structural comparison (`comparison-1.1.0`). Phase 5's curated-variant track is complete (`biology-1.2.0`); its other tracks (protein–protein interfaces, ligand pose RMSD, alignment-based correspondence) are pending.
+Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`) and Phase 4 structural comparison (`comparison-1.1.0`). Phase 5's curated-variant track is complete (`biology-1.2.0`); its other tracks (protein–protein interfaces, ligand pose RMSD, alignment-based correspondence) are pending. Milestones M1–M2 of `docs/NEXT_DEVELOPMENT_PLAN.md` (release gate, linked comparison investigation) are complete as package 0.5.1.
 
 Scientific policy, defaults and limits live in `README.md`. Validation evidence lives in `validation/README.md` (Phase 2, PLIP comparison) and `validation/BIOLOGY.md` (Phase 3). Design contracts and follow-up milestones live in `docs/PHASE_3_PLAN.md`; phase status records are in `docs/PHASE_*_STATUS.md`. `docs/PHASE_2X_PLAN.md` records the ligand-3 ruleset revision. `docs/PHASE_4_PLAN.md` records Phase 4 (structural comparison); validation is in `validation/COMPARISON.md`. `docs/PHASE_5_PLAN.md` records the Phase 5 curated-variant track; validation is in `validation/VARIANTS.md`. `tests/contracts.test.ts` fails if the plan's contract excerpt drifts from `src/domain/biology.ts`. Update those docs whenever behavior, defaults or limits change. They are the project's scientific record, not marketing.
 
@@ -46,7 +46,7 @@ src/
     biology.ts     ProteinRecord, ResidueMapping (status + identity), FunctionalAnnotation, Evidence, LigandIdentity, LigandFit, InterpretationSnapshot, site/context feature categories
   structure/   Mol* boundary for parsing/rendering
     adapter.ts     Mol* plugin lifecycle, scene, bidirectional domain↔Mol* selection; member registry (snapshot, selection index, deposited root, display transform)
-    investigation.ts  The single writer of the persistent selection; projects the reference side into selectedResidueId
+    investigation.ts  The single writer of the persistent selection; projects the reference side into selectedResidueId; draws comparison interactions
     extract.ts     Builds StructureSnapshot (assembly-space Float32Array coords) + SelectionIndex
     quality.ts     Refinement statistics from mmCIF; Cruickshank DPI coordinate error
     ligandGroups.ts  Multi-residue ligand groups (branched, BIRD, covalently linked)
@@ -86,15 +86,16 @@ src/
     cache.ts       Pure LRU eviction planning (protected: open structures, saved session)
   state/explorer.ts  Zustand UI state (reference structure)
   state/comparison.ts  Comparison slots, one per comparison structure
-  state/investigation.ts  Current investigation result and hover target
+  state/investigation.ts  Current investigation result, drawn interaction per side, and hover target
   comparison/  Phase 4 structural comparison
     controller.ts  Per-slot loading, pinned restore, interpretation and queued analysis; never touches the reference
     correspondence.ts  SIFTS-only chain pairing and residue correspondence
     superposition.ts   Horn fit of paired Cα with outlier rejection (validated against numpy)
     fingerprint.ts     Fingerprint matrix keyed by UniProt position; unmeasured cells never count as absent
     derived.ts, export.ts  Memoized correspondence/fingerprints; comparison JSON/CSV
-    selection.ts   resolveInvestigation/refreshInvestigation: pure, never touches the viewer or stores
-  components/  AnalysisPanel, BiologyPanel, ComparisonPanel, InvestigationSummary, CacheUsage, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
+    selection.ts   resolveInvestigation/refreshInvestigation/drawnInteractions: pure, never touches the viewer or stores
+    sequenceStrip.ts  Paired deposited residues around a UniProt position (exact SIFTS only)
+  components/  AnalysisPanel, BiologyPanel, ComparisonPanel, ComparisonInspector, FingerprintMatrix, SiteDifferencesSummary, CacheUsage, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
   App.tsx      Workspace layout and synchronized views
 tests/
   *.test.ts    Vitest (structure, analysis, interaction-categories, reference-comparison, scaling, biology, biologyResources, interpretation)
@@ -106,7 +107,7 @@ public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ## Invariants (do not break)
 
 - **Domain stays rendering-free.** Mol* objects never enter `src/domain`. `StructureSnapshot` is the scientific source of truth. Mol* owns only the scene.
-- **Selection is structure-qualified.** Residue IDs are unique only within a snapshot and a source can be open twice, so scene targets carry a `StructureRef` (reference, or slot + snapshot). Clicks resolve the owning structure by deposited root before unit IDs. Only `InvestigationController` writes the persistent selection; `selectedResidueId` is its reference-side projection.
+- **Selection is structure-qualified.** Residue IDs are unique only within a snapshot and a source can be open twice, so scene targets carry a `StructureRef` (reference, or slot + snapshot). Clicks resolve the owning structure by deposited root before unit IDs. Only `InvestigationController` writes the persistent selection; `selectedResidueId` is its reference-side projection. A comparison selection draws only measured interactions (never a missing bond), one per side, in the displayed frame; the selection is transient and not saved in sessions.
 - **Identity is explicit.** IDs are JSON tuples via `identity()`. Author numbering, label numbering, insertion codes, chain *instance* (label asym + assembly operator) and source atom rows are kept separate. Never derive one numbering from another by offset.
 - **Reproducibility.** Analysis results are keyed by source SHA-256, model, assembly, ligand instance, receptor chains, all parameters, engine/ruleset/parser versions and CCD hashes (`analysisKey`). Bump `ENGINE_VERSION`/`RULESET_VERSION` (and the biology projection version) when results can change. `AnalysisRun` is immutable. Annotations reference it and never rewrite it.
 - **Variants are records, not predictions.** UniProt variant text is quoted, never parsed into effects. Consequence sentences come only from `consequenceText.ts` and state which deposited atoms a replacement keeps, never whether an interaction is lost; a test rejects effect words. Variant counts always show the chain background.

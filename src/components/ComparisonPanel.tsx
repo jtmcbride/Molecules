@@ -99,7 +99,7 @@ function SlotRow({
           </dl>
           <CorrespondenceSummary slot={slot} controller={controller} />
           <SuperpositionSummary slot={slot} controller={controller} />
-          <SiteDifferencesSummary slot={slot} />
+          <SiteDifferencesSummary slot={slot} controller={controller} />
           <div className="comparison-analysis">
             <label className="comparison-ligand">
               Ligand
@@ -189,6 +189,8 @@ export function ComparisonPanel({
   return (
     <section
       className="comparison-panel panel"
+      id="comparison"
+      tabIndex={-1}
       aria-label="Structure comparison"
     >
       <div className="panel-heading">
@@ -254,7 +256,7 @@ export function ComparisonPanel({
             ))}
           </ul>
         )}
-        <FingerprintMatrix />
+        <FingerprintMatrix controller={controller} />
       </div>
     </section>
   );

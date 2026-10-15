@@ -50,6 +50,8 @@ export function BiologyPanel({
   return (
     <section
       className="biology-panel panel"
+      id="interpretation"
+      tabIndex={-1}
       aria-label="Functional interpretation"
     >
       <div className="panel-heading">

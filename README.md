@@ -2,7 +2,7 @@
 
 <https://jtmcbride.github.io/Molecules>
 
-A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Structure exploration, ligand-centered interaction computation, SIFTS/UniProt interpretation, structural comparison, and curated variants are implemented in version 0.5.0. The [phase status](#phase-status) links to each track's contracts and validation evidence.
+A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Structure exploration, ligand-centered interaction computation, SIFTS/UniProt interpretation, structural comparison with linked investigation of its differences, and curated variants are implemented in version 0.5.1. The [phase status](#phase-status) links to each track's contracts and validation evidence.
 
 ## Run locally
 
@@ -114,7 +114,16 @@ See [biological validation evidence](validation/BIOLOGY.md) for frozen source ha
 
 ## Phase 4 capabilities and scientific policy
 
-Up to seven comparison structures load beside the reference structure. Each keeps its own coordinates, snapshot, SIFTS/UniProt interpretation and analysis, built by the same code and versions as the reference. Comparison structures are drawn as cartoons in their own colour. Clicking a comparison residue selects it in its own structure: the inspector shows that residue, the reference residue paired with it by exact SIFTS correspondence (or why there is none), and each side's interactions in its current analysis. Hidden structures keep the selection but are not highlighted; clicking empty space clears it, and removing the structure or replacing the reference closes it. Inspecting a comparison residue never changes the reference ligand, receptor chains or analysis settings. The analysis panel stays with the reference. Loading a different reference structure, model or assembly closes the comparison. A failed or cancelled comparison structure never affects the reference or other comparison structures.
+Up to seven comparison structures load beside the reference structure. Each keeps its own coordinates, snapshot, SIFTS/UniProt interpretation and analysis, built by the same code and versions as the reference. Comparison structures are drawn as cartoons in their own colour. Clicking a comparison residue selects it in its own structure: the inspector shows that residue, the reference residue paired with it by exact SIFTS correspondence (or why there is none), and each side's interactions in its current analysis. Hidden structures keep the selection but are not highlighted; clicking empty space clears it, and removing the structure or replacing the reference closes it. Inspecting a comparison residue never changes the reference ligand, receptor chains or analysis settings.
+
+**Investigating differences.** Each comparison fingerprint cell and each binding-site row is a button, reachable from the keyboard, that selects both mapped residues and opens the comparison inspector:
+- Both sides' residues with author numbering, chain and assembly operator, the exact SIFTS correspondence and any deposited residue change, and a paired strip of the deposited residues at the 15 UniProt positions around it. The strip shows exact mappings only; a position without an observed residue shows `-`.
+- The fingerprint state of each side, with how far a gained or lost interaction is from its cutoff, or the binding-site row's shifts and χ changes.
+- Every interaction of each side that the selection covers, from that structure's own current analysis, nearest first. A cell can hold several interactions (Asp189 makes more than one hydrogen bond with benzamidine); all are listed rather than reduced to one bond.
+- One interaction per side is drawn in the 3D view, in the superposed frame and with water legs for water bridges: the nearest chemical interaction unless another listed one is chosen. A gained or lost cell highlights both residues but draws only the interaction that was measured; the other side states the absence and its margin, or why it was not evaluated. A missing bond is never drawn.
+- A fingerprint row keyed by a receptor component lists and highlights every instance of that component instead of picking one. Rows of assembly copies name the operator, because copies share author chain IDs.
+
+The selection is not saved in sessions. Section links above the workspace jump to the viewer, sequence, analysis, interpretation, comparison and inspector; on wide screens the inspector stays in view beside the panel being inspected. The analysis panel stays with the reference. Loading a different reference structure, model or assembly closes the comparison. A failed or cancelled comparison structure never affects the reference or other comparison structures.
 
 **Residue correspondence** uses only the Phase 3 exact SIFTS mapping:
 - Chain instances pair per shared UniProt accession: the user's choice first, then the same author chain ID and operator, then order of appearance. The basis of each pairing is shown, and homo-oligomers pair chain by chain.
@@ -145,7 +154,7 @@ See [comparison validation evidence](validation/COMPARISON.md) for the numpy sup
 
 ## Phase status
 
-The [next development plan](docs/NEXT_DEVELOPMENT_PLAN.md) records the implemented M1 release-consistency and deployment-validation changes. Linked comparison investigation, protein-level variant discovery, ligand pose RMSD, broader validation, portable workspaces, inferred correspondence, and protein interfaces remain planned milestones.
+The [next development plan](docs/NEXT_DEVELOPMENT_PLAN.md) records the implemented M1 release-consistency and deployment-validation changes and M2 linked comparison investigation (v0.5.1). Protein-level variant discovery, ligand pose RMSD, broader validation, portable workspaces, inferred correspondence, and protein interfaces remain planned milestones.
 
 - **Phase 1 — complete:** reliable structure exploration, identity and linked selection. [Status](docs/PHASE_1_STATUS.md).
 - **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain. [Status](docs/PHASE_2_STATUS.md).
@@ -215,11 +224,13 @@ src/
     fingerprint.ts        UniProt-keyed fingerprints, comparability and change margins
     siteDifferences.ts, torsions.ts  Residue shifts, χ angles and site waters
     derived.ts, export.ts  Memoized derived results; comparison JSON and fingerprint CSV
-    selection.ts          Pure resolver: investigation request → residues, interaction IDs, correspondence
+    selection.ts          Pure resolver: investigation request → residues, interaction IDs, correspondence; drawn-interaction choice
+    sequenceStrip.ts      Deposited residues of both paired chains around a UniProt position (exact SIFTS only)
   components/
     AnalysisPanel.tsx      Settings, filters, contact inspection and export controls
     ComparisonPanel.tsx    Comparison structures, pairings, superposition, site differences
-    FingerprintMatrix.tsx  Fingerprint matrix with similarity and margins
+    FingerprintMatrix.tsx  Fingerprint matrix with similarity and margins; cells open the comparison inspector
+    ComparisonInspector.tsx  Both sides of a comparison selection: numbering, correspondence, strip, interactions
   structure/
     adapter.ts            Mol* lifecycle, scene building, and selection translation
     extract.ts            Assembly-space coordinates and normalized identities
@@ -236,7 +247,7 @@ src/
     cache.ts              Least-recently-used eviction planning
   state/
     explorer.ts           UI state and domain references (reference structure)
-    investigation.ts      Current investigation and hover (structure-qualified)
+    investigation.ts      Current investigation, drawn interactions and hover (structure-qualified)
     comparison.ts         Comparison slots
 tests/
   structure.test.ts       Real and synthetic structural regression tests

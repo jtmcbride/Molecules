@@ -5,7 +5,7 @@ import { CacheUsage } from "./components/CacheUsage";
 import { ResidueBiology } from "./components/ResidueBiology";
 import { EvidenceDrawer } from "./components/EvidenceDrawer";
 import { AnalysisPanel } from "./components/AnalysisPanel";
-import { InvestigationSummary } from "./components/InvestigationSummary";
+import { ComparisonInspector } from "./components/ComparisonInspector";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -68,6 +68,28 @@ function mean(values: number[]) {
   return finite.length
     ? finite.reduce((a, b) => a + b, 0) / finite.length
     : undefined;
+}
+/** Workspace sections reachable from the section navigation, by element ID. */
+const SECTIONS = [
+  ["viewer", "Molecular view"],
+  ["sequence", "Sequence"],
+  ["analysis", "Analysis"],
+  ["interpretation", "Interpretation"],
+  ["comparison", "Comparison"],
+  ["inspector", "Inspector"],
+] as const;
+/** Scrolls to a section and moves keyboard focus into it, without changing the URL. */
+function jumpTo(id: string) {
+  const section = document.getElementById(id);
+  if (!section) return;
+  const reduced = window.matchMedia?.(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  section.scrollIntoView({
+    block: "start",
+    behavior: reduced ? "auto" : "smooth",
+  });
+  section.focus({ preventScroll: true });
 }
 function residueLabel(residue: ResidueRecord) {
   return `${residue.componentId} ${residue.authSeqId ?? "—"}${residue.insertionCode ?? ""}`;
@@ -289,6 +311,22 @@ export default function App() {
             <X size={15} />
           </button>
         </div>
+      )}
+      {ready && (
+        <nav className="section-nav" aria-label="Workspace sections">
+          {SECTIONS.map(([id, label]) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              onClick={(event) => {
+                event.preventDefault();
+                jumpTo(id);
+              }}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
       )}
       <main className="workspace">
         <aside className="browser-panel panel">
@@ -522,7 +560,7 @@ export default function App() {
         </aside>
 
         <section className="explorer-column">
-          <div className="viewer-panel panel">
+          <div className="viewer-panel panel" id="viewer" tabIndex={-1}>
             <div className="panel-heading viewer-heading">
               <span>
                 <Layers3 size={16} /> Molecular view{" "}
@@ -683,7 +721,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="sequence-panel panel">
+          <div className="sequence-panel panel" id="sequence" tabIndex={-1}>
             <div className="panel-heading">
               <span>
                 <span className="sequence-icon">Aa</span> Sequence{" "}
@@ -774,7 +812,12 @@ export default function App() {
           <ComparisonPanel controller={controller.current} />
         </section>
 
-        <aside className="inspector-panel panel">
+        <aside
+          className="inspector-panel panel"
+          id="inspector"
+          tabIndex={-1}
+          aria-label="Inspector"
+        >
           <div className="panel-heading">
             <span>
               <MousePointer2 size={16} /> Inspector
@@ -804,7 +847,9 @@ export default function App() {
             </button>
           </div>
           <div className="inspector-content">
-            {inspectorTab === "selection" && <InvestigationSummary />}
+            {inspectorTab === "selection" && (
+              <ComparisonInspector controller={controller.current} />
+            )}
             {inspectorTab === "selection" &&
               (selectedResidue && snapshot ? (
                 <>

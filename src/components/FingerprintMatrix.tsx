@@ -10,6 +10,9 @@ import {
 import { comparisonJson, download, fingerprintCsv } from "../comparison/export";
 import { useComparison } from "../state/comparison";
 import { useExplorer } from "../state/explorer";
+import { useInvestigation } from "../state/investigation";
+import { chainName } from "./CorrespondenceSummary";
+import type { ExplorerController } from "../structure/controller";
 
 const CELL: Record<FingerprintCell, { symbol: string; label: string }> = {
   present: { symbol: "●", label: "present" },
@@ -19,8 +22,18 @@ const CELL: Record<FingerprintCell, { symbol: string; label: string }> = {
   not_comparable: { symbol: "?", label: "not comparable" },
 };
 
-/** Interaction fingerprints of the reference and comparison structures by UniProt position. */
-export function FingerprintMatrix() {
+/**
+ * Interaction fingerprints of the reference and comparison structures by UniProt position.
+ * Each comparison cell is a button that investigates that row for that structure.
+ */
+export function FingerprintMatrix({
+  controller,
+}: {
+  controller: ExplorerController | null;
+}) {
+  const request = useInvestigation((s) =>
+    s.result?.status === "resolved" ? s.result.view.request : s.result?.request,
+  );
   const snapshot = useExplorer((s) => s.snapshot),
     source = useExplorer((s) => s.source),
     analysis = useExplorer((s) => s.analysis),
@@ -58,8 +71,9 @@ export function FingerprintMatrix() {
       </div>
     );
   const { matrix } = result;
+  // Assembly copies share author chain IDs; their rows name the operator.
   const chain = (id?: string) =>
-    snapshot?.chains.find((c) => c.id === id)?.authAsymId ?? "?";
+    snapshot && id ? chainName(snapshot, id) : "?";
   const rowLabel = (row: FingerprintRow) =>
     row.kind === "component"
       ? `${row.componentId} (receptor component)`
@@ -160,19 +174,52 @@ export function FingerprintMatrix() {
                 </th>
                 {row.cells.map((cell, c) => {
                   const change = row.changes?.find((x) => x.column === c);
+                  const column = matrix.columns[c];
+                  const state = `${CELL[cell].label}${change?.marginal ? ", near cutoff" : ""}`;
+                  const title = `${CELL[cell].label}${
+                    change
+                      ? `${change.presentMarginAngstrom !== undefined ? ` · present ${change.presentMarginAngstrom.toFixed(2)} Å inside cutoff` : ""}${change.absentExcessAngstrom !== undefined ? ` · closest candidate atoms ${change.absentExcessAngstrom.toFixed(2)} Å beyond cutoff` : ""}`
+                      : ""
+                  }`;
+                  const symbol = `${CELL[cell].symbol}${change?.marginal ? "≈" : ""}`;
+                  if (c === 0)
+                    return (
+                      <td
+                        key={column.id}
+                        className={`fingerprint-cell ${cell}`}
+                        aria-label={state}
+                        title={title}
+                      >
+                        {symbol}
+                      </td>
+                    );
+                  const current =
+                    request?.kind === "fingerprint" &&
+                    request.slotId === column.id &&
+                    request.rowKey === row.key;
                   return (
                     <td
-                      key={matrix.columns[c].id}
-                      className={`fingerprint-cell ${cell}`}
-                      aria-label={`${CELL[cell].label}${change?.marginal ? ", near cutoff" : ""}`}
-                      title={`${CELL[cell].label}${
-                        change
-                          ? `${change.presentMarginAngstrom !== undefined ? ` · present ${change.presentMarginAngstrom.toFixed(2)} Å inside cutoff` : ""}${change.absentExcessAngstrom !== undefined ? ` · closest candidate atoms ${change.absentExcessAngstrom.toFixed(2)} Å beyond cutoff` : ""}`
-                          : ""
-                      }`}
+                      key={column.id}
+                      className={`fingerprint-cell ${cell}${current ? " current" : ""}`}
+                      title={title}
                     >
-                      {CELL[cell].symbol}
-                      {change?.marginal ? "≈" : ""}
+                      <button
+                        className="fingerprint-button"
+                        aria-pressed={current}
+                        aria-label={`Inspect ${column.label} ${rowLabel(row)} ${INTERACTION_LABELS[row.type]}: ${state}`}
+                        onClick={() =>
+                          controller?.investigation.investigate(
+                            {
+                              kind: "fingerprint",
+                              slotId: column.id,
+                              rowKey: row.key,
+                            },
+                            { focus: true },
+                          )
+                        }
+                      >
+                        {symbol}
+                      </button>
                     </td>
                   );
                 })}

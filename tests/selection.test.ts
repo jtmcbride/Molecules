@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { superpose } from "../src/comparison/superposition";
 import { correspondence } from "../src/comparison/correspondence";
 import {
+  drawnInteractions,
   investigationRevision,
   refreshInvestigation,
   resolveInvestigation,
@@ -341,6 +342,151 @@ describe("structure-qualified investigation", () => {
         ws,
       ),
     ).toMatchObject({ status: "unavailable" });
+  });
+
+  it("draws the nearest interaction per side unless another listed one is chosen", async () => {
+    const [ref, cmp] = await Promise.all([
+      comparisonSide("3PTB"),
+      comparisonSide("1S0R"),
+    ]);
+    const [runA, runB] = await Promise.all([
+      analyzeLigand(ref, "BEN"),
+      analyzeLigand(cmp, "BEN"),
+    ]);
+    const ws = workspace(ref, [slot("s1", cmp, { analysis: runB })], runA);
+    const refAsp = find(ref, "A", "ASP", "189");
+    const request = {
+      kind: "fingerprint" as const,
+      slotId: "s1",
+      rowKey: JSON.stringify([
+        "polymer",
+        refAsp.chainId,
+        "P00760",
+        194,
+        "hydrogen_bond",
+      ]),
+    };
+    const result = resolveInvestigation(request, ws);
+    const ids = (side: "reference" | "comparison") => {
+      const i = view(result)[side]!.interactions;
+      return i.status === "evaluated" ? i.ids : [];
+    };
+    expect(ids("reference").length).toBeGreaterThan(1);
+    expect(drawnInteractions(result)).toEqual({
+      reference: ids("reference")[0],
+      comparison: ids("comparison")[0],
+    });
+    const chosen = { reference: ids("reference")[1], comparison: null };
+    expect(drawnInteractions(result, chosen)).toEqual({
+      reference: ids("reference")[1],
+      comparison: ids("comparison")[0],
+    });
+    // A choice that is no longer listed falls back to the nearest.
+    expect(
+      drawnInteractions(result, { reference: "gone", comparison: "gone" }),
+    ).toEqual(drawnInteractions(result));
+
+    // A water-mediated cell draws the bridge, water included, on both sides.
+    const bridge = resolveInvestigation(
+      {
+        ...request,
+        rowKey: JSON.stringify([
+          "polymer",
+          refAsp.chainId,
+          "P00760",
+          216,
+          "water_bridge",
+        ]),
+      },
+      ws,
+    );
+    const drawnBridge = drawnInteractions(bridge);
+    const refBridge = runA.interactions.find(
+      (i) => i.id === drawnBridge.reference,
+    );
+    const cmpBridge = runB.interactions.find(
+      (i) => i.id === drawnBridge.comparison,
+    );
+    expect(refBridge?.type).toBe("water_bridge");
+    expect(refBridge?.mediator).toBeDefined();
+    expect(cmpBridge?.type).toBe("water_bridge");
+    expect(cmpBridge?.mediator).toBeDefined();
+
+    // A residue request lists every interaction; the nearest chemical one is drawn.
+    const site = resolveInvestigation(
+      residueRequest("s1", cmp, find(cmp, "A", "ASP", "171").id),
+      ws,
+    );
+    expect(view(site).reference!.residueIds).toEqual([refAsp.id]);
+    const siteIds = (() => {
+      const i = view(site).reference!.interactions;
+      return i.status === "evaluated" ? i.ids : [];
+    })();
+    const type = (id: string | null) =>
+      [...runA.interactions, ...runB.interactions].find((i) => i.id === id)
+        ?.type;
+    const isChemical = (id: string) =>
+      !["proximity_contact", "steric_clash"].includes(type(id)!);
+    expect(siteIds.some((id) => !isChemical(id))).toBe(true);
+    const drawnSite = drawnInteractions(site, null, isChemical);
+    expect(drawnSite.reference).toBe(siteIds.find(isChemical));
+    expect(isChemical(drawnSite.comparison!)).toBe(true);
+
+    // Reference-only selections leave drawing to the analysis panel.
+    const referenceOnly = resolveInvestigation(
+      {
+        kind: "residue",
+        target: {
+          structure: { kind: "reference", snapshotId: ref.snapshot.id },
+          residueId: refAsp.id,
+        },
+      },
+      ws,
+    );
+    expect(drawnInteractions(referenceOnly)).toEqual({
+      reference: null,
+      comparison: null,
+    });
+  });
+
+  it("draws only the measured side of a gained or lost interaction", async () => {
+    const [ref, cmp] = await Promise.all([
+      comparisonSide("4HHB"),
+      comparisonSide("1HHO"),
+    ]);
+    const [runA, runB] = await Promise.all([
+      analyzeLigand(ref, "HEM"),
+      analyzeLigand(cmp, "HEM"),
+    ]);
+    const ws = workspace(ref, [slot("s1", cmp, { analysis: runB })], runA);
+    const rowKey = JSON.stringify([
+      "polymer",
+      find(ref, "A", "HIS", "58").chainId,
+      "P69905",
+      59,
+      "pi_stacking",
+    ]);
+    const result = resolveInvestigation(
+      { kind: "fingerprint", slotId: "s1", rowKey },
+      ws,
+    );
+    const v = view(result);
+    expect(v.reference).toMatchObject({ cell: "present" });
+    expect(v.comparison).toMatchObject({ cell: "absent" });
+    expect(v.comparison!.change).toMatchObject({ column: 1 });
+    expect(v.comparison!.change!.presentMarginAngstrom).toBeGreaterThan(0);
+    // Both mapped residues are selected, but only the present interaction is drawn.
+    expect(v.reference!.residueIds).toHaveLength(1);
+    expect(v.comparison!.residueIds).toHaveLength(1);
+    expect(v.comparison!.interactions).toMatchObject({
+      status: "evaluated",
+      ids: [],
+    });
+    const drawn = drawnInteractions(result);
+    expect(drawn.comparison).toBeNull();
+    expect(runA.interactions.find((i) => i.id === drawn.reference)?.type).toBe(
+      "pi_stacking",
+    );
   });
 
   it("resolves a binding-site difference to both superposed residues", async () => {

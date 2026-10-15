@@ -1,7 +1,9 @@
 import { slotSiteDifferences } from "../comparison/derived";
 import { SITE_POLICY } from "../comparison/siteDifferences";
 import { useExplorer } from "../state/explorer";
+import { useInvestigation } from "../state/investigation";
 import type { ComparisonSlot } from "../state/comparison";
+import type { ExplorerController } from "../structure/controller";
 
 const SIGNIFICANCE = {
   within_coordinate_error: "within error",
@@ -9,8 +11,20 @@ const SIGNIFICANCE = {
   not_assessable: "not assessable",
 } as const;
 
-/** Per-residue shifts, torsion changes and site waters of a superposed comparison structure. */
-export function SiteDifferencesSummary({ slot }: { slot: ComparisonSlot }) {
+/**
+ * Per-residue shifts, torsion changes and site waters of a superposed comparison structure.
+ * Each residue row's position is a button that investigates both residues.
+ */
+export function SiteDifferencesSummary({
+  slot,
+  controller,
+}: {
+  slot: ComparisonSlot;
+  controller: ExplorerController | null;
+}) {
+  const request = useInvestigation((s) =>
+    s.result?.status === "resolved" ? s.result.view.request : s.result?.request,
+  );
   const reference = {
     snapshot: useExplorer((s) => s.snapshot),
     interpretation: useExplorer((s) => s.interpretation),
@@ -67,29 +81,54 @@ export function SiteDifferencesSummary({ slot }: { slot: ComparisonSlot }) {
           </tr>
         </thead>
         <tbody>
-          {result.residues.map((r) => (
-            <tr
-              key={r.referenceResidueId}
-              className={
-                r.significance === "exceeds_coordinate_error" || r.rotamerChange
-                  ? "moved"
-                  : ""
-              }
-            >
-              <td>{r.uniprotPosition}</td>
-              <td>{residue(r.referenceResidueId, true)}</td>
-              <td>{residue(r.comparisonResidueId, false)}</td>
-              <td>{f(r.caDisplacementAngstrom)}</td>
-              <td>{f(r.sideChainRmsdAngstrom)}</td>
-              <td>
-                {r.chi.length
-                  ? r.chi.map((c) => c.delta.toFixed(0)).join("/")
-                  : "–"}
-                {r.rotamerChange ? " rotamer" : ""}
-              </td>
-              <td>{SIGNIFICANCE[r.significance]}</td>
-            </tr>
-          ))}
+          {result.residues.map((r) => {
+            const current =
+              request?.kind === "site_difference" &&
+              request.slotId === slot.id &&
+              request.referenceResidueId === r.referenceResidueId;
+            return (
+              <tr
+                key={r.referenceResidueId}
+                className={`${
+                  r.significance === "exceeds_coordinate_error" ||
+                  r.rotamerChange
+                    ? "moved"
+                    : ""
+                }${current ? " current" : ""}`}
+              >
+                <td>
+                  <button
+                    className="row-button"
+                    aria-pressed={current}
+                    aria-label={`Inspect UniProt ${r.uniprotPosition}: reference ${residue(r.referenceResidueId, true)} and ${slot.label} ${residue(r.comparisonResidueId, false)}`}
+                    onClick={() =>
+                      controller?.investigation.investigate(
+                        {
+                          kind: "site_difference",
+                          slotId: slot.id,
+                          referenceResidueId: r.referenceResidueId,
+                        },
+                        { focus: true },
+                      )
+                    }
+                  >
+                    {r.uniprotPosition}
+                  </button>
+                </td>
+                <td>{residue(r.referenceResidueId, true)}</td>
+                <td>{residue(r.comparisonResidueId, false)}</td>
+                <td>{f(r.caDisplacementAngstrom)}</td>
+                <td>{f(r.sideChainRmsdAngstrom)}</td>
+                <td>
+                  {r.chi.length
+                    ? r.chi.map((c) => c.delta.toFixed(0)).join("/")
+                    : "–"}
+                  {r.rotamerChange ? " rotamer" : ""}
+                </td>
+                <td>{SIGNIFICANCE[r.significance]}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </details>

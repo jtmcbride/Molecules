@@ -334,9 +334,12 @@ async function pickComparisonResidue(page: Page, label: string) {
     let outcome = "nothing selected";
     if (await card.count()) {
       const text = (await card.textContent()) ?? "";
-      const component = (await card.locator("dd").first().textContent())
-        ?.trim()
-        .match(/^([A-Z0-9]{1,3}) /)?.[1];
+      const side = card
+        .getByRole("region", { name: label, exact: true })
+        .locator(".investigation-residues");
+      const component = (await side.count())
+        ? (await side.textContent())?.trim().match(/^([A-Z0-9]{1,3}) /)?.[1]
+        : undefined;
       if (
         text.includes(`COMPARISON · ${label}`) &&
         text.includes("paired · exact SIFTS") &&
@@ -403,5 +406,272 @@ test("a residue picked in a comparison structure resolves to its own structure a
   await expect(card).toContainText("COMPARISON · 1S0R");
   await slot.getByRole("button", { name: "Remove 1S0R" }).click();
   await expect(card).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("fingerprint cells and binding-site rows open the comparison inspector from the keyboard", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("./");
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Run analysis", exact: true }).click();
+  const summary = page.locator(".analysis-summary");
+  await expect(summary).toContainText("Fresh result");
+  const summaryBefore = await summary.textContent();
+  const target = page.getByLabel("Analysis target ligand");
+  const targetBefore = await target.inputValue();
+  await addComparison(page, "1S0R");
+  const slot = page.getByTestId("comparison-slot");
+  await expect(slot.getByTestId("comparison-fit")).toContainText("Core RMSD");
+  await slot.getByRole("button", { name: "Analyze" }).click();
+  const fingerprint = page.getByTestId("fingerprint");
+  await expect(
+    fingerprint.getByTestId("fingerprint-column").nth(1),
+  ).toContainText("Tanimoto 1.00");
+
+  // A water-mediated interaction present in both structures, opened from the keyboard.
+  const bridge = fingerprint.getByRole("button", {
+    name: /^Inspect 1S0R A · 216 · .*Water-bridge candidate: present$/,
+  });
+  await bridge.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByTestId("investigation");
+  await expect(inspector).toContainText("Fingerprint · Water-bridge candidate");
+  await expect(bridge).toHaveAttribute("aria-pressed", "true");
+  // Each side draws its own bridge, water included; nothing is guessed.
+  const reference = inspector.getByRole("region", { name: "Reference · 3PTB" });
+  const comparison = inspector.getByRole("region", { name: "1S0R" });
+  for (const side of [reference, comparison]) {
+    await expect(side.getByTestId("investigation-cell")).toHaveText(
+      "Fingerprint: present",
+    );
+    const drawn = side.locator(".investigation-interaction[aria-pressed=true]");
+    await expect(drawn).toHaveCount(1);
+    await expect(drawn).toContainText("Water-bridge candidate");
+    await expect(drawn).toContainText("via HOH");
+  }
+  await expect(inspector.getByTestId("sequence-strip")).toHaveAttribute(
+    "aria-label",
+    /UniProt P00760 216: reference \w+, 1S0R \w+$/,
+  );
+
+  // A cell with several interactions lists them all; another one can be drawn.
+  const hbond = fingerprint.getByRole("button", {
+    name: /^Inspect 1S0R A · 194 · ASP 189 H-bond candidate: present$/,
+  });
+  await hbond.focus();
+  await page.keyboard.press("Enter");
+  await expect(inspector).toContainText("Fingerprint · H-bond candidate");
+  const options = reference.locator(".investigation-interaction");
+  expect(await options.count()).toBeGreaterThan(1);
+  await expect(options.nth(0)).toHaveAttribute("aria-pressed", "true");
+  await options.nth(1).focus();
+  await page.keyboard.press("Space");
+  await expect(options.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(options.nth(0)).toHaveAttribute("aria-pressed", "false");
+  await expect(options.nth(1)).toContainText("drawn");
+
+  // A binding-site row, from the keyboard; Gln192 (UniProt 197) changes rotamer.
+  const site = slot.getByTestId("comparison-site");
+  await site.locator("summary").focus();
+  await page.keyboard.press("Enter");
+  const row = site.getByRole("button", { name: /^Inspect UniProt 197:/ });
+  await row.focus();
+  await page.keyboard.press("Enter");
+  await expect(inspector).toContainText("Binding-site residue");
+  await expect(row).toHaveAttribute("aria-pressed", "true");
+  const details = inspector.getByTestId("investigation-site");
+  await expect(details).toContainText("rotamer change");
+  const global = await details.textContent();
+  // Refitting on the binding site re-resolves the same residues with new geometry.
+  await slot.getByLabel("Superposition of 1S0R").selectOption("binding_site");
+  await expect(details).not.toHaveText(global!);
+  await expect(inspector).toContainText("GLN 192");
+  await expect(row).toHaveAttribute("aria-pressed", "true");
+
+  // Inspecting comparisons never changed the reference analysis.
+  await expect(target).toHaveValue(targetBefore);
+  await expect(summary).toHaveText(summaryBefore!);
+  expect(errors).toEqual([]);
+});
+
+test("a gained or lost interaction is drawn only in the structure that forms it", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("./");
+  await expect(
+    page.getByText("Structure ready", { exact: true }),
+  ).toBeVisible();
+  await page.locator(".example-button").nth(1).click();
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Analysis target ligand")
+    .selectOption({ label: "HEM A:142" });
+  await page.getByRole("button", { name: "Run analysis", exact: true }).click();
+  await expect(page.locator(".analysis-summary")).toContainText("Fresh result");
+  await addComparison(page, "1HHO");
+  const slot = page.getByTestId("comparison-slot");
+  await expect(slot.getByTestId("comparison-fit")).toContainText("Core RMSD");
+  await slot
+    .getByLabel("Comparison ligand for 1HHO")
+    .selectOption({ label: "HEM A:143" });
+  await slot.getByRole("button", { name: "Analyze" }).click();
+  const fingerprint = page.getByTestId("fingerprint");
+  await expect(
+    fingerprint.getByTestId("fingerprint-column").nth(1),
+  ).toContainText("Tanimoto");
+  // His58 π-stacks with the heme in deoxy 4HHB but not in oxy 1HHO.
+  const cell = fingerprint.getByRole("button", {
+    name: /^Inspect 1HHO A · 59 · HIS 58 π-stacking: absent/,
+  });
+  await cell.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByTestId("investigation");
+  const reference = inspector.getByRole("region", { name: "Reference · 4HHB" });
+  const comparison = inspector.getByRole("region", { name: "1HHO" });
+  await expect(reference.getByTestId("investigation-cell")).toContainText(
+    "Fingerprint: present",
+  );
+  await expect(
+    reference.locator(".investigation-interaction[aria-pressed=true]"),
+  ).toContainText("π-stacking");
+  // Both residues are selected; the absent side states it and draws nothing.
+  await expect(comparison).toContainText("HIS 58 · chain A");
+  await expect(comparison.getByTestId("investigation-cell")).toContainText(
+    "Fingerprint: absent",
+  );
+  await expect(comparison).toContainText("nothing is drawn");
+  await expect(comparison.locator(".investigation-interaction")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("rows of an assembly copy resolve to that chain instance", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("./");
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  await page.locator("#pdb-id").fill("1HHO");
+  await page.getByRole("button", { name: "Load PDB structure" }).click();
+  await expect(page.locator(".pdb-badge")).toHaveText("1HHO");
+  await page.getByLabel("Biological assembly").selectOption("1");
+  await expect(page.locator(".chain-button")).toHaveCount(4);
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  // The heme of the second copy (operator ASM-2) of the αβ dimer.
+  await page
+    .getByLabel("Analysis target ligand")
+    .selectOption({ label: "HEM A:143 · ASM-2" });
+  await page.getByRole("button", { name: "Run analysis", exact: true }).click();
+  await expect(page.locator(".analysis-summary")).toContainText("Fresh result");
+  await addComparison(page, "4HHB");
+  const slot = page.getByTestId("comparison-slot");
+  await expect(slot.getByTestId("comparison-fit")).toContainText("Core RMSD");
+  // 4HHB chain C pairs with the copy of chain A (chain order); compare its heme.
+  await expect(
+    slot.getByLabel("Partner of reference chain A (ASM-2) (P69905) in 4HHB"),
+  ).toHaveValue(/"C"/);
+  await slot
+    .getByLabel("Comparison ligand for 4HHB")
+    .selectOption({ label: "HEM C:142" });
+  await slot.getByRole("button", { name: "Analyze" }).click();
+  const fingerprint = page.getByTestId("fingerprint");
+  await expect(
+    fingerprint.getByTestId("fingerprint-column").nth(1),
+  ).toContainText("Tanimoto");
+  // Rows name the operator, because both copies share author chain A.
+  const cell = fingerprint.getByRole("button", {
+    name: /^Inspect 4HHB A \(ASM-2\) · 88 · HIS 87 Metal candidate: present/,
+  });
+  await cell.focus();
+  await page.keyboard.press("Enter");
+  const inspector = page.getByTestId("investigation");
+  await expect(
+    inspector.getByRole("region", { name: "Reference · 1HHO" }),
+  ).toContainText("HIS 87 · chain A · ASM-2");
+  await expect(inspector.getByRole("region", { name: "4HHB" })).toContainText(
+    "HIS 87 · chain C",
+  );
+  // The reference inspector follows the copy's residue, not chain A of the first copy.
+  await expect(page.locator(".identity-tags")).toContainText("Chain A");
+  await expect(
+    page.locator(".property-list", { hasText: "Assembly operator" }),
+  ).toContainText("Assembly operatorASM-2");
+  expect(errors).toEqual([]);
+});
+
+test("section navigation and the comparison inspector work from the keyboard on a phone", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("./");
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "Workspace sections" });
+  // Navigation never leaves the expanded viewer; it is hidden until the view is closed.
+  await page.getByRole("button", { name: "Expand molecular view" }).click();
+  await expect(nav).toBeHidden();
+  await page.keyboard.press("Escape");
+  await expect(nav).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Run analysis", exact: true }).click();
+  await expect(page.locator(".analysis-summary")).toContainText("Fresh result");
+  const comparisonLink = nav.getByRole("link", { name: "Comparison" });
+  await comparisonLink.focus();
+  await page.keyboard.press("Enter");
+  const comparisonPanel = page.locator("#comparison");
+  await expect(comparisonPanel).toBeFocused();
+  await expect(comparisonPanel).toBeInViewport();
+  await addComparison(page, "1S0R");
+  const slot = page.getByTestId("comparison-slot");
+  await expect(slot.getByTestId("comparison-fit")).toContainText("Core RMSD");
+  await slot.getByRole("button", { name: "Analyze" }).click();
+  const cell = page.getByRole("button", {
+    name: /^Inspect 1S0R A · 216 · .*Water-bridge candidate: present$/,
+  });
+  await cell.focus();
+  await page.keyboard.press("Enter");
+  await nav.getByRole("link", { name: "Inspector" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#inspector")).toBeFocused();
+  const inspector = page.getByTestId("investigation");
+  await expect(inspector).toBeInViewport();
+  await expect(inspector).toContainText("Fingerprint · Water-bridge candidate");
+  // The drawn interaction can be changed from the keyboard inside the inspector.
+  const drawn = inspector.locator(".investigation-interaction").first();
+  await drawn.focus();
+  await expect(drawn).toBeFocused();
+  const widths = await page.evaluate(() => {
+    const card = document.querySelector<HTMLElement>(
+      '[data-testid="investigation"]',
+    )!;
+    return {
+      document: document.documentElement.scrollWidth,
+      viewport: window.innerWidth,
+      card: card.scrollWidth,
+      cardBox: card.clientWidth,
+    };
+  });
+  expect(widths.document).toBeLessThanOrEqual(widths.viewport);
+  expect(widths.card).toBeLessThanOrEqual(widths.cardBox);
   expect(errors).toEqual([]);
 });
