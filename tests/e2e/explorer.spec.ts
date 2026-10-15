@@ -4,7 +4,7 @@ import path from 'node:path';
 test('bundled structures, linked selection, representation controls, and saved session work', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
   await expect(page.getByText('1,701', { exact: true })).toBeVisible();
   const canvas = page.locator('canvas');
@@ -42,7 +42,7 @@ test('bundled structures, linked selection, representation controls, and saved s
 });
 
 test('local structures preserve unresolved positions, conformers, models, and assembly copies', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles(path.resolve('tests/fixtures/identity-edge-cases.cif'));
   await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
@@ -67,7 +67,7 @@ test('local structures preserve unresolved positions, conformers, models, and as
 });
 
 test('invalid files and accessions recover; rapid requests cannot install an older structure', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
   await page.getByLabel('LOAD A STRUCTURE').fill('BAD');
   await page.getByRole('button', { name: 'Load PDB structure' }).click();
@@ -88,7 +88,7 @@ test('bundled examples work when remote APIs fail and the layout fits a phone', 
   await page.route('https://files.rcsb.org/**', route => route.abort());
   await page.route('https://data.rcsb.org/**', route => route.abort());
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
   const widths = await page.evaluate(() => ({ document: document.documentElement.scrollWidth, viewport: window.innerWidth }));
   expect(widths.document).toBeLessThanOrEqual(widths.viewport);
@@ -99,7 +99,7 @@ test('bundled examples work when remote APIs fail and the layout fits a phone', 
 });
 
 test('opens a local BinaryCIF file using the same structural identities', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles(path.resolve('tests/fixtures/3PTB.bcif'));
   await expect(page.getByText('Structure ready', { exact: true })).toBeVisible();

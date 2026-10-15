@@ -35,7 +35,40 @@ import type {
   StructureSource,
   StructureSnapshot,
 } from "../domain/types";
+import type { ResidueTarget, StructureRef } from "../domain/selection";
 import { extractSnapshot, type SelectionIndex } from "./extract";
+
+/**
+ * A comparison structure in the scene. The snapshot and selection index come from the
+ * deposited root; representations hang from the display-transform node, whose structure
+ * keeps the root's unit IDs and element indices, so one index serves both.
+ */
+interface Member {
+  /** Raw-data node: removal and visibility. */
+  data: string;
+  /** Deposited structure node: the root of every displayed descendant. */
+  root: string;
+  /** Display-transform node. */
+  transform: string;
+  snapshot: StructureSnapshot;
+  selections: SelectionIndex;
+  /** Column-major transform onto the reference frame; null shows deposited coordinates. */
+  displayTransform: number[] | null;
+}
+
+/** Residues of one structure to select together. */
+export interface SelectionGroup {
+  structure: StructureRef;
+  residueIds: string[];
+}
+
+/** One structure's displayed scene objects, resolved for selection or drawing. */
+interface Owner {
+  structure: Structure;
+  snapshot: StructureSnapshot;
+  selections: SelectionIndex;
+  displayTransform: number[] | null;
+}
 
 /** All Mol* objects and its identity translation stay inside this adapter. */
 export class MolecularViewer {
@@ -73,8 +106,8 @@ export class MolecularViewer {
       },
     },
   };
-  /** Comparison structures: state-tree refs of their data and display-transform nodes. */
-  private members = new Map<string, { data: string; transform: string }>();
+  /** Comparison structures by slot ID. */
+  private members = new Map<string, Member>();
   private subscriptions: Subscription[] = [];
   private resizeObserver: ResizeObserver | null = null;
   private alive = true;
@@ -102,8 +135,8 @@ export class MolecularViewer {
   async mount(
     canvas: HTMLCanvasElement,
     container: HTMLDivElement,
-    onSelect: (id: string | null) => void,
-    onHover: (id: string | null) => void,
+    onSelect: (target: ResidueTarget | null) => void,
+    onHover: (target: ResidueTarget | null) => void,
   ) {
     await this.plugin.init();
     if (!this.alive) return;
@@ -117,26 +150,83 @@ export class MolecularViewer {
     this.subscriptions.push(
       this.plugin.behaviors.interaction.click.subscribe((event) => {
         if (event.button !== 1) return;
-        onSelect(this.residueForLoci(event.current.loci));
+        onSelect(this.targetForLoci(event.current.loci));
       }),
     );
     this.subscriptions.push(
       this.plugin.behaviors.interaction.hover.subscribe((event) =>
-        onHover(this.residueForLoci(event.current.loci)),
+        onHover(this.targetForLoci(event.current.loci)),
       ),
     );
     this.resizeObserver = new ResizeObserver(() => this.plugin.handleResize());
     this.resizeObserver.observe(container);
     this.plugin.handleResize();
   }
-  private residueForLoci(loci: unknown): string | null {
+  /**
+   * The structure-qualified residue under `loci`. Unit IDs restart in every structure, so
+   * the owning structure is found first, by the deposited root that every displayed
+   * descendant (components, transformed copies) shares.
+   */
+  private targetForLoci(loci: unknown): ResidueTarget | null {
     if (!StructureElement.Loci.is(loci)) return null;
     const loc = StructureElement.Loci.getFirstLocation(loci);
-    // Unit IDs restart in every structure: comparison structures are display-only.
-    return loc && loc.structure.root === this.structure
-      ? (this.selections?.residueByLocation.get(
-          `${loc.unit.id}:${loc.element}`,
-        ) ?? null)
+    if (!loc) return null;
+    const key = `${loc.unit.id}:${loc.element}`;
+    const root = loc.structure.root;
+    if (root === this.structure && this.snapshot) {
+      const residueId = this.selections?.residueByLocation.get(key);
+      return residueId
+        ? {
+            structure: { kind: "reference", snapshotId: this.snapshot.id },
+            residueId,
+          }
+        : null;
+    }
+    for (const [slotId, member] of this.members) {
+      if (this.structureAt(member.root) !== root) continue;
+      const residueId = member.selections.residueByLocation.get(key);
+      return residueId
+        ? {
+            structure: {
+              kind: "comparison",
+              slotId,
+              snapshotId: member.snapshot.id,
+            },
+            residueId,
+          }
+        : null;
+    }
+    return null;
+  }
+  private structureAt(ref: string): Structure | undefined {
+    const data = this.plugin.state.data.cells.get(ref)?.obj?.data;
+    return data instanceof Structure ? data : undefined;
+  }
+  /** The displayed structure of `ref`, or null when it is gone, stale or hidden. */
+  private owner(ref: StructureRef): Owner | null {
+    if (ref.kind === "reference")
+      return this.structure &&
+        this.snapshot?.id === ref.snapshotId &&
+        this.selections
+        ? {
+            structure: this.structure,
+            snapshot: this.snapshot,
+            selections: this.selections,
+            displayTransform: null,
+          }
+        : null;
+    const member = this.members.get(ref.slotId);
+    if (!member || member.snapshot.id !== ref.snapshotId) return null;
+    if (this.plugin.state.data.cells.get(member.data)?.state.isHidden)
+      return null;
+    const structure = this.structureAt(member.transform);
+    return structure
+      ? {
+          structure,
+          snapshot: member.snapshot,
+          selections: member.selections,
+          displayTransform: member.displayTransform,
+        }
       : null;
   }
   async load(
@@ -369,7 +459,14 @@ export class MolecularViewer {
             },
           );
       }
-      this.members.set(id, { data: data.ref, transform: moved.ref });
+      this.members.set(id, {
+        data: data.ref,
+        root: root.ref,
+        transform: moved.ref,
+        snapshot: extracted.snapshot,
+        selections: extracted.selectionIndex,
+        displayTransform: null,
+      });
       const mmcif = MmcifFormat.is(model.obj.data.sourceData)
         ? model.obj.data.sourceData.data
         : undefined;
@@ -409,6 +506,7 @@ export class MolecularViewer {
   async setMemberTransform(id: string, transform: number[] | null) {
     const member = this.members.get(id);
     if (!member) return;
+    member.displayTransform = transform;
     await this.plugin
       .build()
       .to(member.transform)
@@ -437,65 +535,83 @@ export class MolecularViewer {
     };
   }
   selectResidue(id: string | null, focus = false) {
-    this.plugin.managers.interactivity.lociSelects.deselectAll();
-    if (!id || !this.structure) return;
-    const locations = this.selections?.locationsByResidue.get(id);
-    if (!locations) return;
-    const grouped = new Map<number, number[]>();
-    for (const location of locations) {
-      const indices = grouped.get(location.unitId) ?? [];
-      indices.push(location.unitIndex);
-      grouped.set(location.unitId, indices);
-    }
-    const elements = [...grouped].map(([unitId, indices]) => ({
-      unit: this.structure!.unitMap.get(unitId),
-      indices: OrderedSet.ofSortedArray(
-        indices.sort((a, b) => a - b) as StructureElement.UnitIndex[],
-      ),
-    }));
-    const loci = StructureElement.Loci(this.structure, elements);
-    this.plugin.managers.interactivity.lociSelects.selectOnly({ loci });
-    if (focus)
-      this.plugin.managers.camera.focusLoci(loci, {
-        minRadius: 8,
-        extraRadius: 5,
-        durationMs: 250,
-      });
+    this.selectResidues(id ? [id] : [], focus);
   }
+  /** Selects reference residues (several, e.g. an annotation's residues). */
   selectResidues(ids: string[], focus = false) {
-    this.plugin.managers.interactivity.lociSelects.deselectAll();
-    const selected = new Set(ids);
-    const loci = this.lociForAtoms(
-      this.snapshot?.residues
-        .filter((r) => selected.has(r.id))
-        .flatMap((r) => r.atomIndices) ?? [],
+    this.select(
+      this.snapshot && ids.length
+        ? [
+            {
+              structure: { kind: "reference", snapshotId: this.snapshot.id },
+              residueIds: ids,
+            },
+          ]
+        : [],
+      focus,
     );
-    if (!loci || !loci.elements.length) return;
-    this.plugin.managers.interactivity.lociSelects.selectOnly({ loci });
-    if (focus)
+  }
+  /**
+   * Selects residues across the reference and comparison structures, replacing the current
+   * selection. Groups of hidden, removed or reloaded structures are skipped. Focus frames the
+   * displayed (transformed) positions.
+   */
+  select(groups: SelectionGroup[], focus = false) {
+    this.plugin.managers.interactivity.lociSelects.deselectAll();
+    const loci = groups.flatMap((group) => {
+      const owner = this.owner(group.structure);
+      const l = owner && this.lociForResidues(owner, group.residueIds);
+      return l && l.elements.length ? [l] : [];
+    });
+    for (const l of loci)
+      this.plugin.managers.interactivity.lociSelects.select({ loci: l });
+    if (focus && loci.length)
       this.plugin.managers.camera.focusLoci(loci, {
         minRadius: 8,
         extraRadius: 5,
         durationMs: 250,
       });
   }
-  private lociForAtoms(atomIndices: number[]) {
-    if (!this.structure || !this.selections) return null;
+  private lociForResidues(owner: Owner, residueIds: string[]) {
+    return this.lociFor(
+      owner,
+      residueIds.flatMap(
+        (id) => owner.selections.locationsByResidue.get(id) ?? [],
+      ),
+    );
+  }
+  private lociForAtoms(owner: Owner, atomIndices: number[]) {
+    return this.lociFor(
+      owner,
+      atomIndices.flatMap((i) => owner.selections.locationsByAtom[i] ?? []),
+    );
+  }
+  private lociFor(
+    owner: Owner,
+    locations: { unitId: number; unitIndex: number }[],
+  ) {
     const grouped = new Map<number, Set<number>>();
-    for (const i of atomIndices) {
-      const l = this.selections.locationsByAtom[i];
-      if (!l) continue;
+    for (const l of locations) {
       if (!grouped.has(l.unitId)) grouped.set(l.unitId, new Set());
       grouped.get(l.unitId)!.add(l.unitIndex);
     }
     return StructureElement.Loci(
-      this.structure,
-      [...grouped].map(([id, values]) => ({
-        unit: this.structure!.unitMap.get(id)!,
-        indices: OrderedSet.ofSortedArray(
-          [...values].sort((a, b) => a - b) as StructureElement.UnitIndex[],
-        ),
-      })),
+      owner.structure,
+      [...grouped].flatMap(([id, values]) => {
+        const unit = owner.structure.unitMap.get(id);
+        return unit
+          ? [
+              {
+                unit,
+                indices: OrderedSet.ofSortedArray(
+                  [...values].sort(
+                    (a, b) => a - b,
+                  ) as StructureElement.UnitIndex[],
+                ),
+              },
+            ]
+          : [];
+      }),
     );
   }
   async showBindingSite(residueIds: string[]) {
@@ -505,10 +621,14 @@ export class MolecularViewer {
         ref: this.bindingSite,
       });
     this.bindingSite = null;
-    if (!this.root || !this.snapshot || !residueIds.length) return;
+    const owner =
+      this.snapshot &&
+      this.owner({ kind: "reference", snapshotId: this.snapshot.id });
+    if (!this.root || !this.snapshot || !owner || !residueIds.length) return;
     const ids = new Set(residueIds),
       preferred = new Set(this.snapshot.atomBuffer.preferredAtomIndices);
     const loci = this.lociForAtoms(
+      owner,
       this.snapshot.residues
         .filter((r) => ids.has(r.id))
         .flatMap((r) => r.atomIndices.filter((i) => preferred.has(i))),
@@ -539,11 +659,23 @@ export class MolecularViewer {
     this.interactionLine.destroy();
     this.interactionLine = null;
   }
-  async selectInteraction(interaction: MolecularInteraction | null) {
+  /**
+   * Selects and draws one interaction of the reference (default) or of a comparison
+   * structure. Comparison endpoints, ring centroids and water legs are drawn in the
+   * displayed frame: the display transform is applied once, here, to copies.
+   */
+  async selectInteraction(
+    interaction: MolecularInteraction | null,
+    structure?: StructureRef,
+  ) {
     this.clearInteractionLine();
     const epoch = this.interactionEpoch;
     if (!interaction || !this.snapshot) return;
-    const loci = this.lociForAtoms([
+    const owner = this.owner(
+      structure ?? { kind: "reference", snapshotId: this.snapshot.id },
+    );
+    if (!owner) return;
+    const loci = this.lociForAtoms(owner, [
       ...interaction.ligand.atomIndices,
       ...interaction.receptor.atomIndices,
       ...(interaction.mediator?.atomIndices ?? []),
@@ -559,11 +691,22 @@ export class MolecularViewer {
         durationMs: 250,
       });
     }
-    const positions = this.snapshot.atomBuffer.positions;
+    const positions = owner.snapshot.atomBuffer.positions;
     const [a, b] = interaction.closestAtomPair;
     const builder = LinesBuilder.create();
+    const display = owner.displayTransform
+      ? Mat4.fromArray(Mat4(), owner.displayTransform, 0)
+      : null;
+    const shown = (v: Vec3) =>
+      display ? Vec3.transformMat4(v, v, display) : v;
     const point = (i: number) =>
-      Vec3.create(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+      shown(
+        Vec3.create(
+          positions[i * 3],
+          positions[i * 3 + 1],
+          positions[i * 3 + 2],
+        ),
+      );
     if (interaction.mediator) {
       const water = point(interaction.mediator.atomIndices[0]);
       builder.addFixedLengthDashes(point(a), water, 0.2, 0);
@@ -573,8 +716,8 @@ export class MolecularViewer {
       interaction.geometry.receptorCentroid
     ) {
       builder.addFixedLengthDashes(
-        Vec3.create(...interaction.geometry.ligandCentroid),
-        Vec3.create(...interaction.geometry.receptorCentroid),
+        shown(Vec3.create(...interaction.geometry.ligandCentroid)),
+        shown(Vec3.create(...interaction.geometry.receptorCentroid)),
         0.2,
         0,
       );

@@ -1,9 +1,11 @@
 import { BiologyPanel } from "./components/BiologyPanel";
+import { RELEASE } from "./domain/release";
 import { ComparisonPanel } from "./components/ComparisonPanel";
 import { CacheUsage } from "./components/CacheUsage";
 import { ResidueBiology } from "./components/ResidueBiology";
 import { EvidenceDrawer } from "./components/EvidenceDrawer";
 import { AnalysisPanel } from "./components/AnalysisPanel";
+import { InvestigationSummary } from "./components/InvestigationSummary";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -28,6 +30,8 @@ import {
   X,
 } from "lucide-react";
 import { useExplorer } from "./state/explorer";
+import { useComparison } from "./state/comparison";
+import { useInvestigation } from "./state/investigation";
 import { samples } from "./data/provider";
 import type { ResidueRecord, StructureSnapshot } from "./domain/types";
 import type { ExplorerController } from "./structure/controller";
@@ -104,8 +108,10 @@ export default function App() {
     containerRef = useRef<HTMLDivElement>(null),
     fileRef = useRef<HTMLInputElement>(null);
   const controller = useRef<ExplorerController | null>(null);
-  const [pdbId, setPdbId] = useState(""),
-    [hoveredResidueId, setHoveredResidueId] = useState<string | null>(null);
+  const [pdbId, setPdbId] = useState("");
+  const hovered = useInvestigation((s) => s.hovered),
+    investigation = useInvestigation((s) => s.result),
+    slots = useComparison((s) => s.slots);
   const [inspectorTab, setInspectorTab] = useState<"selection" | "source">(
     "selection",
   );
@@ -124,9 +130,24 @@ export default function App() {
   const selectedChain = snapshot?.chains.find(
     (c) => c.id === selectedResidue?.chainId,
   );
-  const hoveredResidue = snapshot?.residues.find(
-    (r) => r.id === hoveredResidueId,
-  );
+  // The hovered residue and its own structure: the reference or a comparison slot.
+  const hoveredSlot =
+    hovered?.structure.kind === "comparison"
+      ? slots.find(
+          (s) =>
+            hovered.structure.kind === "comparison" &&
+            s.id === hovered.structure.slotId,
+        )
+      : undefined;
+  const hoveredSnapshot =
+    hovered?.structure.kind === "reference" ? snapshot : hoveredSlot?.snapshot;
+  const hoveredResidue =
+    hoveredSnapshot?.id === hovered?.structure.snapshotId
+      ? hoveredSnapshot?.residues.find((r) => r.id === hovered?.residueId)
+      : undefined;
+  const comparisonSelected =
+    investigation?.status === "unavailable" ||
+    (investigation?.status === "resolved" && !!investigation.view.slotId);
   const observedCount =
     activeChain?.sequence.filter((p) => p.residueIds.length).length ?? 0;
   const featuredLigand =
@@ -147,13 +168,13 @@ export default function App() {
         await viewer.mount(
           canvasRef.current,
           containerRef.current,
-          (id) => {
+          (target) => {
             if (useExplorer.getState().phase !== "ready") return;
-            instance?.select(id);
+            instance?.selectTarget(target);
             setMissingPosition(null);
             setInspectorTab("selection");
           },
-          setHoveredResidueId,
+          (target) => instance?.investigation.hover(target),
         );
         if (!cancelled) await instance.initialize();
       } catch (error) {
@@ -176,7 +197,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     setMissingPosition(null);
-    setHoveredResidueId(null);
+    useInvestigation.setState({ hovered: null });
   }, [snapshot?.id]);
   useEffect(() => {
     const selected = document.querySelector<HTMLElement>(
@@ -226,7 +247,7 @@ export default function App() {
         <span className="workspace-label">Structure workspace</span>
         <div className="header-actions">
           <span className="phase-badge">
-            <span /> PHASE 03 · INTERPRETATION
+            <span /> EXPLORE · ANALYZE · COMPARE
           </span>
           <button
             className="icon-button"
@@ -585,12 +606,13 @@ export default function App() {
                   </button>
                 </div>
               )}
-              {hoveredResidue && (
+              {hoveredResidue && hoveredSnapshot && (
                 <div className="hover-label">
-                  <MousePointer2 size={13} /> {residueLabel(hoveredResidue)} ·
-                  chain{" "}
+                  <MousePointer2 size={13} />{" "}
+                  {hoveredSlot && `${hoveredSlot.label} · `}
+                  {residueLabel(hoveredResidue)} · chain{" "}
                   {
-                    snapshot?.chains.find(
+                    hoveredSnapshot.chains.find(
                       (c) => c.id === hoveredResidue.chainId,
                     )?.authAsymId
                   }
@@ -757,7 +779,7 @@ export default function App() {
             <span>
               <MousePointer2 size={16} /> Inspector
             </span>
-            {selectedResidue && (
+            {(selectedResidue || investigation) && (
               <button
                 className="icon-button"
                 aria-label="Clear selection"
@@ -782,6 +804,7 @@ export default function App() {
             </button>
           </div>
           <div className="inspector-content">
+            {inspectorTab === "selection" && <InvestigationSummary />}
             {inspectorTab === "selection" &&
               (selectedResidue && snapshot ? (
                 <>
@@ -904,7 +927,7 @@ export default function App() {
                     Assembly coordinates in angstroms.
                   </p>
                 </>
-              ) : (
+              ) : comparisonSelected ? null : (
                 <div className="empty-inspector">
                   <div className="empty-icon">
                     <MousePointer2 size={24} strokeWidth={1.4} />
@@ -1039,7 +1062,8 @@ export default function App() {
           from RCSB PDB
         </span>
         <span>
-          Browser workspace <span className="version">v0.3.0</span>
+          Browser workspace{" "}
+          <span className="version">v{RELEASE.application}</span>
         </span>
       </footer>
       <EvidenceDrawer />

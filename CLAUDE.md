@@ -16,6 +16,7 @@ npm run typecheck    # tsc --noEmit (TypeScript 7)
 npm run format       # Prettier on src/ (format:check runs in CI)
 npm run build        # typecheck + vite build
 npm run test:e2e     # Playwright on the production build (builds and serves on :4173)
+npm run test:e2e:built # Test existing dist; never rebuilds or reuses another server
 npx vitest run tests/biology.test.ts   # single file
 ```
 
@@ -27,7 +28,8 @@ npx vitest run tests/biology.test.ts   # single file
 - `tests/variants-golden.test.ts` pins hashes of curated-variant output (records, deposited states, binding-site counts, consequences) for four cases; a deliberate change regenerates with `UPDATE_VARIANTS_GOLDEN=1`, bumps `BIOLOGY_VERSION` when semantics change and is recorded in `validation/VARIANTS.md`.
 - `tests/engine-golden.test.ts` pins SHA-256 hashes of engine output for 13 cases. Any engine change must keep them unless the ruleset changes on purpose: then `UPDATE_ENGINE_GOLDEN=1 npm test`, bump `RULESET_VERSION`, and document why in `validation/README.md`. Use `DUMP_ENGINE_GOLDEN=<dir>` to diff full output.
 - Regenerate PLIP reference observations with `scripts/plip-reference.py` (see `validation/README.md`). Normal CI doesn't run it.
-- CI (`.github/workflows/ci.yml`) runs format:check → test → build → e2e. `pages.yml` deploys `main` with `VITE_BASE_PATH=/<repo>/`. Asset URLs must respect the Vite base path.
+- CI (`ci.yml`) and Pages (`pages.yml`) call the same reusable `.github/workflows/validate.yml`: format → scientific tests → root hosting smoke → deployment-path build → full e2e. The root smoke is skipped when the deployment path is already `/`. Pages deploys only the resulting validated artifact, without a rebuild; write/id-token permissions are confined to its deployment job. Asset URLs and browser-test navigation must preserve the Vite base path. See `validation/RELEASE.md` for local commands and the manual live-provider checklist.
+- `src/domain/release.ts` collects existing scientific version constants and the package version injected by Vite. Do not hardcode product/engine release strings in UI. `dist/build-info.json` identifies the artifact's version/path/CI commit; `test:e2e:built` rejects a mismatched test context. Set `PLAYWRIGHT_BASE_PATH` for an existing subpath build and `PLAYWRIGHT_ORIGIN` for a different local preview port.
 
 ## Architecture
 
@@ -37,11 +39,14 @@ src/
     types.ts       StructureSnapshot (incl. StructureQuality), chains/residues/atoms, sessions
     identity.ts    identity() tuple IDs, preferred-conformer selection
     elements.ts    normalizeElement / isHydrogenElement (the only H/D/T test)
+    release.ts     Build-injected package version and scientific version constants for UI
     analysis.ts    Interaction types, DEFAULT_PARAMETERS, ENGINE_VERSION/RULESET_VERSION
     comparison.ts  COMPARISON_VERSION, comparison session descriptors, rigid transforms
+    selection.ts   StructureRef/ResidueTarget, InvestigationRequest/View/Result (structure-qualified selection)
     biology.ts     ProteinRecord, ResidueMapping (status + identity), FunctionalAnnotation, Evidence, LigandIdentity, LigandFit, InterpretationSnapshot, site/context feature categories
   structure/   Mol* boundary for parsing/rendering
-    adapter.ts     Mol* plugin lifecycle, scene, bidirectional domain↔Mol* selection
+    adapter.ts     Mol* plugin lifecycle, scene, bidirectional domain↔Mol* selection; member registry (snapshot, selection index, deposited root, display transform)
+    investigation.ts  The single writer of the persistent selection; projects the reference side into selectedResidueId
     extract.ts     Builds StructureSnapshot (assembly-space Float32Array coords) + SelectionIndex
     quality.ts     Refinement statistics from mmCIF; Cruickshank DPI coordinate error
     ligandGroups.ts  Multi-residue ligand groups (branched, BIRD, covalently linked)
@@ -60,7 +65,7 @@ src/
     policy.ts      Request validation, atom eligibility (occupancy, altloc, H exclusion), residue summaries
     completeness.ts  Expected heavy-atom check (standard amino acids + supplied CCD dictionaries)
     geometry.ts, spatial.ts  Ring centroid/normal, VdW radii, uniform grid, distances/angles
-    export.ts      JSON (schema 2) / CSV exports
+    export.ts      Analysis JSON schema 3 / CSV exports (internal AnalysisRun schema remains 2)
   biology/     Phase 3 interpretation
     mapping.ts     Exact SIFTS residue correspondence + per-chain coverage
     projection.ts  Annotation → residue projection; binding-site summary (site headline vs chain background, context features, ChEBI ligand relations, variant counts)
@@ -81,13 +86,15 @@ src/
     cache.ts       Pure LRU eviction planning (protected: open structures, saved session)
   state/explorer.ts  Zustand UI state (reference structure)
   state/comparison.ts  Comparison slots, one per comparison structure
+  state/investigation.ts  Current investigation result and hover target
   comparison/  Phase 4 structural comparison
     controller.ts  Per-slot loading, pinned restore, interpretation and queued analysis; never touches the reference
     correspondence.ts  SIFTS-only chain pairing and residue correspondence
     superposition.ts   Horn fit of paired Cα with outlier rejection (validated against numpy)
     fingerprint.ts     Fingerprint matrix keyed by UniProt position; unmeasured cells never count as absent
     derived.ts, export.ts  Memoized correspondence/fingerprints; comparison JSON/CSV
-  components/  AnalysisPanel, BiologyPanel, ComparisonPanel, CacheUsage, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
+    selection.ts   resolveInvestigation/refreshInvestigation: pure, never touches the viewer or stores
+  components/  AnalysisPanel, BiologyPanel, ComparisonPanel, InvestigationSummary, CacheUsage, AnnotationTracks, EvidenceDrawer, BindingSiteSummary, ResidueBiology
   App.tsx      Workspace layout and synchronized views
 tests/
   *.test.ts    Vitest (structure, analysis, interaction-categories, reference-comparison, scaling, biology, biologyResources, interpretation)
@@ -99,6 +106,7 @@ public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ## Invariants (do not break)
 
 - **Domain stays rendering-free.** Mol* objects never enter `src/domain`. `StructureSnapshot` is the scientific source of truth. Mol* owns only the scene.
+- **Selection is structure-qualified.** Residue IDs are unique only within a snapshot and a source can be open twice, so scene targets carry a `StructureRef` (reference, or slot + snapshot). Clicks resolve the owning structure by deposited root before unit IDs. Only `InvestigationController` writes the persistent selection; `selectedResidueId` is its reference-side projection.
 - **Identity is explicit.** IDs are JSON tuples via `identity()`. Author numbering, label numbering, insertion codes, chain *instance* (label asym + assembly operator) and source atom rows are kept separate. Never derive one numbering from another by offset.
 - **Reproducibility.** Analysis results are keyed by source SHA-256, model, assembly, ligand instance, receptor chains, all parameters, engine/ruleset/parser versions and CCD hashes (`analysisKey`). Bump `ENGINE_VERSION`/`RULESET_VERSION` (and the biology projection version) when results can change. `AnalysisRun` is immutable. Annotations reference it and never rewrite it.
 - **Variants are records, not predictions.** UniProt variant text is quoted, never parsed into effects. Consequence sentences come only from `consequenceText.ts` and state which deposited atoms a replacement keeps, never whether an interaction is lost; a test rejects effect words. Variant counts always show the chain background.

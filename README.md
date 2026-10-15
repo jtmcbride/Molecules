@@ -2,7 +2,7 @@
 
 <https://jtmcbride.github.io/Molecules>
 
-A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Phases 1–3 are implemented: structure exploration, ligand-centered interaction computation, and functional interpretation through exact SIFTS/UniProt correspondence and traceable evidence. [Phase 3 implementation record](docs/PHASE_3_PLAN.md) describes its contracts and acceptance gates.
+A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Structure exploration, ligand-centered interaction computation, SIFTS/UniProt interpretation, structural comparison, and curated variants are implemented in version 0.5.0. The [phase status](#phase-status) links to each track's contracts and validation evidence.
 
 ## Run locally
 
@@ -21,6 +21,17 @@ npm run build
 npx playwright install chromium
 npm run test:e2e   # Real-browser integration tests
 ```
+
+`test:e2e` builds once, then tests that production artifact. For an existing build, use `npm run test:e2e:built`; the browser configuration verifies `dist/build-info.json` against the requested path, package version, and CI commit before starting. Tests always start their own preview server.
+
+To test repository-subpath hosting:
+
+```sh
+VITE_BASE_PATH=/Molecules/ npm run build
+PLAYWRIGHT_BASE_PATH=/Molecules/ npm run test:e2e:built
+```
+
+Build paths must start and end with `/`. `PLAYWRIGHT_ORIGIN` optionally changes the local HTTP origin (default `http://127.0.0.1:4173`); its host must be `127.0.0.1` or `localhost`. Relative browser navigation preserves the build path.
 
 For an existing system Chromium installation, set `PLAYWRIGHT_CHROMIUM_PATH` to its executable path. Browser tests use software WebGL to support CI machines without a GPU.
 
@@ -103,7 +114,7 @@ See [biological validation evidence](validation/BIOLOGY.md) for frozen source ha
 
 ## Phase 4 capabilities and scientific policy
 
-Up to seven comparison structures load beside the reference structure. Each keeps its own coordinates, snapshot, SIFTS/UniProt interpretation and analysis, built by the same code and versions as the reference. Comparison structures are display-only cartoons in their own colour; picking, selection and the analysis panel stay with the reference. Loading a different reference structure, model or assembly closes the comparison. A failed or cancelled comparison structure never affects the reference or other comparison structures.
+Up to seven comparison structures load beside the reference structure. Each keeps its own coordinates, snapshot, SIFTS/UniProt interpretation and analysis, built by the same code and versions as the reference. Comparison structures are drawn as cartoons in their own colour. Clicking a comparison residue selects it in its own structure: the inspector shows that residue, the reference residue paired with it by exact SIFTS correspondence (or why there is none), and each side's interactions in its current analysis. Hidden structures keep the selection but are not highlighted; clicking empty space clears it, and removing the structure or replacing the reference closes it. Inspecting a comparison residue never changes the reference ligand, receptor chains or analysis settings. The analysis panel stays with the reference. Loading a different reference structure, model or assembly closes the comparison. A failed or cancelled comparison structure never affects the reference or other comparison structures.
 
 **Residue correspondence** uses only the Phase 3 exact SIFTS mapping:
 - Chain instances pair per shared UniProt accession: the user's choice first, then the same author chain ID and operator, then order of appearance. The basis of each pairing is shown, and homo-oligomers pair chain by chain.
@@ -128,11 +139,13 @@ Up to seven comparison structures load beside the reference structure. Each keep
 - Shifts are compared with twice the combined Cruickshank coordinate error, or labeled not assessable. That error describes an average-B atom and leaves out fit error.
 - Site waters are conserved when superposed oxygens lie within 1.0 Å. Comparison waters in the reference ligand site are reported.
 
-**Comparison JSON** (schema 1, `comparison-1.0.0`) records every structure's source hash, pinned analysis and interpretation, chain pairings and residue correspondence, superposition and policy, fingerprints and binding-site differences. The **fingerprint CSV** has one line per row and structure. Saved sessions (schema 3) restore comparison structures, pairings, superposition scope and analyses without new biological requests.
+**Comparison JSON** (schema 1, `comparison-1.1.0`) records every structure's source hash, pinned analysis and interpretation, chain pairings and residue correspondence, superposition and policy, fingerprints and binding-site differences. The **fingerprint CSV** has one line per row and structure. These exports are analytical records; they do not package coordinate bytes or import a workspace into another browser. Saved sessions (schema 3) restore comparison structures, pairings, superposition scope and analyses from this browser's stored bytes without new biological requests.
 
 See [comparison validation evidence](validation/COMPARISON.md) for the numpy superposition check, the ProLIF fingerprint comparison and the documented limits.
 
 ## Phase status
+
+The [next development plan](docs/NEXT_DEVELOPMENT_PLAN.md) records the implemented M1 release-consistency and deployment-validation changes. Linked comparison investigation, protein-level variant discovery, ligand pose RMSD, broader validation, portable workspaces, inferred correspondence, and protein interfaces remain planned milestones.
 
 - **Phase 1 — complete:** reliable structure exploration, identity and linked selection. [Status](docs/PHASE_1_STATUS.md).
 - **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain. [Status](docs/PHASE_2_STATUS.md).
@@ -143,13 +156,15 @@ See [comparison validation evidence](validation/COMPARISON.md) for the numpy sup
 
 ## GitHub and GitHub Pages
 
-Code is hosted at https://github.com/jtmcbride/Molecules and the app is published at https://jtmcbride.github.io/Molecules/. Independent validation and Pages deployment workflows run on pushes to main.
+Code is hosted at https://github.com/jtmcbride/Molecules and the app is published at https://jtmcbride.github.io/Molecules/. Pull requests and branch pushes call the reusable production-validation workflow. Pushes to `main` and manual Pages runs call that same workflow before deployment.
 
 1. Push the project to the repository's `main` branch.
 2. In **Settings → Pages**, choose **GitHub Actions** as the build source.
 3. Run the **Deploy to GitHub Pages** workflow, or push to `main`.
 
-The workflow uses `/<repository-name>/` as Vite's base path. Repositories named `*.github.io` use `/`. Sample downloads, dynamically imported Mol* code, fonts, and the favicon use the build's base path.
+The workflow smoke-tests root hosting, then builds `/<repository-name>/` and runs the full browser suite against that exact artifact. Repositories named `*.github.io` use `/` for the full suite. A failed format, scientific-test, build, or browser check blocks deployment. Pages downloads the validated artifact from the same workflow run and uploads it without rebuilding; Pages write and identity-token permissions belong only to the deployment job. Sample downloads, dynamically imported Mol* code, fonts, the favicon, and both workers use the build's base path.
+
+The build's `build-info.json` records package version, base path, and the CI commit when available. The [release validation checklist](validation/RELEASE.md) covers local reproduction and separate post-deployment checks of live scientific providers.
 
 For a manual build at another subpath:
 
@@ -173,6 +188,7 @@ src/
     analysis.ts           Independent interactions, graph, binding site and provenance
     biology.ts            Proteins, features, mappings, evidence and interpretation snapshots
     comparison.ts         Comparison sessions, correspondence, superposition, fingerprint and site contracts
+    selection.ts          Structure-qualified residue targets and investigation requests/views
   biology/
     mapping.ts, projection.ts  Exact correspondence, residue identity, projection and binding-site summary
     controller.ts, load.ts     Independent loading, cancellation and pinned restoration
@@ -199,6 +215,7 @@ src/
     fingerprint.ts        UniProt-keyed fingerprints, comparability and change margins
     siteDifferences.ts, torsions.ts  Residue shifts, χ angles and site waters
     derived.ts, export.ts  Memoized derived results; comparison JSON and fingerprint CSV
+    selection.ts          Pure resolver: investigation request → residues, interaction IDs, correspondence
   components/
     AnalysisPanel.tsx      Settings, filters, contact inspection and export controls
     ComparisonPanel.tsx    Comparison structures, pairings, superposition, site differences
@@ -208,6 +225,7 @@ src/
     extract.ts            Assembly-space coordinates and normalized identities
     quality.ts            Refinement statistics and Cruickshank coordinate error
     controller.ts         Serialized scene updates and stale-request rejection
+    investigation.ts      The single writer of the persistent selection; re-resolves or clears on change
   data/
     provider.ts           RCSB/local ingestion, validation, hashes, and metadata
     chemistry.ts          Optional component dictionary acquisition
@@ -218,6 +236,7 @@ src/
     cache.ts              Least-recently-used eviction planning
   state/
     explorer.ts           UI state and domain references (reference structure)
+    investigation.ts      Current investigation and hover (structure-qualified)
     comparison.ts         Comparison slots
 tests/
   structure.test.ts       Real and synthetic structural regression tests
@@ -238,13 +257,13 @@ The parser and dependency versions are pinned by package.json and package-lock.j
 
 ## Conformers and limits
 
-All deposited alternate conformers remain visible and are preserved in the domain snapshot. For computation, a preferred conformer is recorded per residue by mean occupancy, with deterministic alphabetical tie-breaking. Shared atoms are retained; atom identities are deduplicated by name within that preferred residue conformer. This does not establish compatibility between disorder groups in different residues. Analysis defaults to excluding whole residues that contain alternate locations. The optional preferred-per-residue mode is explicitly exploratory and flags unverified cross-residue compatibility.
+All deposited alternate conformers remain visible and are preserved in the domain snapshot. A preferred conformer is recorded per residue by mean occupancy, with deterministic alphabetical tie-breaking; shared atoms are retained and atom names deduplicated for that preferred conformer. Analysis defaults to a per-conformer ensemble: shared atoms plus each alternate label are analyzed separately, up to four labels. Residues without a given label use their preferred conformer, flagged as an assumed combination; beyond four labels the preferred-per-residue fallback is flagged. This does not establish compatibility between disorder groups in different residues. The optional exclusion mode drops whole disordered residues, while preferred-per-residue mode remains explicitly exploratory. Results record conformer presence and occupancy where available.
 
 Current limits:
 
 - Coordinate file size: 40 MB.
 - Selected structure: 250,000 atomic elements, including assembly copies.
-- One reference structure and one structural model at a time, plus up to seven comparison structures, each within the per-structure limits. Comparison structures are display-only (no picking) and are drawn as cartoons with their ligands.
+- One reference structure and one structural model at a time, plus up to seven comparison structures, each within the per-structure limits. Comparison structures are drawn as cartoons with their ligands; their residues can be picked and inspected, but their interactions are not yet drawn in the scene.
 - Atomic mmCIF/BinaryCIF only; legacy PDB, compressed files, and coarse-only models are not supported.
 - Parsing and scene construction currently use Mol* on the main thread. Download cancellation aborts the request; cancellation during parsing discards its result and clears the scene once the current serialized operation finishes.
 - Cache reads reuse downloaded bytes; there is no automatic source-refresh policy. Cached coordinates beyond 300 MB are evicted least recently used first, with their analyses and interpretations. Open structures and the saved session's structures are never evicted. The Source tab shows cache use and clears unused entries.

@@ -34,6 +34,8 @@ Updated 2026-10-10. Curated-variant track complete: `biology-1.2.0`, interpretat
 
 ## Scope and next useful changes
 
+The proposed order, implementation details, and acceptance gates are in [Development plan after v0.5.0](NEXT_DEVELOPMENT_PLAN.md). That plan separates release/workflow improvements from the remaining scientific tracks below.
+
 - **Remaining Phase 5 tracks**, each to be planned separately:
   - symmetry-corrected ligand pose RMSD;
   - protein–protein interfaces;

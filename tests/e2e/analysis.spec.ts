@@ -4,7 +4,7 @@ import path from 'node:path';
 
 test('worker analysis links contact rows, sequence and 3D, caches results and exports provenance',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
+  await page.goto('./');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Run analysis',exact:true}).click();
   await expect(page.locator('.analysis-summary')).toContainText('Fresh result');
   await expect(page.locator('.sequence-residue.binding-residue').first()).toBeAttached();
@@ -37,7 +37,7 @@ test('worker analysis links contact rows, sequence and 3D, caches results and ex
 
 test('missing ligand chemistry preserves contacts and changing structures cancels pending analysis',async({page})=>{
   await page.route('https://files.rcsb.org/ligands/**',route=>route.abort());
-  await page.goto('/');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
+  await page.goto('./');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
   await page.locator('input[type=file]').setInputFiles(path.resolve('tests/fixtures/identity-edge-cases.cif'));
   await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Run analysis',exact:true}).click();
@@ -66,7 +66,7 @@ test('loads missing CCD chemistry and reuses cached definitions without sending 
   const ccd=await readFile('tests/fixtures/BEN-ccd.cif','utf8');
   let requests=0;
   await page.route('https://files.rcsb.org/ligands/download/BEN.cif',async route=>{requests++;await route.fulfill({body:ccd,contentType:'text/plain',headers:{'access-control-allow-origin':'*'}});});
-  await page.goto('/');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
+  await page.goto('./');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
   const text=await readFile('public/structures/3PTB.cif','utf8');
   const stripped=text.replace(/loop_\s+_chem_comp_bond[\s\S]*?(?=#)/,'');
   await page.locator('input[type=file]').setInputFiles({name:'3ptb-without-bonds.cif',mimeType:'text/plain',buffer:Buffer.from(stripped)});
@@ -92,7 +92,7 @@ for(const scenario of [
   {file:'hydrogen-geometry',type:'steric_clash',detail:'Overlap (Å)'},
 ])test(`inspects ${scenario.type} geometry and exports its participants`,async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
+  await page.goto('./');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
   await page.locator('input[type=file]').setInputFiles(path.resolve(`tests/fixtures/${scenario.file}.cif`));
   await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
   if(scenario.type==='steric_clash') {
@@ -126,7 +126,7 @@ for(const scenario of [
 
 test('restores a session analysis saved under an older ruleset that lacks newer interaction types',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
+  await page.goto('./');await expect(page.getByText('Structure ready',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Run analysis',exact:true}).click();
   await expect(page.locator('.analysis-summary')).toContainText('Fresh result');
   await page.getByRole('button',{name:'Save session',exact:true}).click();

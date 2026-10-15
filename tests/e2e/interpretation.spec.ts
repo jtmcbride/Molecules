@@ -1,65 +1,8 @@
+import { biologyRoutes } from "./helpers/biology";
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { gzipSync, gunzipSync } from "node:zlib";
-async function biologyRoutes(page: Page) {
-  await page.route(
-    "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/*",
-    async (route) => {
-      const id = route.request().url().split("/").at(-1)!;
-      await route.fulfill({
-        body: await readFile(`tests/fixtures/biology/${id}-discovery.json`),
-        contentType: "application/json",
-        headers: { "access-control-allow-origin": "*" },
-      });
-    },
-  );
-  await page.route(
-    "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/*",
-    async (route) => {
-      const id = route.request().url().split("/").at(-1)!.split(".")[0];
-      await route.fulfill({
-        body: await readFile(`tests/fixtures/biology/${id}-sifts.xml.gz`),
-        contentType: "application/gzip",
-        headers: { "access-control-allow-origin": "*" },
-      });
-    },
-  );
-  await page.route(
-    "https://data.rcsb.org/rest/v1/core/chemcomp/*",
-    async (route) => {
-      const component = route.request().url().split("/").at(-1)!;
-      await route.fulfill({
-        body: await readFile(
-          `tests/fixtures/biology/chemcomp-${component}.json`,
-        ),
-        contentType: "application/json",
-        headers: { "access-control-allow-origin": "*" },
-      });
-    },
-  );
-  await page.route(
-    "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/**",
-    async (route) => {
-      const [entry, asym] = route.request().url().split("/").slice(-2);
-      await route.fulfill({
-        body: await readFile(
-          `tests/fixtures/biology/ligand-${entry}-${asym}.json`,
-        ),
-        contentType: "application/json",
-        headers: { "access-control-allow-origin": "*" },
-      });
-    },
-  );
-  await page.route("https://rest.uniprot.org/uniprotkb/*", async (route) => {
-    const accession = route.request().url().split("/").at(-1)!;
-    await route.fulfill({
-      body: await readFile(`tests/fixtures/biology/${accession}`),
-      contentType: "application/json",
-      headers: { "access-control-allow-origin": "*" },
-    });
-  });
-}
 async function exportJson(page: Page) {
   const downloaded = page.waitForEvent("download");
   await page
@@ -77,7 +20,7 @@ test("links computed ASP189, UniProt features, sequence tracks, 3D and evidence 
     workers: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("worker", (w) => workers.push(w.url()));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
@@ -188,7 +131,7 @@ test("links computed ASP189, UniProt features, sequence tracks, 3D and evidence 
 test("maps hemoglobin chains and assemblies to the correct protein records", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
@@ -222,7 +165,7 @@ test("maps hemoglobin chains and assemblies to the correct protein records", asy
 test("restores pinned interpretation and analysis without scientific requests and refreshes into a new revision", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
@@ -304,7 +247,7 @@ test("annotation failures preserve exploration and local files require validated
   page,
 }) => {
   await page.route("https://www.ebi.ac.uk/**", (route) => route.abort());
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Structure ready", { exact: true }),
   ).toBeVisible();
@@ -367,7 +310,7 @@ test("late annotation responses cannot overwrite another structure and tracks fi
         .catch(() => {});
     },
   );
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Structure ready", { exact: true }),
   ).toBeVisible();
@@ -414,7 +357,7 @@ test("ambiguous track positions do not select another residue from the feature r
       });
     },
   );
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
@@ -456,7 +399,7 @@ test("engineered catalytic mutant keeps its active-site annotation with a mutati
       headers: { "access-control-allow-origin": "*" },
     }),
   );
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();

@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { useExplorer } from "../state/explorer";
+import { RELEASE } from "../domain/release";
 import {
   AMBIGUITY_LABELS,
   INTERACTION_LABELS,
@@ -127,7 +128,9 @@ export function AnalysisPanel({
             <h2>Explore the binding neighborhood.</h2>
             <p>Measure proximity and identify chemistry-aware candidates.</p>
           </div>
-          <span className="analysis-engine">ENGINE 2.0</span>
+          <span className="analysis-engine" title={RELEASE.ruleset}>
+            Engine {RELEASE.engine.replace(/^contacts-/, "")}
+          </span>
         </div>
         <div className="analysis-config">
           <label className="analysis-target">

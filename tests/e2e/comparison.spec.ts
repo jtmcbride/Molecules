@@ -104,7 +104,7 @@ test("a comparison structure has its own mapping and analysis, and restores with
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
@@ -159,7 +159,7 @@ test("a failed comparison load leaves the reference analysis intact, and a new r
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Structure ready", { exact: true }),
   ).toBeVisible();
@@ -192,7 +192,7 @@ test("hemoglobin chains pair by author chain, can be re-paired, and the pairing 
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Structure ready", { exact: true }),
   ).toBeVisible();
@@ -240,7 +240,7 @@ test("fingerprints compare like-for-like analyses by UniProt position and export
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
@@ -291,5 +291,87 @@ test("fingerprints compare like-for-like analyses by UniProt position and export
   await expect(
     fingerprint.getByTestId("fingerprint-column").nth(1),
   ).toContainText("Different parameters proximityCutoff");
+  expect(errors).toEqual([]);
+});
+
+const AMINO_ACIDS = new Set(
+  "ALA ARG ASN ASP CYS GLN GLU GLY HIS ILE LEU LYS MET PHE PRO SER THR TRP TYR VAL".split(
+    " ",
+  ),
+);
+/**
+ * Moves over the canvas until the hover label names an amino acid of `label`; returns the
+ * point. Software WebGL picks a few frames behind the pointer, so each point waits for the
+ * label to settle.
+ */
+async function findComparisonResidue(page: Page, label: string) {
+  await page.locator("canvas").scrollIntoViewIfNeeded();
+  const box = (await page.locator("canvas").boundingBox())!;
+  const hover = page.locator(".hover-label");
+  for (let fy = 0.35; fy <= 0.65; fy += 0.05)
+    for (let fx = 0.35; fx <= 0.65; fx += 0.03) {
+      const x = box.x + box.width * fx,
+        y = box.y + box.height * fy;
+      await page.mouse.move(x, y, { steps: 3 });
+      await page.waitForTimeout(400);
+      if (!(await hover.count())) continue;
+      const text = await hover.textContent();
+      const component = text?.match(new RegExp(`${label} · (\\w+) `))?.[1];
+      if (component && AMINO_ACIDS.has(component)) return { x, y, component };
+    }
+  throw new Error(`No ${label} residue found under the pointer`);
+}
+
+test("a residue picked in a comparison structure resolves to its own structure and SIFTS partner", async ({
+  page,
+}) => {
+  // Two pointer scans under software WebGL.
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("./");
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  const target = page.getByLabel("Analysis target ligand");
+  const targetBefore = await target.inputValue();
+  await addComparison(page, "1S0R");
+  const slot = page.getByTestId("comparison-slot");
+  await expect(slot.getByTestId("comparison-mapping")).toContainText(
+    "residues exactly mapped",
+  );
+  await expect(slot.getByTestId("comparison-fit")).toContainText("Core RMSD");
+
+  const point = await findComparisonResidue(page, "1S0R");
+  await page.mouse.click(point.x, point.y);
+  const card = page.getByTestId("investigation");
+  await expect(card).toContainText("COMPARISON · 1S0R");
+  await expect(card).toContainText(`${point.component} `);
+  await expect(card).toContainText("P00760");
+  await expect(card).toContainText("paired · exact SIFTS");
+  // The reference inspector follows the exactly corresponding reference residue.
+  await expect(page.locator(".residue-identity h2")).toHaveText(
+    point.component,
+  );
+  // Inspecting a comparison residue leaves the reference analysis target alone.
+  await expect(target).toHaveValue(targetBefore);
+
+  await slot.getByRole("button", { name: "Hide 1S0R" }).click();
+  await expect(card).toContainText("1S0R is hidden");
+  await slot.getByRole("button", { name: "Show 1S0R" }).click();
+  await expect(card).not.toContainText("is hidden");
+
+  // Empty space clears the investigation.
+  await page.locator("canvas").scrollIntoViewIfNeeded();
+  const box = (await page.locator("canvas").boundingBox())!;
+  await page.mouse.click(box.x + 4, box.y + box.height - 4);
+  await expect(card).toHaveCount(0);
+
+  // Removing the structure clears an investigation of it.
+  const again = await findComparisonResidue(page, "1S0R");
+  await page.mouse.click(again.x, again.y);
+  await expect(card).toContainText("COMPARISON · 1S0R");
+  await slot.getByRole("button", { name: "Remove 1S0R" }).click();
+  await expect(card).toHaveCount(0);
   expect(errors).toEqual([]);
 });

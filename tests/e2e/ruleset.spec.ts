@@ -36,7 +36,7 @@ async function offlineStructures(page: Page) {
     );
 }
 async function open(page: Page, accession: string) {
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Structure ready", { exact: true }),
   ).toBeVisible();

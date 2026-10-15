@@ -115,7 +115,7 @@ test.beforeEach(async ({ page }) => {
   await fixtureRoutes(page);
 });
 async function openHemoglobinHeme(page: Page) {
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Protein annotations ready", { exact: true }),
   ).toBeVisible();
