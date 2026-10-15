@@ -299,26 +299,41 @@ const AMINO_ACIDS = new Set(
     " ",
   ),
 );
+/** Canvas fractions from the centre outwards, so a hit near the middle is found first. */
+const SCAN = Array.from({ length: 13 * 13 }, (_, i) => ({
+  fx: 0.2 + (i % 13) * 0.05,
+  fy: 0.2 + Math.floor(i / 13) * 0.05,
+})).sort(
+  (a, b) =>
+    Math.hypot(a.fx - 0.5, a.fy - 0.5) - Math.hypot(b.fx - 0.5, b.fy - 0.5),
+);
 /**
  * Moves over the canvas until the hover label names an amino acid of `label`; returns the
- * point. Software WebGL picks a few frames behind the pointer, so each point waits for the
- * label to settle.
+ * point. The camera is reset and zoomed onto the superposed pair first, so the scan does not
+ * depend on where earlier steps left the view. Software WebGL picks a few frames behind the
+ * pointer, so each point waits for the label to settle.
  */
 async function findComparisonResidue(page: Page, label: string) {
-  await page.locator("canvas").scrollIntoViewIfNeeded();
-  const box = (await page.locator("canvas").boundingBox())!;
+  const canvas = page.locator("canvas");
+  await canvas.scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: "Reset camera" }).click();
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  // Let the reset animation finish before zooming.
+  await page.waitForTimeout(1000);
+  for (let i = 0; i < 4; i++) await page.mouse.wheel(0, -120);
+  await page.waitForTimeout(800);
   const hover = page.locator(".hover-label");
-  for (let fy = 0.35; fy <= 0.65; fy += 0.05)
-    for (let fx = 0.35; fx <= 0.65; fx += 0.03) {
-      const x = box.x + box.width * fx,
-        y = box.y + box.height * fy;
-      await page.mouse.move(x, y, { steps: 3 });
-      await page.waitForTimeout(400);
-      if (!(await hover.count())) continue;
-      const text = await hover.textContent();
-      const component = text?.match(new RegExp(`${label} · (\\w+) `))?.[1];
-      if (component && AMINO_ACIDS.has(component)) return { x, y, component };
-    }
+  for (const { fx, fy } of SCAN) {
+    const x = box.x + box.width * fx,
+      y = box.y + box.height * fy;
+    await page.mouse.move(x, y, { steps: 3 });
+    await page.waitForTimeout(400);
+    if (!(await hover.count())) continue;
+    const text = await hover.textContent();
+    const component = text?.match(new RegExp(`${label} · (\\w+) `))?.[1];
+    if (component && AMINO_ACIDS.has(component)) return { x, y, component };
+  }
   throw new Error(`No ${label} residue found under the pointer`);
 }
 
