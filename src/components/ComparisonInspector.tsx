@@ -218,6 +218,42 @@ export function ComparisonInspector({
   const { view } = result;
   const slot = slots.find((s) => s.id === view.slotId);
   if (!slot?.snapshot || !reference || !view.comparison) return null;
+  if (view.posePair)
+    return (
+      <div className="investigation" data-testid="investigation">
+        <div className="eyebrow">LIGAND POSE · {slot.label}</div>
+        <h3 className="investigation-title">Atom correspondence</h3>
+        <dl className="property-list" data-testid="investigation-pose">
+          <dt>Reference</dt>
+          <dd>
+            {sourceLabel(referenceSource)} · {view.posePair.referenceAtomName}
+          </dd>
+          <dt>Comparison</dt>
+          <dd>
+            {slot.label} · {view.posePair.comparisonAtomName}
+          </dd>
+          <dt>Displacement</dt>
+          <dd>{view.posePair.distanceAngstrom.toFixed(3)} Å</dd>
+          <dt>Correspondence</dt>
+          <dd>Pinned chemical graph and stereochemistry</dd>
+        </dl>
+        <p className="small muted">
+          The selected atom pair and displacement use the current protein
+          superposition.
+        </p>
+        {!slot.visible && (
+          <p className="quality-note">
+            {slot.label} is hidden; only the reference atom is highlighted.
+          </p>
+        )}
+        <button
+          className="button secondary"
+          onClick={() => controller?.investigation.reapply(true)}
+        >
+          <Crosshair size={14} /> Focus atom pair in 3D
+        </button>
+      </div>
+    );
   const c = view.correspondence;
   const correspondence =
     c && slotCorrespondence({ snapshot: reference, interpretation }, slot);

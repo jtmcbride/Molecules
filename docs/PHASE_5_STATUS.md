@@ -1,6 +1,6 @@
 # Phase 5 implementation status
 
-Updated 2026-10-10. Curated-variant track complete: `biology-1.2.0`, interpretation JSON schema 3, `comparison-1.1.0`, package 0.5.0. Engine and ruleset versions are unchanged (`contacts-2.1.0`, `molstar-5.13.1-ligand-3`); analysis JSON stays schema 3, comparison JSON schema 1, session schema 3 (with an optional `carrierResourceIds` field) and Dexie version 4. Plan and implementation record: [PHASE_5_PLAN.md](PHASE_5_PLAN.md). Validation: [validation/VARIANTS.md](../validation/VARIANTS.md).
+Updated 2026-10-15. Curated-variant track and M3 protein-level discovery are implemented (`biology-1.2.0`, interpretation JSON schema 3). M4 ligand pose calculation/UI, atom highlighting and exact saved results are implemented locally as package 0.6.0, `comparison-1.2.0`, comparison JSON schema 2, session schema 4 and Dexie version 5. Engine/ruleset versions remain `contacts-2.1.0` / `molstar-5.13.1-ligand-3`; analysis JSON remains schema 3. Variant plan: [PHASE_5_PLAN.md](PHASE_5_PLAN.md). M4 scope/evidence: [LIGAND_POSE.md](../validation/LIGAND_POSE.md). Broader ligand-family, performance and hosted release gates remain pending.
 
 ## Implemented
 
@@ -37,15 +37,17 @@ Updated 2026-10-10. Curated-variant track complete: `biology-1.2.0`, interpretat
 The proposed order, implementation details, and acceptance gates are in [Development plan after v0.5.0](NEXT_DEVELOPMENT_PLAN.md). That plan separates release/workflow improvements from the remaining scientific tracks below.
 
 - **Remaining Phase 5 tracks**, each to be planned separately:
-  - symmetry-corrected ligand pose RMSD;
   - protein–protein interfaces;
   - sequence-alignment correspondence (labeled as inferred).
 - **Variants:**
   - ClinVar or gnomAD as further pinned sources, if wanted;
   - isoform-aware variants;
   - consequences for multi-residue replacements;
-  - a protein-level variant table.
+  - protein-level variant discovery is implemented by M3; further additions should follow the development plan.
 
 ## Verification
 
 `npm run format:check`, `npm test`, `npm run build` and `npm run test:e2e` pass. The variant-specific suites are `tests/variants.test.ts`, `tests/variant-consequences.test.ts`, `tests/variant-carriers.test.ts`, `tests/variants-golden.test.ts` and `tests/e2e/variants.spec.ts`.
+
+
+M4-C local verification (2026-10-15): 286 unit/scientific tests, formatting/type checking, root/subpath builds, root hosting smoke and all 47 `/Molecules/` browser workflows pass. Desktop and 390px screenshots plus precise atom-pair highlighting were reviewed. Broader real-ligand families, calibrated search/performance evidence, deployment and live-provider/CORS verification remain pending.

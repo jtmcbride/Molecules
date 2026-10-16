@@ -132,8 +132,8 @@ export interface StructureOptions {
 }
 export type Representation = "cartoon" | "ball-and-stick" | "molecular-surface";
 export interface SessionDescriptor {
-  /** 3 adds the comparison structures (Phase 4). */
-  schemaVersion: 1 | 2 | 3;
+  /** 3 adds comparison structures; 4 pins ligand poses and reference pose settings. */
+  schemaVersion: 1 | 2 | 3 | 4;
   interpretationId?: string;
   annotationCategories?: string[];
   selectedProteinAccession?: string | null;
@@ -148,6 +148,11 @@ export interface SessionDescriptor {
   showWater: boolean;
   savedAt: string;
   comparison?: ComparisonMemberDescriptor[];
+  poseReference?: {
+    targetLigandId: string | null;
+    ligandGroupId: string | null;
+    minimumOccupancy: number;
+  };
   /** Pinned carrier lookups (biology resource IDs); restored without new requests (biology-1.2.0). */
   carrierResourceIds?: string[];
 }

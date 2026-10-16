@@ -1,6 +1,6 @@
 # Phase 4 comparison validation
 
-Evidence for structural comparison (`COMPARISON_VERSION = comparison-1.1.0`; see the [change log](#change-log)). The plan is in [docs/PHASE_4_PLAN.md](../docs/PHASE_4_PLAN.md). Inputs are the frozen fixtures in `tests/fixtures/biology` (coordinates, SIFTS and UniProt records with SHA-256 manifest).
+Evidence for structural comparison (`COMPARISON_VERSION = comparison-1.2.0`; see the [change log](#change-log)). The plan is in [docs/PHASE_4_PLAN.md](../docs/PHASE_4_PLAN.md). Inputs are the frozen fixtures in `tests/fixtures/biology` (coordinates, SIFTS and UniProt records with SHA-256 manifest).
 
 ## Residue correspondence (4B)
 
@@ -149,5 +149,7 @@ Checked in `tests/comparison-site.test.ts` (global superposition):
 **Equivalent atoms.** Swapping Asp189 OD1/OD2 in memory (artificial) leaves its side-chain RMSD unchanged and changes Δχ2 by under 5°: the deposited carboxylate oxygens are not exactly 180° apart.
 
 ## Change log
+
+- **comparison-1.2.0 (M4-C, local package 0.6.0).** Adds per-slot ligand pose controls and transformed atom-pair investigation, comparison JSON schema 2 with optional full pose inputs/maps/results/provenance, and saved session schema 4 with exact pose result/chemistry pins. Numerical pose evidence is in [LIGAND_POSE.md](LIGAND_POSE.md). The existing four comparison outputs were dumped and their versions normalized back to `comparison-1.1.0`; each normalized SHA-256 matches its previous golden exactly. Thus the new golden hashes differ only because the comparison version changed. Existing interaction/biology goldens and coordinate/CCD/reference observations are unchanged. Session readers still accept schemas 1–3.
 
 - **comparison-1.1.0 (Phase 5, 5V-A).** SIFTS residues annotated `Variant` (a natural sequence variant in the deposited entity, such as sickle haemoglobin β Val6 in 2HBS) now have the residue identity `natural_variant` and an exact mapping (`biology-1.2.0`). Before, they were `sequence_mismatch`, so the position was `not_comparable`. Such positions now pair with a residue change, like engineered mutations. None of the four golden pairs contains a SIFTS `Variant` residue: their full outputs were dumped before and after and differ only in the version string, which is the only reason the golden hashes changed. Engine goldens are unchanged.

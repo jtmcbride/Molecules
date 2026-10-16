@@ -137,11 +137,21 @@ export class ExplorerController {
         biologySelectedLabel:
           result.snapshot.residues.find((r) => r.id === selectedResidueId)
             ?.labelSeqId ?? null,
-        targetLigandId:
-          result.snapshot.ligands.find((l) => l.kind === "ligand")?.residueId ??
-          result.snapshot.ligands[0]?.residueId ??
-          null,
-        ligandGroupId: null,
+        ...(restore?.poseReference
+          ? {
+              analysisParameters: {
+                ...useExplorer.getState().analysisParameters,
+                minimumOccupancy: restore.poseReference.minimumOccupancy,
+              },
+            }
+          : {}),
+        targetLigandId: restore?.poseReference
+          ? restore.poseReference.targetLigandId
+          : (result.snapshot.ligands.find((l) => l.kind === "ligand")
+              ?.residueId ??
+            result.snapshot.ligands[0]?.residueId ??
+            null),
+        ligandGroupId: restore?.poseReference?.ligandGroupId ?? null,
         receptorComponentIds: [],
         receptorChainIds: result.snapshot.chains
           .filter((c) => c.type === "polymer")
@@ -150,9 +160,17 @@ export class ExplorerController {
         status: "Structure ready",
       });
       this.investigation.selectReference(selectedResidueId);
-      void this.biology.initialize(source, result.snapshot, restore);
-      if (restore?.comparison?.length)
+      const biologyInitialization = this.biology.initialize(
+        source,
+        result.snapshot,
+        restore,
+      );
+      if (restore?.comparison?.length) {
+        // Schema 4 pose pins use the saved fit identity; load pinned reference interpretation first.
+        if (restore.schemaVersion === 4) await biologyInitialization;
+        if (current !== this.generation) return;
         this.comparison.restore(restore.comparison);
+      }
       const restoredAnalysisGeneration = this.analysisGeneration;
       if (restore?.analysisCacheKey) {
         void database.analyses
@@ -172,17 +190,23 @@ export class ExplorerController {
               analysisParameters: {
                 ...DEFAULT_PARAMETERS,
                 ...run.request.parameters,
+                ...(restore?.poseReference
+                  ? { minimumOccupancy: restore.poseReference.minimumOccupancy }
+                  : {}),
               },
-              targetLigandId: run.request.ligandResidueId,
-              ligandGroupId:
-                result.snapshot.ligandGroups?.find(
-                  (g) =>
-                    run.request.ligandResidueIds?.length ===
-                      g.residueIds.length &&
-                    g.residueIds.every((id) =>
-                      run.request.ligandResidueIds!.includes(id),
-                    ),
-                )?.id ?? null,
+              targetLigandId: restore?.poseReference
+                ? restore.poseReference.targetLigandId
+                : run.request.ligandResidueId,
+              ligandGroupId: restore?.poseReference
+                ? restore.poseReference.ligandGroupId
+                : (result.snapshot.ligandGroups?.find(
+                    (g) =>
+                      run.request.ligandResidueIds?.length ===
+                        g.residueIds.length &&
+                      g.residueIds.every((id) =>
+                        run.request.ligandResidueIds!.includes(id),
+                      ),
+                  )?.id ?? null),
               receptorComponentIds:
                 run.request.receptorComponentResidueIds ?? [],
               receptorChainIds: run.request.receptorChainIds,
@@ -512,7 +536,16 @@ export class ExplorerController {
       await cacheSource(s.source, this.comparison.openHashes());
       const comparison = this.comparison.descriptors();
       await saveSession({
-        schemaVersion: comparison.length ? 3 : 2,
+        schemaVersion: comparison.length ? 4 : 2,
+        ...(comparison.length
+          ? {
+              poseReference: {
+                targetLigandId: s.targetLigandId,
+                ligandGroupId: s.ligandGroupId,
+                minimumOccupancy: s.analysisParameters.minimumOccupancy,
+              },
+            }
+          : {}),
         ...(comparison.length ? { comparison } : {}),
         interpretationId: s.interpretation?.id,
         annotationCategories: s.annotationCategories,

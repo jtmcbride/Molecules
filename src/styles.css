@@ -2936,3 +2936,126 @@ select {
     min-width: 500px;
   }
 }
+
+/* Pose measurements use the existing comparison palette and a paired atom row. */
+.ligand-pose {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.pose-heading,
+.pose-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pose-heading {
+  justify-content: space-between;
+}
+.pose-heading h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.pose-conformers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.pose-conformers select {
+  width: 100%;
+  min-width: 0;
+}
+.pose-status {
+  margin-top: 10px;
+}
+.pose-status p {
+  margin: 6px 0;
+}
+.pose-score {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pose-score strong {
+  font-family: var(--mono);
+  font-size: 26px;
+  color: var(--accent);
+  font-weight: 400;
+}
+.pose-score strong span {
+  font-size: 16px;
+}
+.pose-score > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.pose-map,
+.pose-provenance {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.pose-map summary,
+.pose-provenance summary {
+  cursor: pointer;
+  padding: 5px 0;
+}
+.pose-map summary:focus-visible,
+.pose-provenance summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.pose-pairs {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  max-height: 290px;
+  overflow-y: auto;
+}
+.pose-pairs button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr) 90px;
+  width: 100%;
+  gap: 8px;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  background: #101827;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.pose-pairs li:last-child button {
+  border-bottom: 1px solid var(--border);
+}
+.pose-pairs button:hover {
+  background: #1b283a;
+}
+.pose-pairs strong {
+  text-align: right;
+  font-weight: 400;
+}
+.pose-reference-atom {
+  color: #e8b779;
+  overflow-wrap: anywhere;
+}
+.pose-comparison-atom {
+  color: #72b4d5;
+  overflow-wrap: anywhere;
+}
+.pose-provenance code {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 500px) {
+  .pose-conformers {
+    grid-template-columns: 1fr;
+  }
+  .pose-pairs button {
+    grid-template-columns: minmax(0, 1fr) 15px minmax(0, 1fr) 75px;
+    gap: 5px;
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+}

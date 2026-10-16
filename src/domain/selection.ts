@@ -22,6 +22,12 @@ export interface ResidueTarget {
 /** What the user asked to investigate; resolved against the current workspace. */
 export type InvestigationRequest =
   | { kind: "residue"; target: ResidueTarget }
+  | {
+      kind: "pose_atom";
+      slotId: string;
+      inputKey: string;
+      referenceAtomId: string;
+    }
   | { kind: "reference_residues"; snapshotId: string; residueIds: string[] }
   | { kind: "site_difference"; slotId: string; referenceResidueId: string }
   | { kind: "fingerprint"; slotId: string; rowKey: string };
@@ -41,6 +47,7 @@ export interface InvestigationSide {
    * instances (a receptor component present more than once); empty when `unavailable`.
    */
   residueIds: string[];
+  atomIds?: string[];
   /** Why this side has no residue. */
   unavailable?: string;
   interactions: InvestigationInteractions;
@@ -73,6 +80,14 @@ export interface InvestigationView {
   /** Component fingerprint rows: several deposited instances share the row's component ID. */
   instanceAmbiguous?: boolean;
   siteDifference?: SiteResidueDifference;
+  posePair?: {
+    referenceAtomId: string;
+    comparisonAtomId: string;
+    referenceAtomName: string;
+    comparisonAtomName: string;
+    distanceAngstrom: number;
+    inputKey: string;
+  };
   /** Identities of every input the view was resolved from. */
   revision: string;
 }

@@ -1,6 +1,6 @@
-# Ligand pose validation — M4-A and M4-B
+# Ligand pose validation — M4-A, M4-B and M4-C
 
-Implemented 2026-10-15. M4-A prepares eligible ligand inputs and pins chemical definitions. M4-B adds exact bounded atom correspondence, fixed-protein-frame RMSD and cancellable worker execution. The application does not yet expose a pose control or persist/export scores; that is M4-C. Package remains 0.5.2; existing interaction, biology and comparison semantics and goldens are unchanged.
+Implemented 2026-10-15. M4-A prepares eligible ligand inputs and pins chemical definitions. M4-B adds exact bounded atom correspondence, fixed-protein-frame RMSD and cancellable worker execution. M4-C exposes the workflow in comparison slots, highlights atom pairs, exports full pose records and restores exact saved results. Local package is 0.6.0, comparison semantics `comparison-1.2.0`, comparison export schema 2 and session schema 4. Interaction/biology methods and existing numerical outputs are unchanged; comparison goldens change only with the version string. Broader real-family/performance and hosted gates remain pending.
 
 ## Input and chemistry contracts
 
@@ -37,7 +37,7 @@ Synthetic edits are explicitly labeled in the tests: malformed/unknown chemistry
 
 Dexie database version 5 adds `poseChemistry` and reserves `ligandPoses`. Previous schemas and the legacy component-ID chemistry cache are retained. Chemistry writes are add-only, keyed by component, origin, byte hash and parser/policy versions; a refresh never replaces an existing revision's bytes or retrieval metadata. Result storage has a contract but no result writer in M4-A.
 
-Supplying a pinned chemistry ID performs an offline lookup and rechecks bytes, graph hash and compatible versions. Missing/damaged pins return `pinned_chemistry_missing` without a network request. Pinned restore cannot also request refresh. Operational failures (fetch, cancellation, storage) throw rather than becoming scientific measurements. Session schema 3 and comparison export schema 1 are unchanged; wiring pose references into sessions/exports is M4-C.
+Supplying a pinned chemistry ID performs an offline lookup and rechecks bytes, graph hash and compatible versions. Missing/damaged pins return `pinned_chemistry_missing` without a network request. Pinned restore cannot also request refresh. Operational failures (fetch, cancellation, storage) throw rather than becoming scientific measurements. M4-A left session schema 3 and comparison export schema 1 unchanged; M4-C adds schema 4/2 integration below.
 
 ## M4-A verification
 
@@ -65,9 +65,9 @@ The M4-A checks established input eligibility and storage behavior, without nume
 
 ## Worker lifecycle
 
-`LigandPoseClient` runs graph preparation/search/scoring in `ligandPoseWorker.ts`. It transfers distinct owned coordinate copies, including when reference and comparison originally share a buffer. Starting a replacement request terminates the old worker. Explicit cancellation or an AbortSignal rejects with `AbortError`; the 5,000 ms startup/execution watchdog rejects with `TimeoutError`. Neither produces a measured result. Ownership and input-key guards ignore queued late events. Different clients remain independent. Coordinate ingestion/CCD acquisition still use M4-A's separate preparation interface; M4-C will own slot state and invoke the calculator.
+`LigandPoseClient` runs graph preparation/search/scoring in `ligandPoseWorker.ts`. It transfers distinct owned coordinate copies, including when reference and comparison originally share a buffer. Starting a replacement request terminates the old worker. Explicit cancellation or an AbortSignal rejects with `AbortError`; the 5,000 ms startup/execution watchdog rejects with `TimeoutError`. Neither produces a measured result. Ownership and input-key guards ignore queued late events. Different clients remain independent. Coordinate ingestion/CCD acquisition still use M4-A's separate preparation interface; M4-C owns slot state and invokes the calculator.
 
-The worker is validated through an isolated, production-built test entry at `/pose-check/`. This exercises Vite's emitted module worker and real Chromium execution without adding a hidden product feature. M4-C must connect it to comparison controls, slot invalidation, exports and saved results.
+The worker is validated through an isolated, production-built test entry at `/pose-check/`. This exercises Vite's emitted module worker and real Chromium execution without adding a hidden product feature. M4-C also exercises the worker through production comparison controls, slot invalidation, exports and saved results.
 
 ## Independent M4-B reference
 
@@ -103,6 +103,34 @@ The browser script creates and removes its own temporary build, uses local port 
 
 All **269 unit/scientific tests in 36 files** pass, including **25 new M4-B tests** (20 calculation/reference checks and 5 deterministic client-lifecycle checks). Source/test formatting, type checking, the `/Molecules/` production build and diff checks pass. The separate production-built worker harness passed all seven reference cases and lifecycle/buffer checks in Chromium. No source scientific fixtures or existing goldens were changed. The full product browser suite was not rerun because M4-B adds no product UI/controller wiring; the real-worker check covers the new runtime path.
 
+## M4-C UI and per-slot lifecycle
+
+`LigandPoseSummary.tsx` exposes Calculate/Recalculate pose, per-side coherent conformers, the reference occupancy threshold, cancellation, fixed-fit context, corrected/name-matched RMSD, matched atoms, permitted maps, cache/pinned mode and the chosen chemistry hashes. An explicit refresh action requests chemistry again and recalculates. Refusals and operation errors are visible without clearing interaction analyses or other slots. HEM remains unavailable.
+
+`PoseController` owns each slot's preparation abort, worker and current input identity. A changed ligand, conformer, occupancy, pairing, fit scope/transform or source context removes the displayed result synchronously. Active poses recompute; fingerprint filters, non-occupancy interaction settings and visibility do not affect the measurement. Obsolete alternate labels are cleared when a ligand changes; another alternate is never selected automatically. The shared `comparisonFitKey` prevents scoring against a fit from earlier pairing/interpretation inputs while a refit is pending. Store notifications are guarded against reentrant scheduling: changing one shared reference setting starts one replacement per active slot. Cancellation, removal, disposal and queued stale successes cannot install a result into another input context or slot.
+
+The atom-map inspector submits an M2 `pose_atom` investigation with slot/snapshot/result and atom identities. Both sides carry atom IDs as well as residue context. The viewer bypasses Mol*'s default residue granularity for already-resolved loci, so only the selected atoms are highlighted. The displacement is a geometric line with its own label, not an inferred chemical interaction. `poseDisplacementPoint` returns owned displayed endpoints and applies each structure's transform exactly once; unit tests compare every drawn endpoint distance against the scientific result and verify snapshot buffers stay unchanged. Hidden comparisons draw neither their atom highlight nor the displacement; the reference atom remains selected. A changed or removed result clears the atom investigation.
+
+Desktop and 390px screenshots were reviewed. The atom selection review caught and fixed Mol*'s automatic atom-to-residue expansion. The paired atom list scrolls within the panel and controls fit the narrow viewport. Browser tests also exercise keyboard-capable native selects/buttons and focus the selected atom pair in the rendered scene.
+
+## M4-C export, result integrity and session restoration
+
+Comparison JSON **schema 2**, `comparison-1.2.0`, adds optional per-slot pose selections, full prepared input and result, every mapped atom pair/distance, chemical graphs, source/chemistry hashes, parser/policy/algorithm versions, fixed transform/scope/fit identity, and chemistry origin/URL/retrieval metadata when available locally. Float64 coordinate buffers are explicitly serialized as arrays. Non-evaluated states remain reasons, not zero scores. **Export pose JSON** uses the same comparison format without requiring interaction classification; the fingerprint export action also exports the complete comparison independent of row filters. Original source bytes are not packaged and these analytical records are not workspace import bundles.
+
+`data/poseResults.ts` stores evaluated inputs/results together with an integrity hash. Valid revisions are retained for the same full input key; conflicting output cannot replace one. A corrupted record is refused and can be repaired by explicit recalculation. New definitions remain hash-addressed add-only revisions. A successful measurement can be displayed/exported when result storage fails, but the UI explains it was not saved and the session does not claim a persisted result reference.
+
+Session **schema 4** adds per-slot pose conformers/result references and the reference's ligand and minimum occupancy, including sessions where no interaction analysis has run. Descriptors also retain the exact selected protein fit and its input identity. Readers accept schemas 1–4. Restoration waits for pinned reference/slot context, loads the saved record, checks its integrity and supported versions, re-prepares both ligands using explicit pinned chemistry IDs without requests, and requires the recreated complete input key to equal the saved key. This validates the record without re-running the map search or presenting a new calculation as the saved one. Missing, damaged or incompatible results/chemistry show unavailable and require an explicit recalculation. Saved pose settings take precedence over settings from an older pinned interaction run.
+
+M4-C adds 17 deterministic controller/storage/selection tests: cache reuse without interaction classification; occupancy and fit invalidation; coherent conformers; unrelated-filter/visibility stability; cancellation/removal/disposal and late replies; slot isolation and single scheduling on shared changes; exact offline restore; missing/corrupt pins; mismatched current inputs; explicit damaged-result repair; immutable valid results; typed-coordinate/full-provenance exports; structure-qualified atom selection; transformed endpoint agreement; and schemas 1–4.
+
+Seven production browser workflows cover the complete UI path: calculation without interaction analysis, full export, paired atom inspection, global/site fit and occupancy changes, cached reuse and narrow layout; schema 4 exact offline restoration; separate missing-result and missing-chemistry restorations with no requests; cancellation/removal during delayed chemistry; an explicitly labeled synthetic alternate conformer; and HEM refusal alongside a usable hemoglobin comparison.
+
+## M4-C verification result
+
+All **286 unit/scientific tests in 37 files** pass, including the 17 new M4-C tests. Formatting, type checking, root/subpath production builds and root hosting smoke pass. The final complete `/Molecules/` browser suite passes all **47 workflows** (12.5 minutes), including the seven new pose workflows. Desktop/390px and atom-highlight screenshots were reviewed. Existing comparison output dumps match all four prior golden hashes after normalizing only `comparison-1.2.0` back to `comparison-1.1.0`; the expected golden changes are version-only. Engine/biology goldens and pinned coordinate/CCD/reference observations are unchanged.
+
+Reproduce: `npm test`; `npm run format:check`; `VITE_BASE_PATH=/Molecules/ npm run build`; `PLAYWRIGHT_ORIGIN=http://127.0.0.1:4180 PLAYWRIGHT_BASE_PATH=/Molecules/ npm run test:e2e:built`. Focus the new workflows with `-- ligand-pose.spec.ts`. Do not rebuild while browser checks are running.
+
 ## Remaining release gates
 
-M4-C UI and atom highlighting, automatic slot invalidation, session/export integration and persistence remain pending. Broader same-component pairs from at least three additional protein families and performance calibration are still required before the M4 release claim. No deployment or live-provider/CORS check was performed. Existing interaction, biology and comparison goldens remain the regression boundary; M4-B's new pose results do not modify them.
+Broader same-component pairs from at least three additional protein families and calibrated search/performance evidence remain required before the broader M4 release claim. No deployment or live-provider/CORS check was performed. M4-C supplies the requested UI, atom highlighting, exports and saved results locally; hosted checks remain distinct from these deterministic results.

@@ -7,7 +7,8 @@ import {
   slotCorrespondence,
   slotSiteDifferences,
 } from "../comparison/derived";
-import { comparisonJson, download, fingerprintCsv } from "../comparison/export";
+import { downloadWorkspaceComparison } from "../comparison/download";
+import { download, fingerprintCsv } from "../comparison/export";
 import { useComparison } from "../state/comparison";
 import { useExplorer } from "../state/explorer";
 import { useInvestigation } from "../state/investigation";
@@ -87,32 +88,7 @@ export function FingerprintMatrix({
           ) ?? "unobserved"
         }`;
   const rows = onlyChanges ? matrix.rows.filter((r) => r.changes) : matrix.rows;
-  const exportJson = () => {
-    if (!snapshot || !source) return;
-    const correspondences = new Map(
-      slots.map((s) => [s.id, slotCorrespondence(reference, s)]),
-    );
-    const explorer = useExplorer.getState();
-    const sites = new Map(
-      slots.map((s) => [s.id, slotSiteDifferences(explorer, s)]),
-    );
-    download(
-      `${source.id.replace(/[^a-z0-9_-]/gi, "_")}-comparison.json`,
-      comparisonJson(
-        {
-          source,
-          snapshot,
-          analysisCacheKey: analysis?.cacheKey,
-          interpretationId: interpretation?.id,
-        },
-        slots,
-        correspondences,
-        matrix,
-        sites,
-      ),
-      "application/json",
-    );
-  };
+  const exportJson = () => void downloadWorkspaceComparison();
   return (
     <div className="fingerprint" data-testid="fingerprint">
       <div className="fingerprint-heading">

@@ -1,96 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { gunzipSync } from "node:zlib";
-/*
- * Phase 4 comparison workflows. Coordinates and biology responses come from the frozen
- * fixtures in tests/fixtures/biology; every other remote service is blocked.
- */
-const json = (body: Buffer) => ({
-  body,
-  contentType: "application/json",
-  headers: { "access-control-allow-origin": "*" },
-});
-const missing = {
-  status: 404,
-  headers: { "access-control-allow-origin": "*" },
-};
-async function fixtureRoutes(page: Page) {
-  await page.route("https://files.rcsb.org/download/*.cif", async (route) => {
-    const id = route.request().url().split("/").at(-1)!.replace(".cif", "");
-    try {
-      await route.fulfill({
-        body: gunzipSync(await readFile(`tests/fixtures/biology/${id}.cif.gz`)),
-        contentType: "chemical/x-mmcif",
-        headers: { "access-control-allow-origin": "*" },
-      });
-    } catch {
-      await route.fulfill(missing);
-    }
-  });
-  const file =
-    (path: string) =>
-    async (route: Parameters<Parameters<Page["route"]>[1]>[0]) => {
-      try {
-        await route.fulfill(json(await readFile(path)));
-      } catch {
-        await route.fulfill(missing);
-      }
-    };
-  await page.route(
-    "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/*",
-    async (route) =>
-      file(
-        `tests/fixtures/biology/${route.request().url().split("/").at(-1)}-discovery.json`,
-      )(route),
-  );
-  await page.route(
-    "https://ftp.ebi.ac.uk/pub/databases/msd/sifts/xml/*",
-    async (route) => {
-      const id = route.request().url().split("/").at(-1)!.split(".")[0];
-      await route.fulfill({
-        body: await readFile(`tests/fixtures/biology/${id}-sifts.xml.gz`),
-        contentType: "application/gzip",
-        headers: { "access-control-allow-origin": "*" },
-      });
-    },
-  );
-  await page.route("https://data.rcsb.org/rest/v1/core/chemcomp/*", (route) =>
-    file(
-      `tests/fixtures/biology/chemcomp-${route.request().url().split("/").at(-1)}.json`,
-    )(route),
-  );
-  await page.route(
-    "https://data.rcsb.org/rest/v1/core/nonpolymer_entity_instance/**",
-    (route) => {
-      const [entry, asym] = route.request().url().split("/").slice(-2);
-      return file(`tests/fixtures/biology/ligand-${entry}-${asym}.json`)(route);
-    },
-  );
-  // Chemical Component Dictionary definitions: the frozen BEN record; others unavailable.
-  await page.route(
-    "https://files.rcsb.org/ligands/download/*.cif",
-    async (route) => {
-      const id = route.request().url().split("/").at(-1)!.replace(".cif", "");
-      try {
-        await route.fulfill({
-          body: await readFile(`tests/fixtures/${id}-ccd.cif`),
-          contentType: "text/plain",
-          headers: { "access-control-allow-origin": "*" },
-        });
-      } catch {
-        await route.fulfill(missing);
-      }
-    },
-  );
-  await page.route("https://data.rcsb.org/rest/v1/core/entry/*", (route) =>
-    route.fulfill(missing),
-  );
-  await page.route("https://rest.uniprot.org/uniprotkb/*", (route) =>
-    file(`tests/fixtures/biology/${route.request().url().split("/").at(-1)}`)(
-      route,
-    ),
-  );
-}
+import { fixtureRoutes } from "./helpers/comparison";
 test.beforeEach(async ({ page }) => {
   await fixtureRoutes(page);
 });
@@ -128,9 +38,9 @@ test("a comparison structure has its own mapping and analysis, and restores with
     page.getByLabel("Comparison ligand for 1S0R").locator("option:checked"),
   ).toHaveText(/^BEN A:/);
   await slot.getByRole("button", { name: "Analyze" }).click();
-  await expect(slot.getByRole("status")).toContainText(
-    /\d+ chemical interactions with \d+ residues · fresh/,
-  );
+  await expect(
+    slot.locator(".comparison-analysis-status[role=status]"),
+  ).toContainText(/\d+ chemical interactions with \d+ residues · fresh/);
   // The reference analysis is untouched by the comparison analysis.
   await expect(page.locator(".analysis-summary")).toHaveCount(0);
   await page.getByRole("button", { name: "Save session", exact: true }).click();
@@ -142,7 +52,9 @@ test("a comparison structure has its own mapping and analysis, and restores with
   await page.reload();
   await expect(slot).toHaveAttribute("data-phase", "ready");
   await expect(slot.getByTestId("comparison-mapping")).toContainText("pinned");
-  await expect(slot.getByRole("status")).toContainText("cached");
+  await expect(
+    slot.locator(".comparison-analysis-status[role=status]"),
+  ).toContainText("cached");
   await expect(slot.getByLabel("Superposition of 1S0R")).toHaveValue(
     "binding_site",
   );
@@ -175,7 +87,9 @@ test("a failed comparison load leaves the reference analysis intact, and a new r
   await addComparison(page, "1S0Q");
   await expect(slot).toHaveAttribute("data-phase", "ready");
   // An apo structure: nothing to analyze, the comparison still loads.
-  await expect(slot.getByRole("status")).toContainText("Choose a ligand");
+  await expect(
+    slot.locator(".comparison-analysis-status[role=status]"),
+  ).toContainText("Choose a ligand");
   await page.locator(".example-button").nth(1).click();
   await expect(
     page.getByText("Structure ready", { exact: true }),
@@ -268,8 +182,8 @@ test("fingerprints compare like-for-like analyses by UniProt position and export
   const json = JSON.parse(
     await readFile((await (await downloaded).path())!, "utf8"),
   );
-  expect(json.schemaVersion).toBe(1);
-  expect(json.comparisonVersion).toBe("comparison-1.1.0");
+  expect(json.schemaVersion).toBe(2);
+  expect(json.comparisonVersion).toBe("comparison-1.2.0");
   expect(json.structures[0].correspondence.counts.paired).toBe(223);
   expect(json.structures[0].superposition.fitted).toBe(213);
   expect(json.fingerprint.columns[1].similarity.tanimoto).toBe(1);

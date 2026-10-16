@@ -1,4 +1,9 @@
 import { ENGINE_VERSION, RULESET_VERSION } from "../domain/analysis";
+import type { PoseChemistry } from "../domain/ligandPose";
+import {
+  LIGAND_POSE_VERSION,
+  POSE_ALGORITHM_VERSION,
+} from "../domain/ligandPose";
 import { BIOLOGY_VERSION } from "../domain/biology";
 import {
   COMPARISON_VERSION,
@@ -30,9 +35,9 @@ function residueLabel(snapshot: StructureSnapshot, id?: string) {
 }
 
 /**
- * Comparison JSON (schema 1): every structure's identity and pinned inputs, chain pairings
+ * Comparison JSON (schema 2): every structure's identity and pinned inputs, chain pairings
  * and residue correspondence, superpositions with their policy, and the fingerprint matrix.
- * Coordinates are not repeated; each source is identified by its SHA-256.
+ * Whole structures are identified by SHA-256; optional pose records include eligible coordinates.
  */
 export function comparisonJson(
   reference: ReferenceExport,
@@ -40,6 +45,7 @@ export function comparisonJson(
   correspondences: Map<string, Correspondence | null>,
   matrix: FingerprintMatrix | null,
   sites: Map<string, SiteDifferences | null> = new Map(),
+  chemistry: Map<string, PoseChemistry> = new Map(),
 ) {
   const structure = (source: StructureSource, snapshot: StructureSnapshot) => ({
     id: source.id,
@@ -53,8 +59,10 @@ export function comparisonJson(
   });
   return JSON.stringify(
     {
-      schemaVersion: 1,
+      schemaVersion: 2,
       comparisonVersion: COMPARISON_VERSION,
+      ligandPoseVersion: LIGAND_POSE_VERSION,
+      poseAlgorithmVersion: POSE_ALGORITHM_VERSION,
       engineVersion: ENGINE_VERSION,
       ruleSetVersion: RULESET_VERSION,
       biologyVersion: BIOLOGY_VERSION,
@@ -103,11 +111,43 @@ export function comparisonJson(
             },
             superposition: s.superposition ?? { scope: s.superpositionScope },
             bindingSiteDifferences: sites.get(s.id) ?? null,
+            ...(s.pose
+              ? {
+                  pose: {
+                    options: s.pose.options,
+                    ...(s.pose.phase === "ready" && s.pose.record
+                      ? {
+                          input: s.pose.record.input,
+                          result: s.pose.record.result,
+                          createdAt: s.pose.record.createdAt,
+                          chemistry: [
+                            s.pose.record.input.reference.chemistryId,
+                            s.pose.record.input.comparison.chemistryId,
+                          ].map((id) => {
+                            const source = chemistry.get(id);
+                            if (!source) return { id, available: false };
+                            const {
+                              bytes: _,
+                              graph: __,
+                              ...provenance
+                            } = source;
+                            return { ...provenance, available: true };
+                          }),
+                        }
+                      : {
+                          result: s.pose.result,
+                          operation: s.pose.phase,
+                          message: s.pose.message,
+                        }),
+                  },
+                }
+              : {}),
           };
         }),
       fingerprint: matrix,
     },
-    null,
+    (_key, value) =>
+      value instanceof Float64Array ? Array.from(value) : value,
     2,
   );
 }

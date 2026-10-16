@@ -2,7 +2,7 @@
 
 <https://jtmcbride.github.io/Molecules>
 
-A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Structure exploration, ligand-centered interaction computation, SIFTS/UniProt interpretation, structural comparison with linked investigation of its differences, and curated variants are implemented in version 0.5.2. The [phase status](#phase-status) links to each track's contracts and validation evidence.
+A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. The local version 0.6.0 implements structure exploration, ligand-centered interactions, SIFTS/UniProt interpretation, linked structural comparison, curated variants, and fixed-frame ligand pose RMSD with paired atom inspection and pinned results. Deployment and broader pose-family validation remain pending. The [phase status](#phase-status) links to each track's contracts and validation evidence.
 
 ## Run locally
 
@@ -108,7 +108,7 @@ The summary also shows structure evidence: method, resolution and R-free from th
 
 **Interpretation JSON** (schema 3) includes protein/feature snapshots, residue correspondence and identity, projections, ligand identities and validation scores, evidence, source hashes, coordinates, structure quality, the binding-site summary (site/context overlaps with background rates and ligand relations), coordinate-uncertainty metadata with borderline interaction IDs, and the unchanged current Phase 2 analysis, when available. Schema 3 (biology-1.2.0) adds variant replacements and cross-references on features, the deposited-residue state of every variant per chain instance (`variantResidueStates`) and variant overlaps in the binding-site summary. **Residue annotations CSV** includes every deposited polymer position, including explicit unmapped rows, as a separate correspondence/feature export. Columns appended in biology-1.1.0 are `feature_category`, `feature_ligand`, `feature_ligand_id`, `residue_identity` and `residue_change`. biology-1.2.0 appends `variant_replacement`, `variant_cross_references` and `variant_deposited_state`, and reports variant features with category `variant`. The Phase 2 interaction CSV remains unchanged. Raw biological response bytes are preserved locally in IndexedDB.
 
-Biological sources normally reuse cached snapshots for seven days. Expired sources are requested again, with labeled stale-cache fallback during service failure. Manual refresh creates a new interpretation revision; failure preserves the previous interpretation. Saved session schema 2 pins its interpretation and analysis, category filters and protein choice. Schema 3 adds comparison structures, each with its own pinned interpretation, analysis, ligand choice, visibility and display transform. Restoration uses those saved revisions without new biological requests; explicitly refresh and save to replace them. Schema 1 sessions remain readable.
+Biological sources normally reuse cached snapshots for seven days. Expired sources are requested again, with labeled stale-cache fallback during service failure. Manual refresh creates a new interpretation revision; failure preserves the previous interpretation. Saved session schema 2 pins its interpretation and analysis, category filters and protein choice. Schema 3 adds comparison structures, each with its own pinned interpretation, analysis, ligand choice, visibility and display transform. Restoration uses those saved revisions without new biological requests; explicitly refresh and save to replace them. Schema 4 additionally pins ligand pose results, coherent conformer choices and the reference ligand/occupancy settings. Session readers continue accepting schemas 1–3.
 
 Local files receive no automatic biological requests. Explicitly associate a PDB accession to retrieve identifiers only; every polymer chain must match the full deposited sequence and numbering (at least 10 positions). Coordinates are never uploaded. Unsupported/truncated constructs remain unannotated while exploration and interaction computation continue.
 
@@ -150,13 +150,19 @@ The selection is not saved in sessions. Section links above the workspace jump t
 - Shifts are compared with twice the combined Cruickshank coordinate error, or labeled not assessable. That error describes an average-B atom and leaves out fit error.
 - Site waters are conserved when superposed oxygens lie within 1.0 Å. Comparison waters in the reference ligand site are reported.
 
-**Comparison JSON** (schema 1, `comparison-1.1.0`) records every structure's source hash, pinned analysis and interpretation, chain pairings and residue correspondence, superposition and policy, fingerprints and binding-site differences. The **fingerprint CSV** has one line per row and structure. These exports are analytical records; they do not package coordinate bytes or import a workspace into another browser. Saved sessions (schema 3) restore comparison structures, pairings, superposition scope and analyses from this browser's stored bytes without new biological requests.
+**Ligand pose.** Choose a ligand on each side and a protein superposition, then use **Calculate pose** in the comparison slot. It measures equal-weight heavy-atom RMSD in that protein frame and minimizes over permitted chemical atom maps, with no additional ligand alignment. Interaction analysis is optional. The summary includes the name-matched score, fit scope, atom/map counts and chemistry revisions; inspect any atom pair to highlight both atoms and their displacement in 3D. Alternate conformers need one explicit coherent choice per side. The reference's minimum occupancy applies to both ligands. Changing ligand, conformer, occupancy, pairing or fit invalidates the result immediately and recomputes an active pose; interaction filters and visibility do not change the measurement. Calculation can be cancelled independently per slot.
+
+The first pose policy requires the same component ID, matching pinned definitions and complete eligible heavy atoms. It excludes HEM/metal-containing ligands, ions, multi-residue groups, deposited covalent attachments and unsupported or ambiguous stereo contexts. Strict source-graph symmetry preserves formal charges, bond/aromatic labels and supported stereochemical permutations; resonance-equivalent terminal-group swaps are excluded. Limits are 256 heavy atoms, 100,000 search states, 4,096 admissible maps and a 5-second worker deadline. Exhausted searches return no partial score. BEN in 3PTB/1S0R is the validated real example; broader family coverage and performance calibration remain release gates. See [pose methods, independent checks and limits](validation/LIGAND_POSE.md).
+
+**Comparison JSON** (schema 2, `comparison-1.2.0`) records every structure's source hash, pinned analysis and interpretation, chain pairings and residue correspondence, superposition and policy, fingerprints and binding-site differences. Optional per-slot pose records add complete atom maps/distances, typed coordinates serialized as arrays, selected conformers/occupancy, chemical graphs and source hashes/URLs/retrieval/parser metadata, the full fixed fit, algorithm/policy versions and refusal states. **Export pose JSON** uses this same comparison format and is available without interaction analysis. The **fingerprint CSV** has one line per row and structure. These analytical exports do not package original source bytes or import a workspace into another browser.
+
+Saved sessions (schema 4) restore comparisons, reference ligand/occupancy settings, per-slot pose conformers and exact result references from browser storage. Restoration validates the saved result and its exact chemistry bytes without requests or recalculation. Missing, damaged or incompatible pins show unavailable and offer explicit recalculation. A valid saved revision is retained if a conflicting result is presented for the same full input identity; explicit recalculation can repair a damaged record. Saving a result depends on available browser storage.
 
 See [comparison validation evidence](validation/COMPARISON.md) for the numpy superposition check, the ProLIF fingerprint comparison and the documented limits.
 
 ## Phase status
 
-The [next development plan](docs/NEXT_DEVELOPMENT_PLAN.md) records the implemented M1 release-consistency and deployment-validation changes and M2 linked comparison investigation (v0.5.1), plus M3 protein-level variant discovery (v0.5.2). M4-A adds [pinned ligand chemistry and input eligibility](validation/LIGAND_POSE.md), including nine-heavy-atom BEN fixtures and immutable chemistry storage. M4-B adds the exact bounded atom-mapping and fixed-protein-frame RMSD calculator, with independent RDKit checks and cancellable worker execution. Pose controls, atom highlighting and saved/exported scores remain M4-C. Broader validation, portable workspaces, inferred correspondence, and protein interfaces remain planned milestones.
+The [next development plan](docs/NEXT_DEVELOPMENT_PLAN.md) records the implemented M1 release-consistency and deployment-validation changes and M2 linked comparison investigation (v0.5.1), plus M3 protein-level variant discovery (v0.5.2). M4-A adds [pinned ligand chemistry and input eligibility](validation/LIGAND_POSE.md), including nine-heavy-atom BEN fixtures and immutable chemistry storage. M4-B adds the exact bounded atom-mapping and fixed-protein-frame RMSD calculator, with independent RDKit checks and cancellable worker execution. M4-C connects pose controls, transformed atom highlighting, comparison export schema 2 and session schema 4 in the local v0.6.0 implementation; deployment and broader real-family validation remain pending. Broader validation, portable workspaces, inferred correspondence, and protein interfaces remain planned milestones.
 
 - **Phase 1 — complete:** reliable structure exploration, identity and linked selection. [Status](docs/PHASE_1_STATUS.md).
 - **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain. [Status](docs/PHASE_2_STATUS.md).
@@ -225,7 +231,10 @@ src/
     superposition.ts      Horn least-squares Cα fit with outlier rejection
     ligandPoseInput.ts     M4-A ligand eligibility and pinned fixed-frame inputs
     ligandPose.ts, poseMappings.ts  M4-B exact bounded maps, stereo constraints and RMSD
-    ligandPoseWorker.ts, ligandPoseClient.ts  Cancellable pose computation; UI integration pending
+    ligandPoseWorker.ts, ligandPoseClient.ts  Cancellable pose computation
+    poseController.ts, poseContext.ts  Per-slot preparation, invalidation, exact pinned restoration
+    fitContext.ts          Shared identity of the current protein-fit inputs
+    download.ts           Full comparison/pose export independent of interaction filters
     fingerprint.ts        UniProt-keyed fingerprints, comparability and change margins
     siteDifferences.ts, torsions.ts  Residue shifts, χ angles and site waters
     derived.ts, export.ts  Memoized derived results; comparison JSON and fingerprint CSV
@@ -235,7 +244,8 @@ src/
     AnalysisPanel.tsx      Settings, filters, contact inspection and export controls
     ComparisonPanel.tsx    Comparison structures, pairings, superposition, site differences
     FingerprintMatrix.tsx  Fingerprint matrix with similarity and margins; cells open the comparison inspector
-    ComparisonInspector.tsx  Both sides of a comparison selection: numbering, correspondence, strip, interactions
+    ComparisonInspector.tsx  Both sides of a residue or pose-atom selection
+    LigandPoseSummary.tsx   Pose controls, RMSD, chemistry provenance and atom-map inspector
   structure/
     adapter.ts            Mol* lifecycle, scene building, and selection translation
     extract.ts            Assembly-space coordinates and normalized identities
@@ -243,10 +253,12 @@ src/
     quality.ts            Refinement statistics and Cruickshank coordinate error
     controller.ts         Serialized scene updates and stale-request rejection
     investigation.ts      The single writer of the persistent selection; re-resolves or clears on change
+    poseDisplacement.ts   Displayed atom endpoints; applies each structure transform once
   data/
     provider.ts           RCSB/local ingestion, validation, hashes, and metadata
     chemistry.ts          Optional component dictionary acquisition
     ligandChemistry.ts     Independent pose chemistry acquisition and exact offline pins
+    poseResults.ts        Result integrity, immutable valid revisions and explicit damaged-record repair
     sifts.ts, uniprot.ts   Validated biological provider adapters
     chemcomp.ts, ligandFit.ts  RCSB chemical identity (ChEBI) and ligand validation adapters
     biologyResources.ts   Bounded acquisition, freshness and stale fallback

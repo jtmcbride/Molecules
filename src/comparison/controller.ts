@@ -23,6 +23,8 @@ import type { ComparisonSlot } from "../state/comparison";
 import { useExplorer } from "../state/explorer";
 import type { MolecularViewer } from "../structure/adapter";
 import { slotCorrespondence } from "./derived";
+import { comparisonFitKey } from "./fitContext";
+import { PoseController } from "./poseController";
 import { superpose } from "./superposition";
 
 const COLORS = [
@@ -76,6 +78,7 @@ function defaultLigand(snapshot: StructureSnapshot) {
  * controller's queue so scene updates stay serialized.
  */
 export class ComparisonController {
+  readonly pose = new PoseController();
   private epoch = 0;
   private generations = new Map<string, number>();
   private aborts = new Map<string, AbortController>();
@@ -112,6 +115,20 @@ export class ComparisonController {
                 ? { pairingOverrides: s.pairingOverrides }
                 : {}),
               superpositionScope: s.superpositionScope,
+              ...(s.superposition
+                ? {
+                    superposition: s.superposition,
+                    superpositionKey: s.superpositionKey ?? undefined,
+                  }
+                : {}),
+              ...(s.pose
+                ? {
+                    pose: {
+                      options: s.pose.options,
+                      resultKey: s.pose.savedKey,
+                    },
+                  }
+                : {}),
             },
           ]
         : [],
@@ -218,9 +235,9 @@ export class ComparisonController {
       transform: restore?.transform ?? null,
       pairingOverrides: restore?.pairingOverrides ?? [],
       superpositionScope: restore?.superpositionScope ?? "global",
-      superposition: null,
+      superposition: restore?.superposition ?? null,
       superpositionError: null,
-      superpositionKey: null,
+      superpositionKey: restore?.superpositionKey ?? null,
     };
     useComparison.setState((s) => ({
       slots: [...s.slots, slot],
@@ -276,7 +293,12 @@ export class ComparisonController {
           ? [useExplorer.getState().source!.contentHash]
           : []),
       ]).catch(() => {});
-      void this.initializeBiology(id, generation, epoch, restore);
+      const biology = this.initializeBiology(id, generation, epoch, restore);
+      if (restore?.pose)
+        void biology.then(() => {
+          if (this.alive(id, generation, epoch))
+            void this.pose.restore(id, restore.pose!);
+        });
       if (restore?.analysisCacheKey)
         void this.restoreAnalysis(id, restore.analysisCacheKey, epoch);
     } catch (error) {
@@ -334,14 +356,7 @@ export class ComparisonController {
     const ligands =
       group?.residueIds ??
       (reference.targetLigandId ? [reference.targetLigandId] : []);
-    const key = JSON.stringify([
-      reference.snapshot.id,
-      reference.interpretation?.id,
-      slot.interpretation?.id,
-      slot.pairingOverrides,
-      slot.superpositionScope,
-      slot.superpositionScope === "binding_site" ? ligands : null,
-    ]);
+    const key = comparisonFitKey(reference, slot);
     if (key === slot.superpositionKey) return;
     if (slot.superpositionScope === "none") {
       patchSlot(id, {
@@ -636,6 +651,7 @@ export class ComparisonController {
     }
   }
   dispose() {
+    this.pose.dispose();
     ++this.epoch;
     this.aborts.forEach((a) => a.abort());
     this.analysisClient.cancel();

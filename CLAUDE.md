@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`) and Phase 4 structural comparison (`comparison-1.1.0`). Phase 5's curated-variant track is complete (`biology-1.2.0`); its other tracks (protein–protein interfaces, ligand pose RMSD, alignment-based correspondence) are pending. Milestones M1–M3 of `docs/NEXT_DEVELOPMENT_PLAN.md` (release gate, linked comparison investigation, protein-level variant discovery) are complete as package 0.5.2.
+Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`) and Phase 4 structural comparison (`comparison-1.2.0`). Phase 5's curated-variant track is complete (`biology-1.2.0`); M4 adds ligand pose controls, atom correspondence, fixed-frame RMSD and pinned results. Protein–protein interfaces and inferred alignment correspondence remain pending. M1–M4 implementation is local package 0.6.0; broader ligand-family validation, performance calibration and hosted verification remain release gates. See `docs/NEXT_DEVELOPMENT_PLAN.md`.
 
 Scientific policy, defaults and limits live in `README.md`. Validation evidence lives in `validation/README.md` (Phase 2, PLIP comparison) and `validation/BIOLOGY.md` (Phase 3). Design contracts and follow-up milestones live in `docs/PHASE_3_PLAN.md`; phase status records are in `docs/PHASE_*_STATUS.md`. `docs/PHASE_2X_PLAN.md` records the ligand-3 ruleset revision. `docs/PHASE_4_PLAN.md` records Phase 4 (structural comparison); validation is in `validation/COMPARISON.md`. `docs/PHASE_5_PLAN.md` records the Phase 5 curated-variant track; validation is in `validation/VARIANTS.md`. `tests/contracts.test.ts` fails if the plan's contract excerpt drifts from `src/domain/biology.ts`. Update those docs whenever behavior, defaults or limits change. They are the project's scientific record, not marketing.
 
@@ -52,6 +52,7 @@ src/
     quality.ts     Refinement statistics from mmCIF; Cruickshank DPI coordinate error
     ligandGroups.ts  Multi-residue ligand groups (branched, BIRD, covalently linked)
     chemicalGraph.ts  Deposited chemical graphs and attachment context; no inferred bonds
+    poseDisplacement.ts  Atom-pair endpoints in the displayed frame, transformed once
     controller.ts  Serialized scene updates, stale-request rejection
   analysis/    Phase 2 engine (runs in a Web Worker)
     worker.ts, client.ts   Worker entry + cancellable client
@@ -82,6 +83,7 @@ src/
     provider.ts    RCSB/local ingestion, SHA-256, metadata
     chemistry.ts   Optional RCSB CCD downloads
     ligandChemistry.ts  Independent pose preparation; immutable chemistry revisions and exact offline pins
+    poseResults.ts  Result integrity, immutable valid revisions; explicit damaged-record repair
     sifts.ts, uniprot.ts, biologySchemas.ts  Zod/XML-validated adapters
     chemcomp.ts, ligandFit.ts  RCSB chemical component (ChEBI) and ligand-instance validation adapters
     variantCarriers.ts  RCSB sequence-coordinates alignments (GraphQL POST), source-conflict check
@@ -97,7 +99,10 @@ src/
     superposition.ts   Horn fit of paired Cα with outlier rejection (validated against numpy)
     ligandPoseInput.ts  Pure ligand eligibility and fixed protein-frame input identity
     ligandPose.ts, poseMappings.ts, poseTransform.ts  Exact bounded atom correspondence, stereo parity and fixed-frame RMSD
-    ligandPoseWorker.ts, ligandPoseClient.ts  Cancellable pose worker; slot/UI integration remains M4-C
+    ligandPoseWorker.ts, ligandPoseClient.ts  Cancellable pose worker
+    poseController.ts, poseContext.ts  Per-slot pose state, invalidation and exact offline restore
+    fitContext.ts  Shared current protein-fit identity; prevents scoring with an obsolete fit
+    download.ts  Full comparison/pose exports independent of interaction filters
     fingerprint.ts     Fingerprint matrix keyed by UniProt position; unmeasured cells never count as absent
     derived.ts, export.ts  Memoized correspondence/fingerprints; comparison JSON/CSV
     selection.ts   resolveInvestigation/refreshInvestigation/drawnInteractions: pure, never touches the viewer or stores
@@ -111,7 +116,7 @@ tests/
 public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ```
 
-M4-A/M4-B validation and scientific scope live in `validation/LIGAND_POSE.md`. `scripts/ligand-pose-reference.py` regenerates independent RDKit maps and scores with pinned packages; never supply application maps as the independent reference. `node scripts/ligand-pose-worker-check.mjs` tests an isolated production-built worker at `/pose-check/`. It leaves `dist` untouched.
+M4 validation and scientific scope live in `validation/LIGAND_POSE.md`. `scripts/ligand-pose-reference.py` regenerates independent RDKit maps and scores with pinned packages; never supply application maps as the independent reference. `node scripts/ligand-pose-worker-check.mjs` tests an isolated production-built worker at `/pose-check/`. It leaves `dist` untouched.
 
 ## Invariants (do not break)
 
@@ -129,7 +134,7 @@ M4-A/M4-B validation and scientific scope live in `validation/LIGAND_POSE.md`. `
 ## Conventions
 
 - `src/` is Prettier-formatted (defaults, double quotes) and CI enforces it. Older test files keep their dense single-quoted style; new test files use Prettier. ESLint isn't set up because `typescript-eslint` doesn't support TypeScript 7 yet.
-- Version bumps: `ENGINE_VERSION` for output-shape changes, `RULESET_VERSION` for rule/assumption changes, `BIOLOGY_VERSION` for interpretation semantics. Analysis JSON is schema 3; interpretation JSON is schema 3; comparison JSON is schema 1. `COMPARISON_VERSION` (`src/domain/comparison.ts`) for comparison semantics. New request/parameter fields must be optional, and restored parameters merge over `DEFAULT_PARAMETERS`.
+- Version bumps: `ENGINE_VERSION` for output-shape changes, `RULESET_VERSION` for rule/assumption changes, `BIOLOGY_VERSION` for interpretation semantics. Analysis JSON is schema 3; interpretation JSON is schema 3; comparison JSON is schema 2; saved sessions are schema 4 (readers accept 1–4). `COMPARISON_VERSION` (`src/domain/comparison.ts`) for comparison semantics. New request/parameter fields must be optional, and restored parameters merge over `DEFAULT_PARAMETERS`.
 - Dependencies are pinned exactly. The Mol* version is part of the ruleset version, so upgrading Mol* means bumping `RULESET_VERSION` and re-reviewing the PLIP reference comparison.
 - Tests use frozen fixtures, never live APIs. A source hash change means re-retrieving and reviewing inputs, not editing assertions. Label synthetic fixtures and in-memory modifications as artificial.
 - Treat discrepancies against external tools (PLIP) as investigated, documented differences in `validation/README.md`. Don't hide them behind count tolerances.

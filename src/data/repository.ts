@@ -198,7 +198,7 @@ export async function saveSession(descriptor: SessionDescriptor) {
 }
 export async function getLastSession() {
   const session = await database.sessions.get("last");
-  if (!session || ![1, 2, 3].includes(session.descriptor.schemaVersion))
+  if (!session || ![1, 2, 3, 4].includes(session.descriptor.schemaVersion))
     return null;
   const source = await getSourceByHash(session.descriptor.sourceHash);
   return source ? { source, descriptor: session.descriptor } : null;

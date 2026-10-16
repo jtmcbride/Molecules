@@ -8,6 +8,7 @@ import type { ExplorerController } from "../structure/controller";
 import { CorrespondenceSummary } from "./CorrespondenceSummary";
 import { SuperpositionSummary } from "./SuperpositionSummary";
 import { SiteDifferencesSummary } from "./SiteDifferencesSummary";
+import { LigandPoseSummary } from "./LigandPoseSummary";
 import { FingerprintMatrix } from "./FingerprintMatrix";
 
 function ligandLabel(snapshot: StructureSnapshot, residueId: string) {
@@ -156,6 +157,7 @@ function SlotRow({
                     : "Choose a ligand to analyze, or compare without one."
                   : slot.analysisStatus}
           </p>
+          <LigandPoseSummary slot={slot} controller={controller} />
         </div>
       )}
     </li>

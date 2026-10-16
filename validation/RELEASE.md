@@ -1,6 +1,6 @@
 # Production artifact and release validation
 
-M1 implementation, 2026-10-13; package 0.5.2 (M1–M3, including protein-level variant discovery), 2026-10-15. Scientific versions and calculation semantics are unchanged.
+M1 implementation, 2026-10-13; local package 0.6.0 (M1–M4, including ligand pose UI/results), 2026-10-15. Comparison semantics are `comparison-1.2.0`, comparison JSON schema 2 and saved sessions schema 4. Interaction/biology methods and numerical regression outputs are unchanged. Broader pose-family validation and performance calibration remain release gates; no M4 deployment is claimed.
 
 ## Automated gate
 
@@ -42,11 +42,12 @@ Run this after a successful deployment in a fresh browser profile or after clear
 3. Open public PDB entry `1S0R` by accession. Verify live coordinate retrieval, exact SIFTS correspondence and UniProt protein/feature loading. Record any provider's HTTP/CORS error separately from local asset failures; optional metadata/validation unavailability should preserve exploration.
 4. Open 4HHB, select the beta-chain heme, run interaction analysis, and use the protein variant table to search E7V, inspect each chain, and check the independent contact filters. Explicitly request P68871 carrier lookup, confirm a fresh RCSB sequence-coordinates POST succeeds from the deployed origin, then open a listed carrier such as 2HBS as a comparison. Confirm the reference and comparison remain usable independently.
 5. With 3PTB analyzed, add and analyze `1S0R`. From the keyboard, open the water-bridge cell at UniProt 216 and a binding-site row. Confirm by eye that both residues are highlighted on the superposed 1S0R cartoon (not at its deposited position), that one dashed interaction per structure is drawn through its water, that switching the superposition scope moves the 1S0R highlight and line with the cartoon, and that hiding 1S0R removes its cartoon, highlight and line while the reference line stays. Toggle water on and off. Browser tests check the resolved selection and drawn-interaction choice but cannot see the rendered scene.
-6. Save the session and reload. Confirm the pinned interpretation, lookup and analyses restore without new scientific requests. Explicit refresh should create a new revision rather than relabel the saved one as fresh.
-7. Block scientific-provider requests and reopen bundled examples. Confirm the geometry workflow survives provider failure and annotations/lookup failures explain their availability state.
+6. With 3PTB and 1S0R paired, calculate the BEN pose without interaction analysis. Confirm a fresh CCD definition request succeeds from the deployed origin; inspect a paired atom and its displacement after the selected protein fit, then switch fit scope. HEM must report unavailable while comparison remains usable.
+7. Save the session and reload. Confirm the pinned interpretation, lookup and analyses restore without new scientific requests. Explicit refresh should create a new revision rather than relabel the saved one as fresh.
+8. Block scientific-provider requests and reopen bundled examples. Confirm the geometry workflow survives provider failure and annotations/lookup failures explain their availability state.
 
 Attach observed failures, not just a pass/fail headline: failing URL, request method, HTTP status/CORS message, and the unaffected workflows. These checks verify deployed integration on that date; frozen fixtures remain the reproducible scientific evidence.
 
 ## Evidence for this implementation
 
-Local verification results are recorded in the M1–M3 implementation records in `docs/NEXT_DEVELOPMENT_PLAN.md`. GitHub Actions execution and the post-deployment checklist are separate checks; editing the workflows does not demonstrate a successful hosted deployment.
+For M4-C, 286 unit/scientific tests, source/test formatting, type checking, root/subpath builds, root hosting smoke and all 47 browser workflows at `/Molecules/` passed locally (2026-10-15). Desktop/390px and atom-selection screenshots were reviewed. Local verification details are recorded in the M1–M4 implementation records in `docs/NEXT_DEVELOPMENT_PLAN.md`. GitHub Actions execution and the post-deployment checklist are separate checks; editing the workflows does not demonstrate a successful hosted deployment.

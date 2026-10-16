@@ -72,6 +72,9 @@ export function investigationRevision(
           slot.superposition?.transform ?? null,
           slot.targetLigandId,
           slot.ligandGroupId,
+          ...(request.kind === "pose_atom"
+            ? [slot.pose?.record?.inputKey ?? null]
+            : []),
         ]
       : null,
   ]);
@@ -257,6 +260,46 @@ export function resolveInvestigation(
     slotId,
     snapshotId: cmpSnapshot.id,
   };
+  if (request.kind === "pose_atom") {
+    const result = slot.pose?.phase === "ready" ? slot.pose.result : null;
+    if (
+      result?.status !== "evaluated" ||
+      result.inputKey !== request.inputKey ||
+      result.reference.snapshotId !== refSnapshot.id ||
+      result.comparison.snapshotId !== cmpSnapshot.id
+    )
+      return unavailable("The selected pose result is no longer current.");
+    const pair = result.pairs.find(
+      (p) => p.referenceAtomId === request.referenceAtomId,
+    );
+    if (
+      !pair ||
+      !refSnapshot.atoms.some((a) => a.id === pair.referenceAtomId) ||
+      !cmpSnapshot.atoms.some((a) => a.id === pair.comparisonAtomId)
+    )
+      return unavailable("The selected pose atoms are unavailable.");
+    const interactions: InvestigationInteractions = {
+      status: "not_available",
+      reason: "This selection shows a pose atom pair.",
+    };
+    return resolved({
+      slotId,
+      reference: {
+        structure: refStructure,
+        residueIds: [result.reference.residueId],
+        atomIds: [pair.referenceAtomId],
+        interactions,
+      },
+      comparison: {
+        structure: cmpStructure,
+        residueIds: [result.comparison.residueId],
+        atomIds: [pair.comparisonAtomId],
+        interactions,
+      },
+      correspondence: null,
+      posePair: { ...pair, inputKey: result.inputKey },
+    });
+  }
   const corr = slotCorrespondence(reference, slot);
 
   if (request.kind === "residue") {
@@ -596,6 +639,15 @@ export function refreshInvestigation(
   }
   const slotId = slotOf(request);
   if (slotId && !workspace.slots.some((s) => s.id === slotId)) return null;
+  if (request.kind === "pose_atom") {
+    const pose = workspace.slots.find((s) => s.id === request.slotId)?.pose;
+    if (
+      pose?.phase !== "ready" ||
+      pose.result?.status !== "evaluated" ||
+      pose.result.inputKey !== request.inputKey
+    )
+      return null;
+  }
   if (investigationRevision(request, workspace) === revision) return previous;
   return resolveInvestigation(request, workspace);
 }

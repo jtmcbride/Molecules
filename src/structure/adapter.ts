@@ -36,6 +36,7 @@ import type {
   StructureSnapshot,
 } from "../domain/types";
 import type { ResidueTarget, StructureRef } from "../domain/selection";
+import { poseDisplacementPoint } from "./poseDisplacement";
 import { extractSnapshot, type SelectionIndex } from "./extract";
 
 /**
@@ -60,6 +61,7 @@ interface Member {
 export interface SelectionGroup {
   structure: StructureRef;
   residueIds: string[];
+  atomIds?: string[];
 }
 
 /** One structure's displayed scene objects, resolved for selection or drawing. */
@@ -77,11 +79,7 @@ export class MolecularViewer {
   private bindingSite: string | null = null;
   private interactionEpoch = 0;
   private interactionLine: ReturnType<
-    typeof ShapeRepresentation<
-      MolecularInteraction[],
-      Lines,
-      typeof Lines.Params
-    >
+    typeof ShapeRepresentation<unknown, Lines, typeof Lines.Params>
   > | null = null;
   private structure: Structure | null = null;
   private selections: SelectionIndex | null = null;
@@ -565,11 +563,21 @@ export class MolecularViewer {
     this.plugin.managers.interactivity.lociSelects.deselectAll();
     const loci = groups.flatMap((group) => {
       const owner = this.owner(group.structure);
-      const l = owner && this.lociForResidues(owner, group.residueIds);
+      const l =
+        owner &&
+        (group.atomIds
+          ? this.lociForAtoms(
+              owner,
+              group.atomIds.flatMap((id) => {
+                const i = owner.snapshot.atoms.findIndex((a) => a.id === id);
+                return i < 0 ? [] : [i];
+              }),
+            )
+          : this.lociForResidues(owner, group.residueIds));
       return l && l.elements.length ? [l] : [];
     });
     for (const l of loci)
-      this.plugin.managers.interactivity.lociSelects.select({ loci: l });
+      this.plugin.managers.interactivity.lociSelects.select({ loci: l }, false);
     if (focus && loci.length)
       this.plugin.managers.camera.focusLoci(loci, {
         minRadius: 8,
@@ -698,6 +706,58 @@ export class MolecularViewer {
     }
     await this.drawInteractions([{ interaction, structure: ref }]);
   }
+  /** Draws a pose displacement between two owners, applying each display transform once.
+   * The line is a geometric displacement, never a chemical interaction. */
+  async drawPosePair(
+    reference: StructureRef,
+    comparison: StructureRef,
+    pair: {
+      referenceAtomId: string;
+      comparisonAtomId: string;
+      distanceAngstrom: number;
+    },
+  ) {
+    this.clearInteractionLine();
+    const epoch = this.interactionEpoch;
+    const point = (ref: StructureRef, atomId: string) => {
+      const owner = this.owner(ref);
+      if (!owner) return null;
+      const position = poseDisplacementPoint(
+        owner.snapshot,
+        atomId,
+        owner.displayTransform,
+      );
+      return position ? Vec3.create(...position) : null;
+    };
+    const a = point(reference, pair.referenceAtomId),
+      b = point(comparison, pair.comparisonAtomId);
+    if (!a || !b) return;
+    const builder = LinesBuilder.create();
+    builder.addFixedLengthDashes(a, b, 0.16, 0);
+    const shape = Shape.create(
+      "Ligand atom displacement",
+      pair,
+      builder.getLines(),
+      () => Color(0xf4d6a4),
+      () => 1,
+      () => `Atom displacement ${pair.distanceAngstrom.toFixed(3)} Å`,
+    );
+    const representation = ShapeRepresentation<
+      unknown,
+      Lines,
+      typeof Lines.Params
+    >(() => shape, Lines.Utils);
+    await this.plugin.runTask(
+      representation.createOrUpdate({ sizeFactor: 3 }, pair),
+    );
+    if (epoch !== this.interactionEpoch || !this.alive) {
+      representation.destroy();
+      return;
+    }
+    representation.setState({ pickable: false });
+    this.plugin.canvas3d?.add(representation);
+    this.interactionLine = representation;
+  }
   /**
    * Draws interactions of any structures as dashed lines, replacing what was drawn, without
    * changing the selection or camera. Comparison endpoints, ring centroids and water legs
@@ -759,7 +819,7 @@ export class MolecularViewer {
         `${interactions[group].type} ${interactions[group].distanceAngstrom.toFixed(2)} Å`,
     );
     const representation = ShapeRepresentation<
-      MolecularInteraction[],
+      unknown,
       Lines,
       typeof Lines.Params
     >(() => shape, Lines.Utils);

@@ -42,7 +42,13 @@ function groups(result: InvestigationResult | null): SelectionGroup[] {
   return [result.view.reference, result.view.comparison].flatMap((side) =>
     side?.residueIds.length &&
     !(side.structure.kind === "comparison" && hidden.has(side.structure.slotId))
-      ? [{ structure: side.structure, residueIds: side.residueIds }]
+      ? [
+          {
+            structure: side.structure,
+            residueIds: side.residueIds,
+            ...(side.atomIds ? { atomIds: side.atomIds } : {}),
+          },
+        ]
       : [],
   );
 }
@@ -168,6 +174,25 @@ export class InvestigationController {
    */
   private draw() {
     const { result, drawn } = useInvestigation.getState();
+    if (
+      result?.status === "resolved" &&
+      result.view.posePair &&
+      result.view.reference &&
+      result.view.comparison
+    ) {
+      this.drawing = true;
+      const slot = useComparison
+        .getState()
+        .slots.find((s) => s.id === result.view.slotId);
+      if (slot?.visible)
+        void this.viewer.drawPosePair(
+          result.view.reference.structure,
+          result.view.comparison.structure,
+          result.view.posePair,
+        );
+      else this.viewer.clearInteractionLine();
+      return;
+    }
     const items = drawable(result, drawn);
     if (items.length) {
       this.drawing = true;

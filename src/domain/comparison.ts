@@ -1,3 +1,4 @@
+import type { SavedPoseSelection } from "./ligandPose";
 import type { InteractionType } from "./analysis";
 /**
  * Phase 4 structural comparison contracts. Comparison structures are independent of the
@@ -6,7 +7,7 @@ import type { InteractionType } from "./analysis";
  */
 
 /** Comparison semantics version: bump whenever comparison output can change. */
-export const COMPARISON_VERSION = "comparison-1.1.0";
+export const COMPARISON_VERSION = "comparison-1.2.0";
 /** Comparison structures besides the reference (eight structures in total). */
 export const MAX_COMPARISON_STRUCTURES = 7;
 
@@ -26,6 +27,9 @@ export interface ComparisonMemberDescriptor {
   transform?: RigidTransform;
   pairingOverrides?: ChainPairingOverride[];
   superpositionScope?: SuperpositionScope;
+  superposition?: SuperpositionResult;
+  superpositionKey?: string;
+  pose?: SavedPoseSelection;
 }
 
 /**

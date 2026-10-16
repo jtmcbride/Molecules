@@ -38,7 +38,8 @@ export type PoseReason =
   | "no_correspondence"
   | "search_limit"
   | "map_limit"
-  | "pinned_chemistry_missing";
+  | "pinned_chemistry_missing"
+  | "pinned_result_missing";
 export interface PoseUnavailable {
   status: "not_evaluated";
   code: PoseReason;
@@ -178,4 +179,37 @@ export interface StoredLigandPose {
   input: LigandPoseInput;
   result: LigandPoseResult;
   createdAt: string;
+  contentHash?: string;
+}
+
+export interface PoseOptions {
+  referenceConformerId: string | null;
+  comparisonConformerId: string | null;
+}
+export const DEFAULT_POSE_OPTIONS: PoseOptions = {
+  referenceConformerId: null,
+  comparisonConformerId: null,
+};
+export interface SavedPoseSelection {
+  options: PoseOptions;
+  resultKey?: string;
+}
+export interface PoseSlotState {
+  options: PoseOptions;
+  enabled: boolean;
+  phase:
+    | "idle"
+    | "preparing"
+    | "running"
+    | "ready"
+    | "unavailable"
+    | "error"
+    | "cancelled"
+    | "restoring";
+  contextKey: string;
+  result: LigandPoseResult | null;
+  record: StoredLigandPose | null;
+  savedKey?: string;
+  mode: "fresh" | "cached" | "pinned" | null;
+  message: string;
 }

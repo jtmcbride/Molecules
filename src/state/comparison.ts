@@ -1,3 +1,4 @@
+import type { PoseSlotState } from "../domain/ligandPose";
 import { create } from "zustand";
 import type { AnalysisRun } from "../domain/analysis";
 import type { InterpretationSnapshot } from "../domain/biology";
@@ -44,6 +45,7 @@ export interface ComparisonSlot {
   superpositionError: string | null;
   /** Inputs of the current superposition; a change triggers a refit. */
   superpositionKey: string | null;
+  pose?: PoseSlotState;
 }
 
 interface ComparisonState {
