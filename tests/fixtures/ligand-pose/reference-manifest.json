@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "note": "Independent observations and the generator are pinned together. Existing coordinate/CCD source hashes are inside reference.json.",
+  "files": [
+    {
+      "path": "tests/fixtures/ligand-pose/reference.json",
+      "sha256": "73cc2c9974bf9c6c3a4cfcd56bb1a45d82f816015f33bb0a61131855a16951a4"
+    },
+    {
+      "path": "scripts/ligand-pose-reference.py",
+      "sha256": "05a85a29e22d1df48f621b5294aa5ebd797c9f435b137df45bd1eea65d49b3bf"
+    }
+  ]
+}

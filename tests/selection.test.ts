@@ -600,3 +600,35 @@ describe("structure-qualified investigation", () => {
     });
   });
 });
+
+describe("reference residue-set investigations", () => {
+  it("retains every observed position in snapshot order and clears after replacement", async () => {
+    const side = await comparisonSide("3PTB");
+    const w = workspace(side, []);
+    const ids = side.snapshot.residues.slice(0, 3).map((r) => r.id);
+    const request: InvestigationRequest = {
+      kind: "reference_residues",
+      snapshotId: side.snapshot.id,
+      residueIds: [ids[2], ids[0], ids[1], ids[0]],
+    };
+    const result = resolveInvestigation(request, w);
+    expect(view(result).reference?.residueIds).toEqual(ids);
+    expect(view(result).slotId).toBeNull();
+    expect(
+      refreshInvestigation(result, {
+        ...w,
+        reference: {
+          ...w.reference,
+          snapshot: { ...side.snapshot, id: "replaced" },
+        },
+      }),
+    ).toBeNull();
+    expect(
+      resolveInvestigation({ ...request, residueIds: [ids[0], "missing"] }, w)
+        .status,
+    ).toBe("unavailable");
+    expect(resolveInvestigation({ ...request, residueIds: [] }, w).status).toBe(
+      "unavailable",
+    );
+  });
+});

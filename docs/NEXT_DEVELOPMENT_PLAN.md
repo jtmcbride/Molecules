@@ -1,6 +1,6 @@
 # Development plan after v0.5.0
 
-Status: M1 and M2 implemented, package 0.5.1. M1 locally verified 2026-10-13 (CI passed 2026-10-14); M2 slice 2 (selection resolver, member-aware viewer) implemented 2026-10-14 and deployed to Pages from the validated artifact (`c3fc8b6`, then `8d61158` after a browser-test fix); M2 slice 3 (linked fingerprint/site inspection, keyboard support, 0.5.1 release evidence) implemented 2026-10-14. The manual live-provider checklist has not been run. M3–M8 remain proposed. See the [implementation record](#implementation-record) for verification and outstanding hosted checks. Baseline commit: `38f3330`; package 0.5.0, engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-3`, biology `biology-1.2.0`, comparison `comparison-1.1.0`.
+Status: M1–M3 implemented, package 0.5.2. M1 locally verified 2026-10-13 (CI passed 2026-10-14); M2 slice 2 (selection resolver, member-aware viewer) implemented 2026-10-14 and deployed to Pages from the validated artifact (`c3fc8b6`, then `8d61158` after a browser-test fix); M2 slice 3 (linked fingerprint/site inspection, keyboard support, 0.5.1 release evidence) implemented 2026-10-14. The manual live-provider checklist has not been run. M3 protein-level variant discovery implemented 2026-10-15; M4-A input preparation and pinned chemistry implemented 2026-10-15; M4-B atom correspondence and fixed-frame RMSD implemented 2026-10-15; M4-C and M5–M8 remain proposed. See the [implementation record](#implementation-record) for verification and outstanding hosted checks. Baseline commit: `38f3330`; package 0.5.0, engine `contacts-2.1.0`, ruleset `molstar-5.13.1-ligand-3`, biology `biology-1.2.0`, comparison `comparison-1.1.0`.
 
 ## Outcome
 
@@ -151,7 +151,7 @@ First release supports the same chemical component ID on both sides, a single no
 
 ### M4-A: Pinned chemistry and input preparation
 
-Proposed modules: `src/domain/ligandPose.ts`, `src/data/ligandChemistry.ts`, `src/structure/chemicalGraph.ts`.
+Implemented modules: `src/domain/ligandPose.ts`, `src/data/ligandChemistry.ts`, `src/structure/chemicalGraph.ts`, `src/comparison/ligandPoseInput.ts`. See [input validation](../validation/LIGAND_POSE.md).
 
 - Extract a complete graph from sufficiently specified embedded component data, otherwise request the existing CCD source by component ID. Record the chosen source bytes, hash, atom/bond attributes, and parser/policy version. Never infer symmetry from coordinate distances or an interaction run's geometry-inferred bonds.
 - Validate observed atom names against definitions, element/charge agreement where specified, full heavy-atom coverage, covalent attachment context, supported bond orders, aromaticity, and stereochemistry. Refuse contradictory definitions or unsupported stereo rather than dropping those constraints.
@@ -163,7 +163,7 @@ Proposed modules: `src/domain/ligandPose.ts`, `src/data/ligandChemistry.ts`, `sr
 
 ### M4-B: Exact bounded correspondence and calculation
 
-Proposed modules: `src/comparison/ligandPose.ts`, `ligandPoseWorker.ts`, `ligandPoseClient.ts`.
+Implemented modules: `src/comparison/ligandPose.ts`, `poseMappings.ts`, `poseTransform.ts`, `ligandPoseWorker.ts`, `ligandPoseClient.ts`. See [mapping policy and independent evidence](../validation/LIGAND_POSE.md#m4-b-calculation-and-mapping-policy).
 
 - `calculateLigandPose(input)` is the pure calculation interface. Input includes both graph/coordinate snapshots, source/ligand/conformer identities, the exact rigid transform, and policy.
 - Use label/degree/neighborhood partitioning and deterministic graph backtracking to enumerate allowed isomorphisms. Validate stereo permutation constraints, not merely equal R/S labels on matched atoms. Require a proper rigid transform and finite coordinates.
@@ -340,3 +340,29 @@ Before marking a milestone complete:
 - **Fixed during visual verification.** Comparison-structure hiding and the water switch compared Mol*'s optional `isHidden` flag directly, so a never-toggled node (`undefined`) was never hidden: hiding a comparison structure kept its cartoon visible and water could not be switched off once shown. Both now treat a missing flag as visible. The browser suite checked only the application state, which is why it passed; `validation/RELEASE.md` now includes a manual visual check.
 - **Scientific outputs unchanged.** No engine, ruleset, biology or comparison semantics changed; all goldens are unchanged and no version constant was bumped. The selection stays transient (no session-schema change). Package 0.5.1.
 - **Verification.** 204 scientific tests in 30 files pass, including new tests for the paired strip (unobserved, ambiguous, mutated and unmapped positions; sequence start) and drawn-interaction choice (nearest, kept choice, fallback, chemical preference, water bridge on both sides, reference-only, and the 4HHB/1HHO His58 π-stacking cell drawn only where present). All 38 browser workflows pass on the 0.5.1 production build at `/Molecules/`, including four new ones: keyboard investigation of 3PTB/1S0R water-bridge, multi-interaction and binding-site cells with refit and unchanged reference analysis; a gained/lost cell in 4HHB/1HHO; a 1HHO assembly-copy (ASM-2) reference resolving to its own chain instance against 4HHB chain C; and section navigation, expanded-view preservation and the inspector at phone width. Rendered highlights and lines were checked by screenshots under global fit, no fit and a hidden structure; browser tests cannot see the scene, so this remains a manual check.
+
+
+### M3 — Protein-level variant discovery (2026-10-15)
+
+- Added a pure variant-table selector and a protein-wide discovery table: source-feature counts independent of chain copies, position/ID ordering, text/type/observed/contact filters, ten-row pagination, and expandable chain-instance coverage. Quoted descriptions, substitutions, uncertain bounds, evidence and records outside the deposited mapping remain visible.
+- Reused interpretation projections and deposited-residue states; proximity, chemical and clash receptor membership stay separate. Missing or mismatched analysis disables contact filtering. Existing site summaries, consequence wording and complete interpretation exports are unchanged.
+- Routed feature residue sets through M2's persistent investigation selection, including all observed positions of a multi-residue replacement. Extracted shared carrier controls for table and residue inspector; requests deduplicate per accession, support cancellation and retain pinned reuse and isolated failures.
+- Package 0.5.2; scientific versions, golden files and session schema unchanged.
+- **Verification.** All 214 unit/scientific tests in 32 files pass; formatting, type checking and production builds pass. Root-path hosting smoke and the variant workflows passed (6 browser checks); the complete suite passed all 40 workflows at `/Molecules/`. After a final control-styling adjustment, the two new table workflows passed again on the rebuilt artifact, with desktop and 390px screenshots reviewed. The table scrolls horizontally within its panel on narrow screens. Scientific golden files are unchanged. No deployment or live-provider/CORS verification was performed for M3.
+
+
+### M4-A — Input contracts, pinned BEN chemistry and eligibility (2026-10-15)
+
+- Added versioned pose inputs, complete chemical graphs, stable refusal codes and fixed protein-frame input identity. Input preparation works without interaction classification; coordinates are owned copies and no ligand fit or RMSD is calculated.
+- Preserves charges, aromatic flags and atom/bond stereo; prefers complete embedded definitions with CCD fallback otherwise. Supplied embedded facts must agree with the chosen dictionary. Explicit coherent conformers, positive finite occupancy, complete heavy-atom coverage and a 256-heavy-atom bound are enforced. Deposited covalent links, ambiguous attachment records, HEM/metals and groups are refused.
+- Pins existing BEN/3PTB/1S0R and negative fixtures by hash. BEN retains nine heavy atoms and its distinct terminal C–N bond/stereo labels. No scientific fixture or expected score was rewritten.
+- Database version 5 adds immutable pose chemistry revisions and reserves pose-result storage. Offline pinned reads validate exact bytes and versions; missing pins do not fetch. The existing analysis cache and session/export schemas remain compatible. Package remains 0.5.2.
+- **Verification.** All 244 unit/scientific tests in 34 files pass, including 30 new pose tests. Formatting, type checking, the `/Molecules/` production build and diff checks pass; existing scientific fixtures/goldens are unchanged. Three focused browser checks pass against that build: production hosting/assets/workers, comparison analysis/session restoration, and offline pinned interpretation/analysis restoration with explicit refresh. The complete browser suite was not rerun for this additive preparation/storage slice. See [M4-A evidence and limits](../validation/LIGAND_POSE.md). M4-B calculation/independent numerical validation and M4-C UI/session/export integration remain pending; no hosted deployment or live-provider check was performed.
+
+
+### M4-B — Exact atom correspondence and fixed-frame RMSD (2026-10-15)
+
+- Added pure `calculateLigandPose`, deterministic labeled-graph search, explicit tetrahedral/E/Z neighbor-parity checks, fixed protein-frame scoring, stable tie-breaking and complete atom-pair distances/provenance. Terminal H/D/T inventories preserve chemistry while heavy atoms alone enter the score. No ligand refit occurs. Ambiguous moving stereo environments are explicitly unsupported rather than silently removing mappings.
+- Enforces 256 heavy atoms, 100,000 states and 4,096 complete maps; exhausted searches return no score. `pose-exact-1.0.0` enters input identity. The cancellable module worker has a 5-second operational watchdog, owned buffer transfers and guards against queued stale replies. UI/session/export integration remains M4-C; package/scientific comparison versions are unchanged.
+- Independently generated and hash-pinned RDKit 2026.03.6 maps and in-place RMSD for five synthetic cases plus global/site BEN comparisons. Both BEN cases have exactly two admissible maps; corrected scores are 1.081198193559 Å (global) and 1.075828880790 Å (site), with no terminal nitrogen swap. The actual application protein-fit path also agrees within 1e-4 Å. See [full evidence and explicit limits](../validation/LIGAND_POSE.md).
+- **Verification.** All 269 unit/scientific tests in 36 files pass, including 25 new M4-B tests. Formatting, type checking, the `/Molecules/` production build and diff checks pass. The isolated production-built worker passed all seven independent numerical fixtures plus supersession/abort/buffer checks in Chromium at `/pose-check/`. Existing scientific fixtures/goldens and the product UI are unchanged; the full product browser suite was not rerun for this calculator-only slice. No hosted deployment or live-provider check was performed. Additional real protein families and calibrated performance evidence remain release gates.

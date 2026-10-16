@@ -34,6 +34,7 @@ export interface InvestigationWorkspace {
 const UNLOADED = "The selected structure is no longer loaded.";
 
 function slotOf(request: InvestigationRequest) {
+  if (request.kind === "reference_residues") return null;
   return request.kind === "residue"
     ? request.target.structure.kind === "comparison"
       ? request.target.structure.slotId
@@ -202,6 +203,29 @@ export function resolveInvestigation(
     status: "resolved",
     view: { request, revision, ...view },
   });
+
+  if (request.kind === "reference_residues") {
+    const requested = new Set(request.residueIds);
+    const residueIds = refSnapshot.residues
+      .filter((r) => requested.has(r.id))
+      .map((r) => r.id);
+    if (
+      request.snapshotId !== refSnapshot.id ||
+      !residueIds.length ||
+      residueIds.length !== requested.size
+    )
+      return unavailable(UNLOADED);
+    return resolved({
+      slotId: null,
+      reference: {
+        structure: refStructure,
+        residueIds,
+        interactions: interactionsOf(refSnapshot, refRun, involves(requested)),
+      },
+      comparison: null,
+      correspondence: null,
+    });
+  }
 
   if (
     request.kind === "residue" &&
@@ -558,7 +582,9 @@ export function refreshInvestigation(
         )
       : request.kind === "residue"
         ? [request.target.structure]
-        : [];
+        : request.kind === "reference_residues"
+          ? [{ kind: "reference", snapshotId: request.snapshotId }]
+          : [];
   for (const s of structures) {
     if (s.kind === "reference" && s.snapshotId !== refId) return null;
     if (

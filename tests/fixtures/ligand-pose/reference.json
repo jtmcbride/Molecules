@@ -1,0 +1,2158 @@
+{
+  "schemaVersion": 1,
+  "tools": {
+    "rdkit": "2026.03.6",
+    "numpy": "2.4.2",
+    "gemmi": "0.7.5"
+  },
+  "options": {
+    "useChirality": true,
+    "uniquify": false,
+    "maxMatches": 100000,
+    "symmetrizeConjugatedTerminalGroups": false,
+    "metric": "CalcRMS after frozen protein transform; no ligand fit",
+    "hydrogens": "explicit in graph; unique heavy-atom maps scored"
+  },
+  "sources": [
+    {
+      "path": "tests/fixtures/BEN-ccd.cif",
+      "sha256": "a7ce813cbbac599168d4772f635ae23d7c6edb4d83a9891ebabcbe9e8bb66849"
+    },
+    {
+      "path": "public/structures/3PTB.cif",
+      "sha256": "d2744dbacfb97ec9b4ff7f5cf4b204418bccf92e46b63130bfebb3916260232f"
+    },
+    {
+      "path": "tests/fixtures/biology/1S0R.cif.gz",
+      "sha256": "df9f1d0758fc373c2cf3f63d7b8f317edaea09278cc41dfa87153d7926f9ab99"
+    },
+    {
+      "path": "validation/comparison.json",
+      "sha256": "a1a7fe0b23c723898b97ef33e90fede928383dcab5a399f08f667d2d92a6e942"
+    }
+  ],
+  "cases": [
+    {
+      "name": "ring",
+      "origin": {
+        "syntheticSmiles": "C1CCC1",
+        "coordinates": "artificial algebraic test vectors"
+      },
+      "graph": {
+        "componentId": "RING",
+        "atoms": [
+          {
+            "name": "A00",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A01",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A02",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A03",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A04",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A05",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A06",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A07",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A08",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A09",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A10",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A11",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "bonds": [
+          {
+            "a": "A00",
+            "b": "A01",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A02",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A02",
+            "b": "A03",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A03",
+            "b": "A00",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A00",
+            "b": "A04",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A00",
+            "b": "A05",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A06",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A07",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A02",
+            "b": "A08",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A02",
+            "b": "A09",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A03",
+            "b": "A10",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A03",
+            "b": "A11",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "containsMetal": false
+      },
+      "atomNames": [
+        "A00",
+        "A01",
+        "A02",
+        "A03"
+      ],
+      "reference": [
+        [
+          0.0,
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "comparison": [
+        [
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          0.0,
+          2.0,
+          1.0
+        ]
+      ],
+      "transform": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "maps": [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          3,
+          2,
+          1
+        ],
+        [
+          1,
+          0,
+          3,
+          2
+        ],
+        [
+          1,
+          2,
+          3,
+          0
+        ],
+        [
+          2,
+          1,
+          0,
+          3
+        ],
+        [
+          2,
+          3,
+          0,
+          1
+        ],
+        [
+          3,
+          0,
+          1,
+          2
+        ],
+        [
+          3,
+          2,
+          1,
+          0
+        ]
+      ],
+      "rmsdAngstrom": 0.0,
+      "nameMatchedRmsdAngstrom": 3.7416573867739413,
+      "minimumMaps": [
+        [
+          3,
+          2,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "asymmetric",
+      "origin": {
+        "syntheticSmiles": "CC(O)F",
+        "coordinates": "artificial algebraic test vectors"
+      },
+      "graph": {
+        "componentId": "ASYMMETRIC",
+        "atoms": [
+          {
+            "name": "A00",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A01",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A02",
+            "element": "O",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A03",
+            "element": "F",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A04",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A05",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A06",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A07",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A08",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "bonds": [
+          {
+            "a": "A00",
+            "b": "A01",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A02",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A03",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A00",
+            "b": "A04",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A00",
+            "b": "A05",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A00",
+            "b": "A06",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A07",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A02",
+            "b": "A08",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "containsMetal": false
+      },
+      "atomNames": [
+        "A00",
+        "A01",
+        "A02",
+        "A03"
+      ],
+      "reference": [
+        [
+          0.0,
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "comparison": [
+        [
+          0.0,
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "transform": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "maps": [
+        [
+          0,
+          1,
+          2,
+          3
+        ]
+      ],
+      "rmsdAngstrom": 0.0,
+      "nameMatchedRmsdAngstrom": 0.0,
+      "minimumMaps": [
+        [
+          0,
+          1,
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "name": "tetrahedral",
+      "origin": {
+        "syntheticSmiles": "F[C@](Cl)(Br)I",
+        "coordinates": "artificial algebraic test vectors"
+      },
+      "graph": {
+        "componentId": "TETRAHEDRAL",
+        "atoms": [
+          {
+            "name": "A00",
+            "element": "F",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A01",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "S"
+          },
+          {
+            "name": "A02",
+            "element": "Cl",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A03",
+            "element": "Br",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A04",
+            "element": "I",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "bonds": [
+          {
+            "a": "A00",
+            "b": "A01",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A02",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A03",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A04",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "containsMetal": false
+      },
+      "atomNames": [
+        "A00",
+        "A01",
+        "A02",
+        "A03",
+        "A04"
+      ],
+      "reference": [
+        [
+          0.0,
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          4.0,
+          4.0,
+          3.0
+        ]
+      ],
+      "comparison": [
+        [
+          0.0,
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          4.0,
+          4.0,
+          3.0
+        ]
+      ],
+      "transform": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "maps": [
+        [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      ],
+      "rmsdAngstrom": 0.0,
+      "nameMatchedRmsdAngstrom": 0.0,
+      "minimumMaps": [
+        [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "name": "paired-stereo",
+      "origin": {
+        "syntheticSmiles": "C[C@H](F)[C@@H](F)C",
+        "coordinates": "artificial algebraic test vectors"
+      },
+      "graph": {
+        "componentId": "PAIRED-STEREO",
+        "atoms": [
+          {
+            "name": "A00",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A01",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "S"
+          },
+          {
+            "name": "A02",
+            "element": "F",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A03",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "S"
+          },
+          {
+            "name": "A04",
+            "element": "F",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A05",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A06",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A07",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A08",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A09",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A10",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A11",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A12",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A13",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "bonds": [
+          {
+            "a": "A00",
+            "b": "A01",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A02",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A03",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A03",
+            "b": "A04",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A03",
+            "b": "A05",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A00",
+            "b": "A06",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A00",
+            "b": "A07",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A00",
+            "b": "A08",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A09",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A03",
+            "b": "A10",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A05",
+            "b": "A11",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A05",
+            "b": "A12",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A05",
+            "b": "A13",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "containsMetal": false
+      },
+      "atomNames": [
+        "A00",
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05"
+      ],
+      "reference": [
+        [
+          0.0,
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          4.0,
+          4.0,
+          3.0
+        ],
+        [
+          5.0,
+          6.0,
+          1.0
+        ]
+      ],
+      "comparison": [
+        [
+          5.0,
+          6.0,
+          1.0
+        ],
+        [
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          4.0,
+          4.0,
+          3.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          0.0,
+          2.0,
+          1.0
+        ]
+      ],
+      "transform": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "maps": [
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        [
+          5,
+          3,
+          4,
+          1,
+          2,
+          0
+        ]
+      ],
+      "rmsdAngstrom": 0.0,
+      "nameMatchedRmsdAngstrom": 4.864839839775475,
+      "minimumMaps": [
+        [
+          5,
+          3,
+          4,
+          1,
+          2,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "alkene",
+      "origin": {
+        "syntheticSmiles": "F/C=C/F",
+        "coordinates": "artificial algebraic test vectors"
+      },
+      "graph": {
+        "componentId": "ALKENE",
+        "atoms": [
+          {
+            "name": "A00",
+            "element": "F",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A01",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A02",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A03",
+            "element": "F",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A04",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "A05",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "bonds": [
+          {
+            "a": "A00",
+            "b": "A01",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A02",
+            "sourceOrder": "DOUB",
+            "order": "DOUB",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A02",
+            "b": "A03",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A01",
+            "b": "A04",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "A02",
+            "b": "A05",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "containsMetal": false
+      },
+      "atomNames": [
+        "A00",
+        "A01",
+        "A02",
+        "A03"
+      ],
+      "reference": [
+        [
+          0.0,
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "comparison": [
+        [
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          2.0,
+          6.0,
+          2.0
+        ],
+        [
+          1.0,
+          3.0,
+          4.0
+        ],
+        [
+          0.0,
+          2.0,
+          1.0
+        ]
+      ],
+      "transform": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "maps": [
+        [
+          0,
+          1,
+          2,
+          3
+        ],
+        [
+          3,
+          2,
+          1,
+          0
+        ]
+      ],
+      "rmsdAngstrom": 0.0,
+      "nameMatchedRmsdAngstrom": 3.7416573867739413,
+      "minimumMaps": [
+        [
+          3,
+          2,
+          1,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "3PTB-1S0R-global",
+      "origin": {
+        "proteinFit": "3PTB-1S0R-global",
+        "coordinates": "deposited, Float32 snapshot precision"
+      },
+      "graph": {
+        "componentId": "BEN",
+        "atoms": [
+          {
+            "name": "C",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "C1",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C2",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C3",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C4",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C5",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C6",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "H2",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "H3",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "H4",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "H5",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "H6",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "HN1",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "HN21",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "HN22",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "N1",
+            "element": "N",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "N2",
+            "element": "N",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "bonds": [
+          {
+            "a": "C",
+            "b": "C1",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C",
+            "b": "N1",
+            "sourceOrder": "DOUB",
+            "order": "DOUB",
+            "aromatic": false,
+            "stereo": "E"
+          },
+          {
+            "a": "C",
+            "b": "N2",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C1",
+            "b": "C2",
+            "sourceOrder": "DOUB",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C1",
+            "b": "C6",
+            "sourceOrder": "SING",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C2",
+            "b": "C3",
+            "sourceOrder": "SING",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C2",
+            "b": "H2",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C3",
+            "b": "C4",
+            "sourceOrder": "DOUB",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C3",
+            "b": "H3",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C4",
+            "b": "C5",
+            "sourceOrder": "SING",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C4",
+            "b": "H4",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C5",
+            "b": "C6",
+            "sourceOrder": "DOUB",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C5",
+            "b": "H5",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C6",
+            "b": "H6",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "HN1",
+            "b": "N1",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "HN21",
+            "b": "N2",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "HN22",
+            "b": "N2",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "containsMetal": false
+      },
+      "atomNames": [
+        "C",
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "N1",
+        "N2"
+      ],
+      "reference": [
+        [
+          -2.193000078201294,
+          13.626999855041504,
+          15.496000289916992
+        ],
+        [
+          -1.8530000448226929,
+          14.310999870300293,
+          16.658000946044922
+        ],
+        [
+          -2.1070001125335693,
+          15.652999877929688,
+          16.757999420166016
+        ],
+        [
+          -1.7740000486373901,
+          16.340999603271484,
+          17.93199920654297
+        ],
+        [
+          -1.1749999523162842,
+          15.661999702453613,
+          19.0049991607666
+        ],
+        [
+          -0.9139999747276306,
+          14.295000076293945,
+          18.885000228881836
+        ],
+        [
+          -1.2569999694824219,
+          13.633999824523926,
+          17.70800018310547
+        ],
+        [
+          -2.796999931335449,
+          14.234999656677246,
+          14.491000175476074
+        ],
+        [
+          -1.7619999647140503,
+          12.390999794006348,
+          15.309000015258789
+        ]
+      ],
+      "comparison": [
+        [
+          25.038000106811523,
+          42.76599884033203,
+          15.121000289916992
+        ],
+        [
+          25.402999877929688,
+          43.53200149536133,
+          16.32699966430664
+        ],
+        [
+          26.003999710083008,
+          42.98699951171875,
+          17.415000915527344
+        ],
+        [
+          26.297000885009766,
+          43.611000061035156,
+          18.558000564575195
+        ],
+        [
+          25.992000579833984,
+          44.92399978637695,
+          18.67099952697754
+        ],
+        [
+          25.44700050354004,
+          45.542999267578125,
+          17.597999572753906
+        ],
+        [
+          25.1200008392334,
+          44.85499954223633,
+          16.481000900268555
+        ],
+        [
+          25.4060001373291,
+          41.53499984741211,
+          14.963000297546387
+        ],
+        [
+          24.29400062561035,
+          43.314998626708984,
+          14.152999877929688
+        ]
+      ],
+      "transform": [
+        0.9999565602335307,
+        -0.00699406835844251,
+        0.006161221771816838,
+        0.0,
+        0.006988327982292976,
+        0.9999751274784454,
+        0.0009527310631632369,
+        0.0,
+        -0.006167731992878474,
+        -0.000909633038235626,
+        0.9999805656360526,
+        0.0,
+        -27.27573605234498,
+        -28.9676322656658,
+        0.21740547827301526,
+        1.0
+      ],
+      "maps": [
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        [
+          0,
+          1,
+          6,
+          5,
+          4,
+          3,
+          2,
+          7,
+          8
+        ]
+      ],
+      "rmsdAngstrom": 1.0811981935592345,
+      "nameMatchedRmsdAngstrom": 1.9015360928444953,
+      "minimumMaps": [
+        [
+          0,
+          1,
+          6,
+          5,
+          4,
+          3,
+          2,
+          7,
+          8
+        ]
+      ]
+    },
+    {
+      "name": "3PTB-1S0R-site",
+      "origin": {
+        "proteinFit": "3PTB-1S0R-site",
+        "coordinates": "deposited, Float32 snapshot precision"
+      },
+      "graph": {
+        "componentId": "BEN",
+        "atoms": [
+          {
+            "name": "C",
+            "element": "C",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "C1",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C2",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C3",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C4",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C5",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "C6",
+            "element": "C",
+            "charge": 0,
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "name": "H2",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "H3",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "H4",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "H5",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "H6",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "HN1",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "HN21",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "HN22",
+            "element": "H",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "N1",
+            "element": "N",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "name": "N2",
+            "element": "N",
+            "charge": 0,
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "bonds": [
+          {
+            "a": "C",
+            "b": "C1",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C",
+            "b": "N1",
+            "sourceOrder": "DOUB",
+            "order": "DOUB",
+            "aromatic": false,
+            "stereo": "E"
+          },
+          {
+            "a": "C",
+            "b": "N2",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C1",
+            "b": "C2",
+            "sourceOrder": "DOUB",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C1",
+            "b": "C6",
+            "sourceOrder": "SING",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C2",
+            "b": "C3",
+            "sourceOrder": "SING",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C2",
+            "b": "H2",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C3",
+            "b": "C4",
+            "sourceOrder": "DOUB",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C3",
+            "b": "H3",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C4",
+            "b": "C5",
+            "sourceOrder": "SING",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C4",
+            "b": "H4",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C5",
+            "b": "C6",
+            "sourceOrder": "DOUB",
+            "order": "AROM",
+            "aromatic": true,
+            "stereo": "N"
+          },
+          {
+            "a": "C5",
+            "b": "H5",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "C6",
+            "b": "H6",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "HN1",
+            "b": "N1",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "HN21",
+            "b": "N2",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          },
+          {
+            "a": "HN22",
+            "b": "N2",
+            "sourceOrder": "SING",
+            "order": "SING",
+            "aromatic": false,
+            "stereo": "N"
+          }
+        ],
+        "containsMetal": false
+      },
+      "atomNames": [
+        "C",
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "N1",
+        "N2"
+      ],
+      "reference": [
+        [
+          -2.193000078201294,
+          13.626999855041504,
+          15.496000289916992
+        ],
+        [
+          -1.8530000448226929,
+          14.310999870300293,
+          16.658000946044922
+        ],
+        [
+          -2.1070001125335693,
+          15.652999877929688,
+          16.757999420166016
+        ],
+        [
+          -1.7740000486373901,
+          16.340999603271484,
+          17.93199920654297
+        ],
+        [
+          -1.1749999523162842,
+          15.661999702453613,
+          19.0049991607666
+        ],
+        [
+          -0.9139999747276306,
+          14.295000076293945,
+          18.885000228881836
+        ],
+        [
+          -1.2569999694824219,
+          13.633999824523926,
+          17.70800018310547
+        ],
+        [
+          -2.796999931335449,
+          14.234999656677246,
+          14.491000175476074
+        ],
+        [
+          -1.7619999647140503,
+          12.390999794006348,
+          15.309000015258789
+        ]
+      ],
+      "comparison": [
+        [
+          25.038000106811523,
+          42.76599884033203,
+          15.121000289916992
+        ],
+        [
+          25.402999877929688,
+          43.53200149536133,
+          16.32699966430664
+        ],
+        [
+          26.003999710083008,
+          42.98699951171875,
+          17.415000915527344
+        ],
+        [
+          26.297000885009766,
+          43.611000061035156,
+          18.558000564575195
+        ],
+        [
+          25.992000579833984,
+          44.92399978637695,
+          18.67099952697754
+        ],
+        [
+          25.44700050354004,
+          45.542999267578125,
+          17.597999572753906
+        ],
+        [
+          25.1200008392334,
+          44.85499954223633,
+          16.481000900268555
+        ],
+        [
+          25.4060001373291,
+          41.53499984741211,
+          14.963000297546387
+        ],
+        [
+          24.29400062561035,
+          43.314998626708984,
+          14.152999877929688
+        ]
+      ],
+      "transform": [
+        0.9998872185479394,
+        -0.008069334453994178,
+        0.012666334352719688,
+        0.0,
+        0.00809651034255738,
+        0.9999650266482881,
+        -0.0020957100375328663,
+        0.0,
+        -0.012648980383342064,
+        0.002198026787400709,
+        0.9999175825904373,
+        0.0,
+        -27.241696193599275,
+        -28.978041393078897,
+        0.11586486056998879,
+        1.0
+      ],
+      "maps": [
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        [
+          0,
+          1,
+          6,
+          5,
+          4,
+          3,
+          2,
+          7,
+          8
+        ]
+      ],
+      "rmsdAngstrom": 1.075828880789653,
+      "nameMatchedRmsdAngstrom": 1.8984407814718582,
+      "minimumMaps": [
+        [
+          0,
+          1,
+          6,
+          5,
+          4,
+          3,
+          2,
+          7,
+          8
+        ]
+      ]
+    }
+  ]
+}

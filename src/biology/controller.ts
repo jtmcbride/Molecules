@@ -15,8 +15,8 @@ export class BiologyController {
   cancel(clear = true) {
     ++this.generation;
     this.abort?.abort();
-    for (const abort of this.carrierAborts.values()) abort.abort();
-    this.carrierAborts.clear();
+    for (const accession of this.carrierAborts.keys())
+      this.cancelCarriers(accession);
     if (!clear)
       useExplorer.setState({
         biologyPhase: useExplorer.getState().interpretation ? "ready" : "idle",
@@ -101,8 +101,8 @@ export class BiologyController {
     this.abort = new AbortController();
     const signal = this.abort.signal,
       current = ++this.generation;
-    for (const abort of this.carrierAborts.values()) abort.abort();
-    this.carrierAborts.clear();
+    for (const accession of this.carrierAborts.keys())
+      this.cancelCarriers(accession);
     useExplorer.setState({
       carrierLookups: {},
       biologyPhase: "loading",
@@ -163,7 +163,11 @@ export class BiologyController {
       interpretation = state.interpretation,
       protein = interpretation?.proteins.find((p) => p.accession === accession);
     if (!interpretation || !protein) return;
-    this.carrierAborts.get(accession)?.abort();
+    if (
+      this.carrierAborts.has(accession) ||
+      state.carrierLookups[accession]?.phase === "ready"
+    )
+      return;
     const abort = new AbortController(),
       current = this.generation;
     this.carrierAborts.set(accession, abort);
@@ -203,6 +207,18 @@ export class BiologyController {
       if (this.carrierAborts.get(accession) === abort)
         this.carrierAborts.delete(accession);
     }
+  }
+  /** Cancel only this protein's request. A later explicit request can retry. */
+  cancelCarriers(accession: string) {
+    const abort = this.carrierAborts.get(accession);
+    if (!abort) return;
+    abort.abort();
+    this.carrierAborts.delete(accession);
+    useExplorer.setState((s) => {
+      const carrierLookups = { ...s.carrierLookups };
+      delete carrierLookups[accession];
+      return { carrierLookups };
+    });
   }
   /** Pinned lookups of a saved session, from stored bytes only; never refetched. */
   private async restoreCarriers(resourceIds: string[], current: number) {

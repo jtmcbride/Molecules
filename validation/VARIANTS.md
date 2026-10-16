@@ -103,3 +103,11 @@ SHA-256 of the full variant output (records, projections, deposited states, bind
 ## Change log
 
 - **biology-1.2.0 (Phase 5).** Introduced; see above.
+
+## Protein-level discovery (M3, package 0.5.2)
+
+The protein table is a display selector over the pinned interpretation. It uses the existing projection and deposited-state policies; it introduces no variant-effect model or scientific version change. Feature totals count source records once per protein, with chain instances expanded underneath. Interpretation JSON/CSV remains the complete export independent of table pagination or filters.
+
+`tests/variant-table.test.ts` checks P68871's 261 records, P00760's absence of curated records, the intact P01009 replacement at 190–198, and identical totals before/after the 1HHO assembly duplicates its beta chain. Synthetic edits separately exercise outside-fragment, unobserved, ambiguous, uncertain and partially observed multi-position features. Synthetic interactions isolate proximity/chemical/clash receptor membership and missing/mismatched-analysis availability. Existing scientific goldens remain the calculation checks.
+
+`tests/carrier-controller.test.ts` checks per-accession deduplication, ready/pinned reuse, cancellation and retry, late-result rejection and isolated failures. `tests/selection.test.ts` checks persistent residue-set resolution and invalidation after coordinate replacement. The browser variant suite adds protein search → chain inspection → evidence → carrier → comparison, shared lookup reuse, pagination, phone-width containment, chain re-selection, and filtering without changing the binding-site summary. Existing browser workflows continue to cover pinned restoration and provider failure. Frozen responses establish reproducible local behavior; live provider/CORS checks belong to the release checklist.

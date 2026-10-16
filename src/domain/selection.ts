@@ -22,6 +22,7 @@ export interface ResidueTarget {
 /** What the user asked to investigate; resolved against the current workspace. */
 export type InvestigationRequest =
   | { kind: "residue"; target: ResidueTarget }
+  | { kind: "reference_residues"; snapshotId: string; residueIds: string[] }
   | { kind: "site_difference"; slotId: string; referenceResidueId: string }
   | { kind: "fingerprint"; slotId: string; rowKey: string };
 

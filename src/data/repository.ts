@@ -5,6 +5,7 @@ import type {
   ResourceSnapshot,
 } from "../domain/biology";
 import type { AnalysisRun, ChemicalDefinition } from "../domain/analysis";
+import type { PoseChemistry, StoredLigandPose } from "../domain/ligandPose";
 import type { SessionDescriptor, StructureSource } from "../domain/types";
 import {
   planEviction,
@@ -21,6 +22,8 @@ class ExplorerDatabase extends Dexie {
   biologyResources!: EntityTable<ResourceSnapshot, "id">;
   proteins!: EntityTable<ProteinRecord, "id">;
   interpretations!: EntityTable<InterpretationSnapshot, "id">;
+  poseChemistry!: EntityTable<PoseChemistry, "id">;
+  ligandPoses!: EntityTable<StoredLigandPose, "inputKey">;
   constructor() {
     super("molecular-explorer");
     this.version(1).stores({
@@ -63,6 +66,11 @@ class ExplorerDatabase extends Dexie {
           }),
         ),
       );
+    // Immutable pose sources/results coexist with the legacy component-ID chemistry cache.
+    this.version(5).stores({
+      poseChemistry: "id, componentId, contentHash, retrievedAt",
+      ligandPoses: "inputKey, createdAt",
+    });
   }
 }
 export const database = new ExplorerDatabase();

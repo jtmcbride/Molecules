@@ -2840,3 +2840,99 @@ select {
     margin: 0 15px 10px;
   }
 }
+
+.variant-table {
+  margin: 22px 0;
+  padding: 18px;
+  border: 1px solid #34475e;
+  border-radius: 10px;
+  background: #101b2b;
+}
+.variant-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.variant-filters label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+}
+.variant-filters input,
+.variant-filters select {
+  width: 100%;
+  min-width: 0;
+  margin-top: 0;
+  min-height: 36px;
+  padding: 6px 8px;
+  color: #bac7d9;
+  background: #172235;
+  border: 1px solid #33425b;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.variant-table-scroll {
+  overflow-x: auto;
+}
+.variant-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.variant-table th,
+.variant-table td {
+  padding: 12px 8px;
+  vertical-align: top;
+  border-bottom: 1px solid #283b50;
+  overflow-wrap: anywhere;
+}
+.variant-table th {
+  font-weight: 500;
+}
+.variant-table thead {
+  color: #92aabd;
+}
+.variant-table small {
+  display: block;
+  margin: 5px 0;
+  color: #92aabd;
+}
+.variant-table q {
+  color: #d1deeb;
+  font-style: italic;
+}
+.variant-table td > .biology-link {
+  display: block;
+  margin-top: 8px;
+}
+.variant-details {
+  background: #152235;
+}
+.variant-chain {
+  margin-bottom: 12px;
+  padding-left: 12px;
+  border-left: 2px solid #34475e;
+}
+.variant-chain p {
+  margin: 5px 0;
+}
+.variant-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .variant-table {
+    padding: 10px;
+  }
+  .variant-filters {
+    grid-template-columns: 1fr;
+  }
+  .variant-table table {
+    min-width: 500px;
+  }
+}

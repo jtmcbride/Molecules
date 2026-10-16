@@ -451,25 +451,40 @@ export class ExplorerController {
         await this.viewer.selectInteraction(interaction);
     });
   }
-  selectAnnotation(id: string) {
+  selectAnnotation(
+    id: string,
+    chainInstanceId = useExplorer.getState().activeChainId,
+  ) {
     const s = useExplorer.getState(),
       projection = s.interpretation?.projections.find(
-        (p) => p.annotationId === id && p.chainInstanceId === s.activeChainId,
+        (p) => p.annotationId === id && p.chainInstanceId === chainInstanceId,
       );
     if (!projection) return;
-    this.select(projection.residueIds[0] ?? null, true);
+    this.viewer.clearInteractionLine();
+    useExplorer.setState({ selectedInteractionId: null });
+    if (projection.residueIds.length && !projection.uncertain && s.snapshot) {
+      this.investigation.investigate(
+        {
+          kind: "reference_residues",
+          snapshotId: s.snapshot.id,
+          residueIds: projection.residueIds,
+        },
+        { focus: true },
+      );
+    } else this.investigation.clear();
     const mapping = s.interpretation?.mappings.find(
       (m) =>
-        m.chainInstanceId === s.activeChainId &&
+        m.chainInstanceId === chainInstanceId &&
         m.uniprotPosition === projection.unobservedPositions[0],
     );
     useExplorer.setState({
       selectedAnnotationId: id,
+      activeChainId: chainInstanceId,
       biologySelectedLabel: projection.residueIds.length
-        ? useExplorer.getState().biologySelectedLabel
+        ? (s.snapshot?.residues.find((r) => r.id === projection.residueIds[0])
+            ?.labelSeqId ?? null)
         : (mapping?.labelSeqId ?? null),
     });
-    this.viewer.selectResidues(projection.residueIds, true);
   }
   selectBiologyPosition(label: number) {
     const s = useExplorer.getState(),

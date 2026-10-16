@@ -3,6 +3,7 @@ import { BookOpen, Download, LoaderCircle, RefreshCw } from "lucide-react";
 import { useExplorer } from "../state/explorer";
 import type { ExplorerController } from "../structure/controller";
 import { AnnotationTracks } from "./AnnotationTracks";
+import { VariantTable } from "./VariantTable";
 import { BindingSiteSummary } from "./BindingSiteSummary";
 import { downloadInterpretation } from "../biology/export";
 import { ANNOTATION_TYPE_OPTIONS } from "../domain/biology";
@@ -207,6 +208,12 @@ export function BiologyPanel({
             )}
             {protein && (
               <>
+                <VariantTable
+                  key={`${interpretation.id}:${protein.id}`}
+                  interpretation={interpretation}
+                  protein={protein}
+                  controller={controller}
+                />
                 <div className="annotation-categories">
                   {ANNOTATION_TYPE_OPTIONS.map((type) => (
                     <label key={type}>

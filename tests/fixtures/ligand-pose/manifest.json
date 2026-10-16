@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "pinnedOn": "2026-10-15",
+  "note": "Reuses existing frozen repository files without changing bytes. This is a pinning date, not a claimed retrieval date; 1S0R retrieval provenance is in biology/manifest.json. Other original retrieval dates are not reconstructed here. No RMSD expectations are asserted by M4-A.",
+  "sources": [
+    {
+      "path": "tests/fixtures/BEN-ccd.cif",
+      "url": "https://files.rcsb.org/ligands/download/BEN.cif",
+      "sha256": "a7ce813cbbac599168d4772f635ae23d7c6edb4d83a9891ebabcbe9e8bb66849"
+    },
+    {
+      "path": "public/structures/3PTB.cif",
+      "url": "https://files.rcsb.org/download/3PTB.cif",
+      "sha256": "d2744dbacfb97ec9b4ff7f5cf4b204418bccf92e46b63130bfebb3916260232f"
+    },
+    {
+      "path": "tests/fixtures/biology/1S0R.cif.gz",
+      "url": "https://files.rcsb.org/download/1S0R.cif",
+      "sha256": "df9f1d0758fc373c2cf3f63d7b8f317edaea09278cc41dfa87153d7926f9ab99"
+    },
+    {
+      "path": "tests/fixtures/3PTB.bcif",
+      "url": null,
+      "sha256": "36ee24e359a88a34260addf2fffc94b16d49b94c350f7b348c09c812b21f7c3f"
+    },
+    {
+      "path": "tests/fixtures/reference-set/5P9J.cif.gz",
+      "url": "https://files.rcsb.org/download/5P9J.cif",
+      "sha256": "f3f96185e245ff0e5662729472efa918aa2c20cbe89bae35ac9f43b95c2df002"
+    },
+    {
+      "path": "public/structures/4HHB.cif",
+      "url": "https://files.rcsb.org/download/4HHB.cif",
+      "sha256": "2d3ca1bf21ddff35af2e2bc5d331720f7bfc46a16c4829ea3ec1b41062d5f5a6"
+    }
+  ],
+  "BEN": {
+    "atomCountIncludingHydrogen": 17,
+    "heavyAtomCount": 9,
+    "bondCountIncludingHydrogen": 17,
+    "explicitAromaticBondCount": 6,
+    "terminalBonds": {
+      "C-N1": {
+        "order": "DOUB",
+        "stereo": "E"
+      },
+      "C-N2": {
+        "order": "SING",
+        "stereo": "N"
+      }
+    }
+  }
+}

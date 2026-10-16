@@ -71,7 +71,7 @@ test("Dexie v2 upgrades without losing coordinate sources, saved sessions or ana
   });
   legacy.close();
   await database.open();
-  expect(database.verno).toBe(4);
+  expect(database.verno).toBe(5);
   expect((await getLastSession())?.descriptor).toEqual(descriptor);
   // Version 4 records each existing source's size for cache accounting.
   expect(

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`) and Phase 4 structural comparison (`comparison-1.1.0`). Phase 5's curated-variant track is complete (`biology-1.2.0`); its other tracks (protein–protein interfaces, ligand pose RMSD, alignment-based correspondence) are pending. Milestones M1–M2 of `docs/NEXT_DEVELOPMENT_PLAN.md` (release gate, linked comparison investigation) are complete as package 0.5.1.
+Molecular Interaction Explorer: a static, backend-free React/TypeScript/Mol* app (deployed to GitHub Pages at https://jtmcbride.github.io/Molecules/) for exploring deposited PDB structures, computing ligand–receptor interactions, and interpreting residues through SIFTS/UniProt. Phases 1–3 are complete, including the Phase 3 follow-up milestones 3F–3J, the Phase 2.x interaction ruleset revision (`molstar-5.13.1-ligand-3`) and Phase 4 structural comparison (`comparison-1.1.0`). Phase 5's curated-variant track is complete (`biology-1.2.0`); its other tracks (protein–protein interfaces, ligand pose RMSD, alignment-based correspondence) are pending. Milestones M1–M3 of `docs/NEXT_DEVELOPMENT_PLAN.md` (release gate, linked comparison investigation, protein-level variant discovery) are complete as package 0.5.2.
 
 Scientific policy, defaults and limits live in `README.md`. Validation evidence lives in `validation/README.md` (Phase 2, PLIP comparison) and `validation/BIOLOGY.md` (Phase 3). Design contracts and follow-up milestones live in `docs/PHASE_3_PLAN.md`; phase status records are in `docs/PHASE_*_STATUS.md`. `docs/PHASE_2X_PLAN.md` records the ligand-3 ruleset revision. `docs/PHASE_4_PLAN.md` records Phase 4 (structural comparison); validation is in `validation/COMPARISON.md`. `docs/PHASE_5_PLAN.md` records the Phase 5 curated-variant track; validation is in `validation/VARIANTS.md`. `tests/contracts.test.ts` fails if the plan's contract excerpt drifts from `src/domain/biology.ts`. Update those docs whenever behavior, defaults or limits change. They are the project's scientific record, not marketing.
 
@@ -42,6 +42,7 @@ src/
     release.ts     Build-injected package version and scientific version constants for UI
     analysis.ts    Interaction types, DEFAULT_PARAMETERS, ENGINE_VERSION/RULESET_VERSION
     comparison.ts  COMPARISON_VERSION, comparison session descriptors, rigid transforms
+    ligandPose.ts  M4 pose input/chemistry/algorithm policies, refusal states and measured results
     selection.ts   StructureRef/ResidueTarget, InvestigationRequest/View/Result (structure-qualified selection)
     biology.ts     ProteinRecord, ResidueMapping (status + identity), FunctionalAnnotation, Evidence, LigandIdentity, LigandFit, InterpretationSnapshot, site/context feature categories
   structure/   Mol* boundary for parsing/rendering
@@ -50,6 +51,7 @@ src/
     extract.ts     Builds StructureSnapshot (assembly-space Float32Array coords) + SelectionIndex
     quality.ts     Refinement statistics from mmCIF; Cruickshank DPI coordinate error
     ligandGroups.ts  Multi-residue ligand groups (branched, BIRD, covalently linked)
+    chemicalGraph.ts  Deposited chemical graphs and attachment context; no inferred bonds
     controller.ts  Serialized scene updates, stale-request rejection
   analysis/    Phase 2 engine (runs in a Web Worker)
     worker.ts, client.ts   Worker entry + cancellable client
@@ -69,6 +71,7 @@ src/
   biology/     Phase 3 interpretation
     mapping.ts     Exact SIFTS residue correspondence + per-chain coverage
     projection.ts  Annotation → residue projection; binding-site summary (site headline vs chain background, context features, ChEBI ligand relations, variant counts)
+    variantTable.ts  Protein-level source rows, chain coverage and independent contact filters
     variants.ts    Curated variants vs deposited residues (carries/original/other/not_evaluated), labels
     consequences.ts, consequenceText.ts  Atom-level variant consequences; the only source of their wording
     carriers.ts    Deposited entries whose entity sequence carries a variant's replacement
@@ -78,11 +81,12 @@ src/
   data/        External sources + persistence
     provider.ts    RCSB/local ingestion, SHA-256, metadata
     chemistry.ts   Optional RCSB CCD downloads
+    ligandChemistry.ts  Independent pose preparation; immutable chemistry revisions and exact offline pins
     sifts.ts, uniprot.ts, biologySchemas.ts  Zod/XML-validated adapters
     chemcomp.ts, ligandFit.ts  RCSB chemical component (ChEBI) and ligand-instance validation adapters
     variantCarriers.ts  RCSB sequence-coordinates alignments (GraphQL POST), source-conflict check
     biologyResources.ts  Bounded fetch, 7-day freshness, stale fallback
-    repository.ts  Dexie IndexedDB (DB version 4). Add a new version(); never edit old ones. Source cache budget + eviction
+    repository.ts  Dexie IndexedDB (DB version 5). Add a new version(); never edit old ones. Source cache budget + eviction
     cache.ts       Pure LRU eviction planning (protected: open structures, saved session)
   state/explorer.ts  Zustand UI state (reference structure)
   state/comparison.ts  Comparison slots, one per comparison structure
@@ -91,6 +95,9 @@ src/
     controller.ts  Per-slot loading, pinned restore, interpretation and queued analysis; never touches the reference
     correspondence.ts  SIFTS-only chain pairing and residue correspondence
     superposition.ts   Horn fit of paired Cα with outlier rejection (validated against numpy)
+    ligandPoseInput.ts  Pure ligand eligibility and fixed protein-frame input identity
+    ligandPose.ts, poseMappings.ts, poseTransform.ts  Exact bounded atom correspondence, stereo parity and fixed-frame RMSD
+    ligandPoseWorker.ts, ligandPoseClient.ts  Cancellable pose worker; slot/UI integration remains M4-C
     fingerprint.ts     Fingerprint matrix keyed by UniProt position; unmeasured cells never count as absent
     derived.ts, export.ts  Memoized correspondence/fingerprints; comparison JSON/CSV
     selection.ts   resolveInvestigation/refreshInvestigation/drawnInteractions: pure, never touches the viewer or stores
@@ -103,6 +110,8 @@ tests/
   fixtures/    Synthetic geometry CIFs (labeled artificial), reference PDB/mmCIF (1EVE, 1RMD, 3PTB), frozen biology responses incl. 1OPH engineered mutant + RCSB ligand records + SHA-256 manifest, golden/engine.json
 public/structures/  Bundled unmodified 3PTB and 4HHB mmCIF samples
 ```
+
+M4-A/M4-B validation and scientific scope live in `validation/LIGAND_POSE.md`. `scripts/ligand-pose-reference.py` regenerates independent RDKit maps and scores with pinned packages; never supply application maps as the independent reference. `node scripts/ligand-pose-worker-check.mjs` tests an isolated production-built worker at `/pose-check/`. It leaves `dist` untouched.
 
 ## Invariants (do not break)
 

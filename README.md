@@ -2,7 +2,7 @@
 
 <https://jtmcbride.github.io/Molecules>
 
-A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Structure exploration, ligand-centered interaction computation, SIFTS/UniProt interpretation, structural comparison with linked investigation of its differences, and curated variants are implemented in version 0.5.1. The [phase status](#phase-status) links to each track's contracts and validation evidence.
+A browser application for exploring deposited molecular structures with linked 3D, sequence, ligand, and residue views. Structure exploration, ligand-centered interaction computation, SIFTS/UniProt interpretation, structural comparison with linked investigation of its differences, and curated variants are implemented in version 0.5.2. The [phase status](#phase-status) links to each track's contracts and validation evidence.
 
 ## Run locally
 
@@ -98,6 +98,8 @@ Initial categories are active sites, binding sites, domains, regions, sites, sig
 
 Binding-site summaries show mapped, ambiguous and unmapped polymer-contact residues with explicit denominators. The headline counts site-level features only (active sites, binding sites, sites) and shows the chain background beside it: in 3PTB, 4 of 17 mapped BEN-contact residues carry site features, against 11 of 223 mapped residues in the chain. Domains and regions are listed as context and never counted as functional overlap, because they can span most of a chain (the P00760 Peptidase S1 domain covers 221 of 223 mapped residues). Processing features are excluded. Proximity, chemical contacts and clashes remain separate. Neither overlap nor contact counts establish functional importance or affinity. Annotation filters leave interaction runs unchanged.
 
+**Protein-level variant discovery** (v0.5.2). The biology panel lists every natural-variant and mutagenesis source feature for the selected protein, including records outside the deposited fragment. Search substitutions, quoted descriptions or source IDs; filter by feature type, exact observed mapping, or proximity/chemical/clash receptor membership in the current analysis. Contact filtering is unavailable without a matching analysis. Ten source records are shown per page, sorted by UniProt position then stable feature ID, with totals independent of chain copies and optional sequence-track categories. Expand a record for chain-instance coverage, deposited residue state, evidence, and an explicit carrier lookup. Inspecting an exact multi-position feature selects all observed positions through the linked investigation controller; uncertain bounds cannot create an exact selection. Lookups are shared per accession, cancellable, isolated on failure and pinned with the session. Interpretation exports remain complete regardless of table filters.
+
 **Curated variants** (biology-1.2.0). UniProt `Natural variant` (observed in people) and `Mutagenesis` (laboratory change) features are offered as separate annotation categories, off by default. Each keeps the replacement UniProt states (for example `E7V`), checked against the sequence, and its dbSNP cross-references; a deletion or other unstated replacement keeps none, and nothing is inferred from the description. The residue inspector lists the variants at a residue with UniProt's text quoted, its evidence, and what the deposited structure has there: the stated replacement (`carries`, e.g. 2HBS for sickle E7V, or 1OPH for Pittsburgh M382R through an engineered mutation), the original residue, neither, or `not evaluated` with the reason. The binding-site summary counts mapped contact residues with variants of each type beside the chain background. In 4HHB, 18 of 21 residues contacting the chain B heme carry natural variants, against 130 of 146 mapped residues in the chain, so a variant at a contact residue says little by itself. A protein without records is reported as such (UniProt P00760 lists no natural variants), not as zero. For each analyzed chemical interaction at a single-residue variant, the residue view states which interacting deposited atoms are part of the replacement: backbone atoms are, Cβ is unless the replacement is glycine, side-chain atoms beyond Cβ are not, and proline's backbone nitrogen has no hydrogen to donate. Nothing is modeled, and whether the replacement forms this or another interaction is not evaluated: in Hb M Saskatoon (β H64Y) the replacement tyrosine itself binds the heme iron. On request, the residue view also lists deposited PDB entries whose entity sequence has a variant's replacement, from RCSB's SIFTS-derived sequence alignments (the UniProt accession is the only thing sent), and opens one as a comparison structure, where SIFTS shows whether the residue is observed and how it is labeled. Sickle E7V lists 10 entries including 2HBS. Lookups are pinned with the session, computed models (AlphaFold) are not listed, and a response whose aligned sequence differs from the pinned UniProt record is refused. Variants never enter the site-level or context counts. These are database records, not a clinical interpretation or a prediction of effect.
 
 UniProt binding-site features name their ligand. Each overlapping binding site is compared with the analyzed component by ChEBI identifier only: `same`, `different` (a different ChEBI entity; charge states and conjugate forms have separate entries) or `unresolved` (a generic label such as "substrate", or no ChEBI cross-reference for the analyzed component). Component cross-references come from RCSB chemical component records, requested by component ID and pinned in the interpretation snapshot.
@@ -154,7 +156,7 @@ See [comparison validation evidence](validation/COMPARISON.md) for the numpy sup
 
 ## Phase status
 
-The [next development plan](docs/NEXT_DEVELOPMENT_PLAN.md) records the implemented M1 release-consistency and deployment-validation changes and M2 linked comparison investigation (v0.5.1). Protein-level variant discovery, ligand pose RMSD, broader validation, portable workspaces, inferred correspondence, and protein interfaces remain planned milestones.
+The [next development plan](docs/NEXT_DEVELOPMENT_PLAN.md) records the implemented M1 release-consistency and deployment-validation changes and M2 linked comparison investigation (v0.5.1), plus M3 protein-level variant discovery (v0.5.2). M4-A adds [pinned ligand chemistry and input eligibility](validation/LIGAND_POSE.md), including nine-heavy-atom BEN fixtures and immutable chemistry storage. M4-B adds the exact bounded atom-mapping and fixed-protein-frame RMSD calculator, with independent RDKit checks and cancellable worker execution. Pose controls, atom highlighting and saved/exported scores remain M4-C. Broader validation, portable workspaces, inferred correspondence, and protein interfaces remain planned milestones.
 
 - **Phase 1 — complete:** reliable structure exploration, identity and linked selection. [Status](docs/PHASE_1_STATUS.md).
 - **Phase 2 — complete:** ligand-centered interaction categories, reproducible graph/geometry, worker execution, caching and exports; documented scientific preparation limits remain. [Status](docs/PHASE_2_STATUS.md).
@@ -221,6 +223,9 @@ src/
     controller.ts         Comparison slots: loading, pinned restore, interpretation, queued analysis
     correspondence.ts     SIFTS-only chain pairing and residue correspondence
     superposition.ts      Horn least-squares Cα fit with outlier rejection
+    ligandPoseInput.ts     M4-A ligand eligibility and pinned fixed-frame inputs
+    ligandPose.ts, poseMappings.ts  M4-B exact bounded maps, stereo constraints and RMSD
+    ligandPoseWorker.ts, ligandPoseClient.ts  Cancellable pose computation; UI integration pending
     fingerprint.ts        UniProt-keyed fingerprints, comparability and change margins
     siteDifferences.ts, torsions.ts  Residue shifts, χ angles and site waters
     derived.ts, export.ts  Memoized derived results; comparison JSON and fingerprint CSV
@@ -234,12 +239,14 @@ src/
   structure/
     adapter.ts            Mol* lifecycle, scene building, and selection translation
     extract.ts            Assembly-space coordinates and normalized identities
+    chemicalGraph.ts      Explicit chemical atom/bond labels and deposited attachment records
     quality.ts            Refinement statistics and Cruickshank coordinate error
     controller.ts         Serialized scene updates and stale-request rejection
     investigation.ts      The single writer of the persistent selection; re-resolves or clears on change
   data/
     provider.ts           RCSB/local ingestion, validation, hashes, and metadata
     chemistry.ts          Optional component dictionary acquisition
+    ligandChemistry.ts     Independent pose chemistry acquisition and exact offline pins
     sifts.ts, uniprot.ts   Validated biological provider adapters
     chemcomp.ts, ligandFit.ts  RCSB chemical identity (ChEBI) and ligand validation adapters
     biologyResources.ts   Bounded acquisition, freshness and stale fallback

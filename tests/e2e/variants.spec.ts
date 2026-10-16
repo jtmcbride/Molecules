@@ -266,3 +266,103 @@ test("a failed carrier lookup leaves interpretation and analysis intact", async 
   await expect(page.getByTestId("binding-site-summary")).toBeVisible();
   await expect(variants).toContainText("H93D");
 });
+
+test("protein table discovers a variant, inspects a chain and opens a carrier comparison", async ({
+  page,
+}, testInfo) => {
+  const requests: string[] = [];
+  await carrierRoute(page, requests);
+  await page.goto("./");
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  const table = page.getByTestId("variant-table");
+  await expect(table).toContainText(
+    "UniProt P00760 lists no natural variant or mutagenesis records.",
+  );
+  await page.locator(".example-button").nth(1).click();
+  await expect(
+    page.getByText("Protein annotations ready", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: /^Chain B / }).click();
+  await expect(table.getByTestId("variant-type-counts")).toContainText(
+    "261 Natural variant · 0 Mutagenesis",
+  );
+  await expect(table.getByLabel("Contact membership")).toBeDisabled();
+  await expect(table.getByRole("status")).toContainText("1–10 shown");
+  await table.getByRole("button", { name: "Next variants" }).click();
+  await expect(table.getByRole("status")).toContainText("11–20 shown");
+  await table.getByLabel("Search records").fill("E7V");
+  await expect(table.getByRole("status")).toContainText(
+    "1 of 261 source features",
+  );
+  await table.getByRole("button", { name: "Show details for E7V" }).click();
+  await expect(table).toContainText(
+    "2 / 2 chain instances with exact observed positions",
+  );
+  expect(requests).toEqual([]);
+  await table.getByRole("button", { name: /^Inspect E7V in chain B / }).click();
+  await expect(page.locator(".residue-identity")).toContainText("6");
+  // An already-selected residue must still bring its chain back into the sequence panel.
+  await page.getByRole("button", { name: /^Chain D / }).click();
+  await table.getByRole("button", { name: /^Inspect E7V in chain B / }).click();
+  await expect(page.getByRole("button", { name: /^Chain B / })).toHaveClass(
+    /active/,
+  );
+  await table
+    .getByRole("button", { name: "Variant evidence", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("UniProt");
+  await page.getByRole("button", { name: /Close evidence/ }).click();
+  await table
+    .getByRole("button", {
+      name: "Find deposited structures with these replacements",
+    })
+    .click();
+  await expect(table.getByTestId("variant-carriers")).toContainText(
+    "E7V 10 deposited entries",
+  );
+  await table.screenshot({
+    path: testInfo.outputPath("variant-table-desktop.png"),
+  });
+  const residueVariants = page.getByTestId("residue-variants");
+  await residueVariants.locator("summary").click();
+  await expect(residueVariants.getByTestId("variant-carriers")).toContainText(
+    "E7V 10 deposited entries",
+  );
+  expect(requests).toEqual(["P68871"]);
+  await table.getByRole("button", { name: "Compare 2HBS" }).click();
+  await expect(page.getByTestId("comparison-slot")).toHaveAttribute(
+    "data-phase",
+    "ready",
+  );
+  await expect(page.getByTestId("comparison-slot")).toContainText("E7V");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(table.getByLabel("Search records")).toBeVisible();
+  await table.screenshot({
+    path: testInfo.outputPath("variant-table-mobile.png"),
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("variant table contact and source-type filters leave the analysis summary unchanged", async ({
+  page,
+}) => {
+  await openHemoglobinHeme(page);
+  await page.getByRole("button", { name: /^Chain B / }).click();
+  const table = page.getByTestId("variant-table");
+  const before = await page.getByTestId("binding-site-summary").textContent();
+  await expect(table.getByLabel("Contact membership")).toBeEnabled();
+  await table.getByLabel("Contact membership").selectOption("chemical");
+  await expect(table.getByRole("status")).not.toContainText("261 of 261");
+  await table.getByLabel("Feature type").selectOption("Mutagenesis");
+  await expect(table).toContainText("No source features match these filters.");
+  expect(await page.getByTestId("binding-site-summary").textContent()).toBe(
+    before,
+  );
+  await expect(page.locator(".analysis-summary")).toBeVisible();
+});
